@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gal/gal.dart';
@@ -52,8 +53,8 @@ class DiaryScreenState extends State<DiaryScreen>
     _loadCustomHomework();
   }
 
-  Future<void> _loadCustomHomework() async {
-    final list = await FirestoreService.getHomework();
+  Future<void> _loadCustomHomework({bool forceRefresh = false}) async {
+    final list = await FirestoreService.getHomework(forceRefresh: forceRefresh);
     if (!mounted) return;
     setState(() {
       _homeworkLookup = _buildHomeworkLookup(list);
@@ -62,6 +63,10 @@ class DiaryScreenState extends State<DiaryScreen>
 
   void reloadHomework() {
     _loadCustomHomework();
+  }
+
+  Future<void> _refreshHomework() async {
+    await _loadCustomHomework(forceRefresh: true);
   }
 
   Map<String, List<HomeworkItem>> _buildHomeworkLookup(
@@ -386,39 +391,45 @@ class DiaryScreenState extends State<DiaryScreen>
     final dateStr =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Расписание',
-                style: TextStyle(
-                  fontFamily: AppTheme.fontSerif,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.onBg,
-                )),
-            Text(weekdaysFull[dayOfWeek],
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.onSurface2,
-                  fontWeight: FontWeight.w500,
-                )),
-          ],
+    return RefreshIndicator(
+      color: AppTheme.primary,
+      onRefresh: _refreshHomework,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
         ),
-        const SizedBox(height: 16),
-        if (lessons.isEmpty)
-          _buildNoLessons()
-        else
-          ...lessons.map((lesson) {
-            final additionalHw =
-                _homeworkLookup[_buildHomeworkKey(dateStr, lesson.subject)] ??
-                    const <HomeworkItem>[];
-            return _buildLessonCard(lesson, additionalHw);
-          }),
-      ],
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Расписание',
+                  style: TextStyle(
+                    fontFamily: AppTheme.fontSerif,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.onBg,
+                  )),
+              Text(weekdaysFull[dayOfWeek],
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.onSurface2,
+                    fontWeight: FontWeight.w500,
+                  )),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (lessons.isEmpty)
+            _buildNoLessons()
+          else
+            ...lessons.map((lesson) {
+              final additionalHw =
+                  _homeworkLookup[_buildHomeworkKey(dateStr, lesson.subject)] ??
+                      const <HomeworkItem>[];
+              return _buildLessonCard(lesson, additionalHw);
+            }),
+        ],
+      ),
     );
   }
 
@@ -701,12 +712,30 @@ class DiaryScreenState extends State<DiaryScreen>
                                                       AppTheme.radiusSm),
                                               child: displayUrl
                                                       .startsWith('http')
-                                                  ? Image.network(
-                                                      displayUrl,
+                                                  ? CachedNetworkImage(
+                                                      imageUrl: displayUrl,
                                                       width: double.infinity,
                                                       fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (ctx, err, stack) =>
+                                                      placeholder: (ctx, url) =>
+                                                          Container(
+                                                        height: 120,
+                                                        color:
+                                                            AppTheme.surface3,
+                                                        alignment:
+                                                            Alignment.center,
+                                                        child: const SizedBox(
+                                                          width: 20,
+                                                          height: 20,
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                            color: AppTheme
+                                                                .primary,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      errorWidget:
+                                                          (ctx, url, err) =>
                                                               Container(
                                                         height: 120,
                                                         color:
@@ -887,7 +916,22 @@ class DiaryScreenState extends State<DiaryScreen>
                         minScale: 0.5,
                         maxScale: 8.0,
                         child: url.startsWith('http')
-                            ? Image.network(url, fit: BoxFit.contain)
+                            ? CachedNetworkImage(
+                                imageUrl: url,
+                                fit: BoxFit.contain,
+                                placeholder: (ctx, value) => const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
+                                errorWidget: (ctx, value, err) => const Icon(
+                                  Icons.broken_image_rounded,
+                                  color: AppTheme.onSurface3,
+                                ),
+                              )
                             : Image.file(File(url), fit: BoxFit.contain),
                       ),
                     ),
