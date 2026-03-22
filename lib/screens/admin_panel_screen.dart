@@ -65,7 +65,9 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
   }
 
   /// Public method so MainScreen can trigger a refresh
-  void reload() => _loadAllHomework();
+  Future<void> reload({bool forceRefresh = false}) {
+    return _loadAllHomework(forceRefresh: forceRefresh, showLoading: false);
+  }
 
   Future<void> _deleteHomework(String itemId) async {
     final success = await FirestoreService.deleteHomework(itemId);
