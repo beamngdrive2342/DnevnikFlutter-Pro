@@ -304,39 +304,6 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                   .map((url) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    child: url.startsWith('http')
-                        ? CachedNetworkImage(
-                            imageUrl: url,
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholder: (ctx, value) => Container(
-                              height: 150,
-                              color: AppTheme.surface3,
-                              alignment: Alignment.center,
-                              child: const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                            ),
-                            errorWidget: (ctx, value, err) => Container(
-                              height: 150,
-                              color: AppTheme.surface3,
-                              child: const Center(
-                                  child: Icon(Icons.broken_image_rounded,
-                                      color: AppTheme.onSurface3)),
-                            ),
-                          )
-                        : Image.file(
-                            File(url),
-                            height: 150,
-                            width: double.infinity,
                             fit: BoxFit.cover,
                             errorBuilder: (ctx, err, stack) => Container(
                               height: 150,
