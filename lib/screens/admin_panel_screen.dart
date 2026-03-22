@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
@@ -25,11 +26,16 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     _loadAllHomework();
   }
 
-  Future<void> _loadAllHomework() async {
-    setState(() {
-      _isLoading = true;
-    });
-    final list = await FirestoreService.getHomework();
+  Future<void> _loadAllHomework({
+    bool forceRefresh = false,
+    bool showLoading = true,
+  }) async {
+    if (showLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+    final list = await FirestoreService.getHomework(forceRefresh: forceRefresh);
     final sortedHomework = [...list]
       ..sort((a, b) => b.deadline.compareTo(a.deadline));
     final todayStr = _todayString();
@@ -51,6 +57,11 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
       _pastHomework = pastHomework;
       _isLoading = false;
     });
+  }
+
+  Future<void> _refreshFromPull() async {
+    await _loadAllHomework(forceRefresh: true, showLoading: false);
+    widget.onHomeworkChanged();
   }
 
   String _todayString() {
@@ -170,14 +181,35 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
   }
 
   Widget _buildList(List<HomeworkItem> items, {required bool editable}) {
-    if (items.isEmpty) return _buildEmptyState();
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 16, bottom: 100, left: 20, right: 20),
-      physics: const BouncingScrollPhysics(),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        return _buildAdminCard(items[index], editable: editable);
-      },
+    if (items.isEmpty) {
+      return RefreshIndicator(
+        color: AppTheme.primary,
+        onRefresh: _refreshFromPull,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          children: [
+            const SizedBox(height: 180),
+            _buildEmptyState(),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      color: AppTheme.primary,
+      onRefresh: _refreshFromPull,
+      child: ListView.builder(
+        padding:
+            const EdgeInsets.only(top: 16, bottom: 100, left: 20, right: 20),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          return _buildAdminCard(items[index], editable: editable);
+        },
+      ),
     );
   }
 
@@ -277,12 +309,25 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                     child: url.startsWith('http')
-                        ? Image.network(
-                            url,
+                        ? CachedNetworkImage(
+                            imageUrl: url,
                             height: 150,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (ctx, err, stack) => Container(
+                            placeholder: (ctx, value) => Container(
+                              height: 150,
+                              color: AppTheme.surface3,
+                              alignment: Alignment.center,
+                              child: const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                            errorWidget: (ctx, value, err) => Container(
                               height: 150,
                               color: AppTheme.surface3,
                               child: const Center(
