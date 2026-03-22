@@ -300,9 +300,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
             const SizedBox(height: 12),
             if ((hw.imageUrls != null && hw.imageUrls!.isNotEmpty) ||
                 (hw.imageUrl != null && hw.imageUrl!.trim().isNotEmpty)) ...[
-              ...((hw.imageUrls != null && hw.imageUrls!.isNotEmpty)
-                      ? hw.imageUrls!
-                      : [hw.imageUrl!])
+              ...(hw.imageUrls ?? (hw.imageUrl != null ? [hw.imageUrl!] : []))
                   .map((url) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
