@@ -92,33 +92,57 @@ class DiaryScreenState extends State<DiaryScreen>
         _buildCalendarStrip(),
         // Swipable day content
         Expanded(
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() => _selectedDate = _days[index]);
-              _scrollToIndex(index);
+          child: GestureDetector(
+            onHorizontalDragStart: (details) {
+              _springController.stop();
             },
-            itemCount: _days.length,
-            itemBuilder: (context, index) {
-              return AnimatedBuilder(
-                animation: _pageController,
-                builder: (context, child) {
-                  double page = 3.0;
-                  if (_pageController.hasClients) {
-                    page = _pageController.page ?? 3.0;
-                  }
-                  
-                  // This creates the leaf-like liquid reveal
-                  double progress = (page - index).abs();
-                  double reveal = (1.0 - progress).clamp(0.0, 1.0);
-                  
-                  return ClipPath(
-                    clipper: LiquidClipper(reveal),
-                    child: _buildLessonsSectionForDay(_days[index]),
-                  );
-                },
+            onHorizontalDragUpdate: (details) {
+              _pageController.position.jumpTo(
+                _pageController.position.pixels - details.primaryDelta!,
               );
             },
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0.0;
+              final width = MediaQuery.of(context).size.width;
+              final currentPixels = _pageController.position.pixels;
+
+              int currentPage = (currentPixels / width).round();
+              int targetPage = currentPage;
+
+              if (velocity < -200 && targetPage < _days.length - 1) {
+                targetPage++;
+              } else if (velocity > 200 && targetPage > 0) {
+                targetPage--;
+              }
+              targetPage = targetPage.clamp(0, _days.length - 1);
+
+              final targetPixels = targetPage * width;
+
+              final simulation = SpringSimulation(
+                SpringDescription.withDampingRatio(
+                  mass: 0.6,
+                  stiffness: 280.0,
+                  ratio: 0.85,
+                ),
+                currentPixels,
+                targetPixels,
+                -velocity,
+              );
+
+              _springController.animateWith(simulation);
+            },
+            child: PageView.builder(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              onPageChanged: (index) {
+                setState(() => _selectedDate = _days[index]);
+                _scrollToIndex(index);
+              },
+              itemCount: _days.length,
+              itemBuilder: (context, index) {
+                return _buildLessonsSectionForDay(_days[index]);
+              },
+            ),
           ),
         ),
       ],
@@ -1007,39 +1031,4 @@ class _RoleGateRedirect extends StatelessWidget {
       home: const RoleGate(),
     );
   }
-}
-
-class LiquidClipper extends CustomClipper<Path> {
-  final double progress;
-  LiquidClipper(this.progress);
-
-  @override
-  Path getClip(Size size) {
-    if (progress <= 0) return Path();
-    if (progress >= 1) return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    final path = Path();
-    final width = size.width;
-    final height = size.height;
-    
-    // Liquid wave effect calculation
-    final centerX = width * (1.0 - progress);
-    final waveAmplitude = 40.0 * (1.0 - progress);
-
-    path.moveTo(width, 0);
-    path.lineTo(centerX, 0);
-    path.quadraticBezierTo(
-      centerX - waveAmplitude,
-      height * 0.5,
-      centerX,
-      height,
-    );
-    path.lineTo(width, height);
-    path.close();
-    
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
 }
