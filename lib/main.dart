@@ -339,11 +339,11 @@ class _MainScreenState extends State<MainScreen> {
       });
     }
 
-    await showModalBottomSheet<void>(
+    final savedSubject = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
+      isDismissible: true,
+      enableDrag: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
@@ -747,19 +747,7 @@ class _MainScreenState extends State<MainScreen> {
                                       await _cleanupTemporaryPickerFiles(
                                           pickedImagePaths);
                                       if (!context.mounted) return;
-                                      await _diaryKey.currentState
-                                          ?.reloadHomework(forceRefresh: true);
-                                      await _adminKey.currentState
-                                          ?.reload(forceRefresh: true);
-                                      if (ctx.mounted) {
-                                        Navigator.of(ctx).pop();
-                                      }
-
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                'Задание по $selectedSubject добавлено')),
-                                      );
+                                      Navigator.of(ctx).pop(selectedSubject);
                                     },
                               child: isUploading
                                   ? const SizedBox(
@@ -783,6 +771,20 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
     taskController.dispose();
+
+    if (savedSubject == null || !mounted) {
+      return;
+    }
+
+    await _diaryKey.currentState?.reloadHomework(forceRefresh: true);
+    await _adminKey.currentState?.reload(forceRefresh: true);
+    if (!mounted) return;
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Р—Р°РґР°РЅРёРµ РїРѕ $savedSubject РґРѕР±Р°РІР»РµРЅРѕ'),
+      ),
+    );
   }
 
   Widget _formLabel(String text) {
