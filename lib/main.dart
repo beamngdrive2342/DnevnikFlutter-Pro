@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/diary_screen.dart';
 import 'screens/admin_panel_screen.dart';
@@ -226,6 +227,8 @@ class _MainScreenState extends State<MainScreen> {
   static const String _imageUploadUrl = 'https://freeimage.host/api/1/upload';
   static const String _imageUploadKey = '6d207e02198a847aa98d0a2a901485a5';
   static const Duration _uploadTimeout = Duration(seconds: 20);
+  static const int _pickedImageQuality = 70;
+  static const double _pickedImageMaxSide = 1920;
 
   int _currentIndex = 0;
   final GlobalKey<DiaryScreenState> _diaryKey = GlobalKey<DiaryScreenState>();
@@ -263,6 +266,27 @@ class _MainScreenState extends State<MainScreen> {
     return null;
   }
 
+  Future<void> _cleanupTemporaryPickerFiles(Iterable<String> paths) async {
+    try {
+      final tempDirPath = (await getTemporaryDirectory()).path;
+      final tempRoot = Directory(tempDirPath).absolute.path;
+
+      for (final path in paths) {
+        final absolutePath = File(path).absolute.path;
+        if (!absolutePath.startsWith(tempRoot)) {
+          continue;
+        }
+
+        final file = File(absolutePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    } catch (e) {
+      debugPrint('Temp cleanup error: $e');
+    }
+  }
+
   late final List<Widget> _screens;
 
   @override
@@ -296,7 +320,11 @@ class _MainScreenState extends State<MainScreen> {
     bool isUploading = false;
 
     Future<void> pickImages(StateSetter setModalState) async {
-      final images = await _imagePicker.pickMultiImage(imageQuality: 85);
+      final images = await _imagePicker.pickMultiImage(
+        imageQuality: _pickedImageQuality,
+        maxWidth: _pickedImageMaxSide,
+        maxHeight: _pickedImageMaxSide,
+      );
       if (images.isEmpty) {
         return;
       }
@@ -696,6 +724,9 @@ class _MainScreenState extends State<MainScreen> {
                                       return;
                                     }
 
+                                    await _cleanupTemporaryPickerFiles(
+                                        pickedImagePaths);
+                                    if (!context.mounted) return;
                                     _diaryKey.currentState?.reloadHomework();
                                     _adminKey.currentState?.reload();
                                     if (ctx.mounted) Navigator.pop(ctx);
