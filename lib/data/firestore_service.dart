@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'schedule_data.dart';
@@ -12,6 +13,15 @@ class FirestoreService {
   static final http.Client _client = http.Client();
   static const Duration _requestTimeout = Duration(seconds: 12);
   static const Duration _cacheTtl = Duration(seconds: 20);
+  static const int _maxRetries = 2;
+  static const Set<int> _retryableHttpStatus = {
+    408,
+    429,
+    500,
+    502,
+    503,
+    504,
+  };
 
   static List<HomeworkItem>? _cachedHomework;
   static DateTime? _cacheExpiresAt;
@@ -46,8 +56,12 @@ class FirestoreService {
 
   static Future<List<HomeworkItem>> _fetchHomework() async {
     try {
-      final response =
-          await _client.get(Uri.parse(baseUrl)).timeout(_requestTimeout);
+      final response = await _requestWithRetry(
+        () => _client.get(Uri.parse(baseUrl)),
+      );
+      if (response == null) {
+        return _getFreshCache() ?? const [];
+      }
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final documents = data['documents'] as List<dynamic>? ?? const [];
@@ -67,13 +81,16 @@ class FirestoreService {
   static Future<bool> addHomework(HomeworkItem hw) async {
     try {
       final docId = hw.id;
-      final response = await _client
-          .post(
-            Uri.parse("$baseUrl?documentId=$docId"),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(_toFirestore(hw)),
-          )
-          .timeout(_requestTimeout);
+      final response = await _requestWithRetry(
+        () => _client.post(
+          Uri.parse("$baseUrl?documentId=$docId"),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(_toFirestore(hw)),
+        ),
+      );
+      if (response == null) {
+        return false;
+      }
       final success = response.statusCode == 200 || response.statusCode == 201;
       if (success) {
         _updateCachedItem(hw);
@@ -89,13 +106,16 @@ class FirestoreService {
 
   static Future<bool> updateHomework(HomeworkItem hw) async {
     try {
-      final response = await _client
-          .patch(
-            Uri.parse("$baseUrl/${hw.id}"),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(_toFirestore(hw)),
-          )
-          .timeout(_requestTimeout);
+      final response = await _requestWithRetry(
+        () => _client.patch(
+          Uri.parse("$baseUrl/${hw.id}"),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(_toFirestore(hw)),
+        ),
+      );
+      if (response == null) {
+        return false;
+      }
       final success = response.statusCode == 200;
       if (success) {
         _updateCachedItem(hw);
@@ -111,9 +131,12 @@ class FirestoreService {
 
   static Future<bool> deleteHomework(String id) async {
     try {
-      final response = await _client
-          .delete(Uri.parse("$baseUrl/$id"))
-          .timeout(_requestTimeout);
+      final response = await _requestWithRetry(
+        () => _client.delete(Uri.parse("$baseUrl/$id")),
+      );
+      if (response == null) {
+        return false;
+      }
       final success = response.statusCode == 200;
       if (success) {
         _removeCachedItem(id);
@@ -162,6 +185,48 @@ class FirestoreService {
       return;
     }
     _updateCache(current.where((item) => item.id != id).toList());
+  }
+
+  static Future<http.Response?> _requestWithRetry(
+    Future<http.Response> Function() request,
+  ) async {
+    Object? lastError;
+
+    for (var attempt = 0; attempt <= _maxRetries; attempt++) {
+      try {
+        final response = await request().timeout(_requestTimeout);
+        final shouldRetry = _retryableHttpStatus.contains(response.statusCode);
+        if (!shouldRetry || attempt == _maxRetries) {
+          return response;
+        }
+      } on TimeoutException catch (e) {
+        lastError = e;
+        if (attempt == _maxRetries) {
+          break;
+        }
+      } on SocketException catch (e) {
+        lastError = e;
+        if (attempt == _maxRetries) {
+          break;
+        }
+      } on http.ClientException catch (e) {
+        lastError = e;
+        if (attempt == _maxRetries) {
+          break;
+        }
+      } catch (e) {
+        debugPrint("Request failed: $e");
+        return null;
+      }
+
+      final delay = Duration(milliseconds: 400 * (attempt + 1));
+      await Future<void>.delayed(delay);
+    }
+
+    if (lastError != null) {
+      debugPrint("Request failed after retries: $lastError");
+    }
+    return null;
   }
 
   static Map<String, dynamic> _toFirestore(HomeworkItem hw) {
