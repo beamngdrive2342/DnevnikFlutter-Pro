@@ -92,77 +92,33 @@ class DiaryScreenState extends State<DiaryScreen>
         _buildCalendarStrip(),
         // Swipable day content
         Expanded(
-          child: Stack(
-            children: [
-              // Liquid Background Layer
-              AnimatedBuilder(
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() => _selectedDate = _days[index]);
+              _scrollToIndex(index);
+            },
+            itemCount: _days.length,
+            itemBuilder: (context, index) {
+              return AnimatedBuilder(
                 animation: _pageController,
                 builder: (context, child) {
-                  if (!_pageController.hasClients) return const SizedBox();
-                  
-                  final page = _pageController.page ?? 3.0;
-                  final currentPage = page.floor();
-                  final nextPage = page.ceil();
-                  final progress = page - currentPage;
-                  
-                  return Stack(
-                    children: [
-                      // Current (or Previous) Page
-                      _buildLessonsSectionForDay(_days[currentPage]),
-                      
-                      // Next Page with Liquid Mask
-                      if (progress > 0 && nextPage < _days.length)
-                        ClipPath(
-                          clipper: LiquidClipper(progress),
-                          child: _buildLessonsSectionForDay(_days[nextPage]),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              
-              // Invisible Gesture Overlay
-              GestureDetector(
-                onHorizontalDragStart: (details) {
-                  _springController.stop();
-                },
-                onHorizontalDragUpdate: (details) {
-                  _pageController.position.jumpTo(
-                    _pageController.position.pixels - details.primaryDelta!,
-                  );
-                },
-                onHorizontalDragEnd: (details) {
-                  final velocity = details.primaryVelocity ?? 0.0;
-                  final width = MediaQuery.of(context).size.width;
-                  final currentPixels = _pageController.position.pixels;
-
-                  int currentPageIndex = (currentPixels / width).round();
-                  int targetPageIndex = currentPageIndex;
-
-                  if (velocity < -200 && targetPageIndex < _days.length - 1) {
-                    targetPageIndex++;
-                  } else if (velocity > 200 && targetPageIndex > 0) {
-                    targetPageIndex--;
+                  double page = 3.0;
+                  if (_pageController.hasClients) {
+                    page = _pageController.page ?? 3.0;
                   }
-                  targetPageIndex = targetPageIndex.clamp(0, _days.length - 1);
-
-                  final targetPixels = targetPageIndex * width;
-
-                  final simulation = SpringSimulation(
-                    SpringDescription.withDampingRatio(
-                      mass: 0.6,
-                      stiffness: 280.0,
-                      ratio: 0.85,
-                    ),
-                    currentPixels,
-                    targetPixels,
-                    -velocity,
+                  
+                  // This creates the leaf-like liquid reveal
+                  double progress = (page - index).abs();
+                  double reveal = (1.0 - progress).clamp(0.0, 1.0);
+                  
+                  return ClipPath(
+                    clipper: LiquidClipper(reveal),
+                    child: _buildLessonsSectionForDay(_days[index]),
                   );
-
-                  _springController.animateWith(simulation);
                 },
-              ),
-            ],
+              );
+            },
           ),
         ),
       ],
