@@ -252,12 +252,7 @@ class _MainScreenState extends State<MainScreen> {
         final json = jsonDecode(respStr) as Map<String, dynamic>;
         if (json['image'] != null) {
           final fullUrl = json['image']['url'];
-          // Use medium if available, otherwise fallback to thumb or full
-          final displayUrl = json['image']['medium']?['url'] ??
-              json['image']['thumb']?['url'] ??
-              fullUrl;
-
-          return {'display': displayUrl.toString(), 'full': fullUrl.toString()};
+          return {'display': fullUrl.toString(), 'full': fullUrl.toString()};
         }
       }
     } catch (e) {
@@ -308,6 +303,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _showAddHomeworkModal() async {
+    final messenger = ScaffoldMessenger.of(context);
     String? selectedSubject;
     final taskController = TextEditingController();
     final pickedImagePaths = <String>[];
@@ -654,8 +650,7 @@ class _MainScreenState extends State<MainScreen> {
                                 : () async {
                                     if (selectedSubject == null ||
                                         taskController.text.trim().isEmpty) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                             content: Text(
                                                 'Заполните предмет и задание')),
@@ -683,8 +678,7 @@ class _MainScreenState extends State<MainScreen> {
                                     if (hasError) {
                                       setModalState(() => isUploading = false);
                                       if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                             content: Text(
                                                 'Ошибка при загрузке фото в облако. Попробуйте ещё раз.')),
@@ -715,8 +709,7 @@ class _MainScreenState extends State<MainScreen> {
 
                                     if (!success) {
                                       setModalState(() => isUploading = false);
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                             content: Text(
                                                 'Ошибка при сохранении в базу данных.')),
@@ -731,7 +724,7 @@ class _MainScreenState extends State<MainScreen> {
                                     _adminKey.currentState?.reload();
                                     if (ctx.mounted) Navigator.pop(ctx);
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    messenger.showSnackBar(
                                       SnackBar(
                                           content: Text(
                                               'Задание по $selectedSubject добавлено')),
