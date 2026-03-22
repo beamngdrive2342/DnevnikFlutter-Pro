@@ -1,7 +1,6 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gal/gal.dart';
@@ -11,17 +10,24 @@ import '../main.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
+import '../widgets/network_photo.dart';
 
 class DiaryScreen extends StatefulWidget {
-  const DiaryScreen({super.key});
+  final bool enableLiveUpdates;
+
+  const DiaryScreen({
+    super.key,
+    this.enableLiveUpdates = false,
+  });
 
   @override
   State<DiaryScreen> createState() => DiaryScreenState();
 }
 
 class DiaryScreenState extends State<DiaryScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const Duration _imageDownloadTimeout = Duration(seconds: 15);
+  static const Duration _liveRefreshInterval = Duration(seconds: 3);
 
   late DateTime _selectedDate;
   late ScrollController _calendarScrollController;
@@ -30,10 +36,14 @@ class DiaryScreenState extends State<DiaryScreen>
   late List<DateTime> _days;
   late DateTime _today;
   Map<String, List<HomeworkItem>> _homeworkLookup = {};
+  Timer? _refreshTimer;
+  bool _isRefreshing = false;
+  String? _homeworkSignature;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _today = DateTime.now();
     _days = List.generate(14, (i) => _today.add(Duration(days: i - 3)));
     _selectedDate = _today;
@@ -51,22 +61,26 @@ class DiaryScreenState extends State<DiaryScreen>
       _scrollToIndex(3);
     });
     _loadCustomHomework();
+    if (widget.enableLiveUpdates) {
+      _startLiveRefresh();
+    }
   }
 
   Future<void> _loadCustomHomework({bool forceRefresh = false}) async {
     final list = await FirestoreService.getHomework(forceRefresh: forceRefresh);
+    final nextSignature = _buildHomeworkSignature(list);
     if (!mounted) return;
+    if (_homeworkSignature == nextSignature) {
+      return;
+    }
     setState(() {
       _homeworkLookup = _buildHomeworkLookup(list);
+      _homeworkSignature = nextSignature;
     });
   }
 
-  void reloadHomework() {
-    _loadCustomHomework();
-  }
-
-  Future<void> _refreshHomework() async {
-    await _loadCustomHomework(forceRefresh: true);
+  Future<void> reloadHomework({bool forceRefresh = false}) {
+    return _loadCustomHomework(forceRefresh: forceRefresh);
   }
 
   Map<String, List<HomeworkItem>> _buildHomeworkLookup(
@@ -80,6 +94,69 @@ class DiaryScreenState extends State<DiaryScreen>
   }
 
   String _buildHomeworkKey(String date, String subject) => '$date|$subject';
+
+  String _buildHomeworkSignature(List<HomeworkItem> homework) {
+    final sorted = [...homework]..sort((a, b) => a.id.compareTo(b.id));
+    final buffer = StringBuffer();
+    for (final item in sorted) {
+      buffer
+        ..write(item.id)
+        ..write('|')
+        ..write(item.subject)
+        ..write('|')
+        ..write(item.task)
+        ..write('|')
+        ..write(item.deadline)
+        ..write('|')
+        ..write(item.imageUrl ?? '')
+        ..write('|')
+        ..write(item.imageUrls?.join(',') ?? '')
+        ..write('|')
+        ..write(item.fullResolutionUrls?.join(',') ?? '')
+        ..write(';');
+    }
+    return buffer.toString();
+  }
+
+  void _startLiveRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(_liveRefreshInterval, (_) {
+      _runLiveRefresh();
+    });
+  }
+
+  Future<void> _runLiveRefresh() async {
+    if (_isRefreshing || !mounted) {
+      return;
+    }
+
+    _isRefreshing = true;
+    try {
+      await _loadCustomHomework(forceRefresh: true);
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!widget.enableLiveUpdates) {
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      _runLiveRefresh();
+      _startLiveRefresh();
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _refreshTimer?.cancel();
+    }
+  }
 
   void _scrollToIndex(int index) {
     if (!_calendarScrollController.hasClients) return;
@@ -95,6 +172,8 @@ class DiaryScreenState extends State<DiaryScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
     _calendarScrollController.dispose();
     _pageController.dispose();
     _springController.dispose();
@@ -391,45 +470,39 @@ class DiaryScreenState extends State<DiaryScreen>
     final dateStr =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-    return RefreshIndicator(
-      color: AppTheme.primary,
-      onRefresh: _refreshHomework,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Расписание',
+                style: TextStyle(
+                  fontFamily: AppTheme.fontSerif,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.onBg,
+                )),
+            Text(weekdaysFull[dayOfWeek],
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.onSurface2,
+                  fontWeight: FontWeight.w500,
+                )),
+          ],
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Расписание',
-                  style: TextStyle(
-                    fontFamily: AppTheme.fontSerif,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.onBg,
-                  )),
-              Text(weekdaysFull[dayOfWeek],
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.onSurface2,
-                    fontWeight: FontWeight.w500,
-                  )),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (lessons.isEmpty)
-            _buildNoLessons()
-          else
-            ...lessons.map((lesson) {
-              final additionalHw =
-                  _homeworkLookup[_buildHomeworkKey(dateStr, lesson.subject)] ??
-                      const <HomeworkItem>[];
-              return _buildLessonCard(lesson, additionalHw);
-            }),
-        ],
-      ),
+        const SizedBox(height: 16),
+        if (lessons.isEmpty)
+          _buildNoLessons()
+        else
+          ...lessons.map((lesson) {
+            final additionalHw =
+                _homeworkLookup[_buildHomeworkKey(dateStr, lesson.subject)] ??
+                    const <HomeworkItem>[];
+            return _buildLessonCard(lesson, additionalHw);
+          }),
+      ],
     );
   }
 
@@ -584,309 +657,290 @@ class DiaryScreenState extends State<DiaryScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            decoration: BoxDecoration(
-              color: AppTheme.bg.withValues(alpha: 0.85),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(32)),
-              border: Border.all(color: AppTheme.cardBorder),
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: AppTheme.onSurface3.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          decoration: BoxDecoration(
+            color: AppTheme.bg.withValues(alpha: 0.96),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(color: AppTheme.cardBorder),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppTheme.onSurface3.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                const SizedBox(height: 32),
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          lesson.subject,
-                          style: const TextStyle(
-                              fontFamily: AppTheme.fontSerif,
-                              fontSize: 32,
+              ),
+              const SizedBox(height: 32),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lesson.subject,
+                        style: const TextStyle(
+                            fontFamily: AppTheme.fontSerif,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.onBg),
+                      ),
+                      const SizedBox(height: 32),
+                      const Text('Задание',
+                          style: TextStyle(
+                              fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.onBg),
+                              color: AppTheme.onBg)),
+                      const SizedBox(height: 16),
+                      if (lesson.hw.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface2,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppTheme.cardBorder),
+                          ),
+                          child: Text(lesson.hw,
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppTheme.onBg,
+                                  height: 1.5)),
                         ),
-                        const SizedBox(height: 32),
-                        const Text('Задание',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.onBg)),
-                        const SizedBox(height: 16),
-                        if (lesson.hw.isNotEmpty)
-                          Container(
+                      if (lesson.hw.isNotEmpty && customHw.isNotEmpty)
+                        const SizedBox(height: 12),
+                      ...customHw.map((hw) => Container(
                             width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppTheme.surface2,
+                              color: AppTheme.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.cardBorder),
+                              border: Border.all(
+                                  color:
+                                      AppTheme.primary.withValues(alpha: 0.3)),
                             ),
-                            child: Text(lesson.hw,
-                                style: const TextStyle(
-                                    fontSize: 15,
-                                    color: AppTheme.onBg,
-                                    height: 1.5)),
-                          ),
-                        if (lesson.hw.isNotEmpty && customHw.isNotEmpty)
-                          const SizedBox(height: 12),
-                        ...customHw.map((hw) => Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                    color: AppTheme.primary
-                                        .withValues(alpha: 0.3)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SelectableText(hw.task,
-                                      style: const TextStyle(
-                                          fontSize: 15,
-                                          color: AppTheme.onBg,
-                                          height: 1.5)),
-                                  if ((hw.imageUrls != null &&
-                                          hw.imageUrls!.isNotEmpty) ||
-                                      (hw.imageUrl != null &&
-                                          hw.imageUrl!.trim().isNotEmpty)) ...[
-                                    const SizedBox(height: 16),
-                                    ...((hw.imageUrls != null &&
-                                                hw.imageUrls!.isNotEmpty)
-                                            ? List.generate(
-                                                hw.imageUrls!.length, (i) {
-                                                return {
-                                                  'display': hw.imageUrls![i],
-                                                  'full': (hw.fullResolutionUrls !=
-                                                              null &&
-                                                          hw.fullResolutionUrls!
-                                                                  .length >
-                                                              i)
-                                                      ? hw.fullResolutionUrls![
-                                                          i]
-                                                      : hw.imageUrls![i]
-                                                };
-                                              })
-                                            : [
-                                                {
-                                                  'display': hw.imageUrl!,
-                                                  'full': hw.imageUrl!
-                                                }
-                                              ])
-                                        .map((imageMap) {
-                                      final displayUrl = imageMap['display']!;
-                                      final fullUrl = imageMap['full']!;
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SelectableText(hw.task,
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        color: AppTheme.onBg,
+                                        height: 1.5)),
+                                if ((hw.imageUrls != null &&
+                                        hw.imageUrls!.isNotEmpty) ||
+                                    (hw.imageUrl != null &&
+                                        hw.imageUrl!.trim().isNotEmpty)) ...[
+                                  const SizedBox(height: 16),
+                                  ...((hw.imageUrls != null &&
+                                              hw.imageUrls!.isNotEmpty)
+                                          ? List.generate(hw.imageUrls!.length,
+                                              (i) {
+                                              return {
+                                                'display': hw.imageUrls![i],
+                                                'full': (hw.fullResolutionUrls !=
+                                                            null &&
+                                                        hw.fullResolutionUrls!
+                                                                .length >
+                                                            i)
+                                                    ? hw.fullResolutionUrls![i]
+                                                    : hw.imageUrls![i]
+                                              };
+                                            })
+                                          : [
+                                              {
+                                                'display': hw.imageUrl!,
+                                                'full': hw.imageUrl!
+                                              }
+                                            ])
+                                      .map((imageMap) {
+                                    final displayUrl = imageMap['display']!;
+                                    final fullUrl = imageMap['full']!;
 
-                                      return Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () {
-                                              _openFullScreenImage(
-                                                  context, fullUrl);
-                                            },
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      AppTheme.radiusSm),
-                                              child: displayUrl
-                                                      .startsWith('http')
-                                                  ? CachedNetworkImage(
-                                                      imageUrl: displayUrl,
-                                                      width: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                      placeholder: (ctx, url) =>
-                                                          Container(
-                                                        height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
-                                                        alignment:
-                                                            Alignment.center,
-                                                        child: const SizedBox(
-                                                          width: 20,
-                                                          height: 20,
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                            color: AppTheme
-                                                                .primary,
-                                                          ),
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            _openFullScreenImage(
+                                                context, fullUrl);
+                                          },
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                                AppTheme.radiusSm),
+                                            child: displayUrl.startsWith('http')
+                                                ? NetworkPhoto(
+                                                    url: displayUrl,
+                                                    width: double.infinity,
+                                                    height: 120,
+                                                    fit: BoxFit.cover,
+                                                    loading: Container(
+                                                      height: 120,
+                                                      color: AppTheme.surface3,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: const SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color:
+                                                              AppTheme.primary,
                                                         ),
                                                       ),
-                                                      errorWidget:
-                                                          (ctx, url, err) =>
-                                                              Container(
-                                                        height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
-                                                        child: const Center(
-                                                            child: Icon(
-                                                                Icons
-                                                                    .broken_image_rounded,
-                                                                color: AppTheme
-                                                                    .onSurface3)),
-                                                      ),
-                                                    )
-                                                  : Image.file(
-                                                      File(displayUrl),
-                                                      width: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (ctx, err, stack) =>
-                                                              Container(
-                                                        height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
-                                                        child: const Center(
-                                                            child: Icon(
-                                                                Icons
-                                                                    .broken_image_rounded,
-                                                                color: AppTheme
-                                                                    .onSurface3)),
+                                                    ),
+                                                    error: Container(
+                                                      height: 120,
+                                                      color: AppTheme.surface3,
+                                                      child: const Center(
+                                                        child: Icon(
+                                                          Icons
+                                                              .broken_image_rounded,
+                                                          color: AppTheme
+                                                              .onSurface3,
+                                                        ),
                                                       ),
                                                     ),
-                                            ),
+                                                  )
+                                                : Image.file(
+                                                    File(displayUrl),
+                                                    width: double.infinity,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (ctx, err, stack) =>
+                                                            Container(
+                                                      height: 120,
+                                                      color: AppTheme.surface3,
+                                                      child: const Center(
+                                                          child: Icon(
+                                                              Icons
+                                                                  .broken_image_rounded,
+                                                              color: AppTheme
+                                                                  .onSurface3)),
+                                                    ),
+                                                  ),
                                           ),
-                                          Align(
-                                            alignment: Alignment.centerRight,
-                                            child: TextButton.icon(
-                                              onPressed: () async {
-                                                try {
-                                                  final hasAccess =
-                                                      await Gal.hasAccess();
-                                                  if (!hasAccess) {
-                                                    final request = await Gal
-                                                        .requestAccess();
-                                                    if (!request &&
-                                                        context.mounted) {
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                        const SnackBar(
-                                                            content: Text(
-                                                                'Нет разрешения к галерее')),
-                                                      );
-                                                      return;
-                                                    }
-                                                  }
-
-                                                  if (context.mounted) {
+                                        ),
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: TextButton.icon(
+                                            onPressed: () async {
+                                              try {
+                                                final hasAccess =
+                                                    await Gal.hasAccess();
+                                                if (!hasAccess) {
+                                                  final request =
+                                                      await Gal.requestAccess();
+                                                  if (!request &&
+                                                      context.mounted) {
                                                     ScaffoldMessenger.of(
                                                             context)
                                                         .showSnackBar(
                                                       const SnackBar(
                                                           content: Text(
-                                                              'Сохраняем фото...'),
-                                                          duration: Duration(
-                                                              seconds: 1)),
+                                                              'Нет разрешения к галерее')),
                                                     );
-                                                  }
-
-                                                  List<int> bytes;
-                                                  if (fullUrl
-                                                      .startsWith('http')) {
-                                                    final response = await http
-                                                        .get(Uri.parse(fullUrl))
-                                                        .timeout(
-                                                            _imageDownloadTimeout);
-                                                    if (response.statusCode ==
-                                                        200) {
-                                                      bytes =
-                                                          response.bodyBytes;
-                                                    } else {
-                                                      throw Exception(
-                                                          'Не удалось загрузить фото');
-                                                    }
-                                                  } else {
-                                                    final f = File(fullUrl);
-                                                    if (!f.existsSync()) {
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(
-                                                                context)
-                                                            .showSnackBar(
-                                                          const SnackBar(
-                                                              content: Text(
-                                                                  'Файл не найден (кэш очищен)')),
-                                                        );
-                                                      }
-                                                      return;
-                                                    }
-                                                    bytes =
-                                                        await f.readAsBytes();
-                                                  }
-
-                                                  await Gal.putImageBytes(
-                                                      Uint8List.fromList(
-                                                          bytes));
-                                                  if (context.mounted) {
-                                                    _showTopNotification(
-                                                        context,
-                                                        'Фото успешно сохранено в галерею!');
-                                                  }
-                                                } catch (e) {
-                                                  if (context.mounted) {
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(
-                                                      SnackBar(
-                                                          content: Text(
-                                                              'Ошибка при сохранении: $e')),
-                                                    );
+                                                    return;
                                                   }
                                                 }
-                                              },
-                                              icon: const Icon(
-                                                  Icons.download_rounded,
-                                                  size: 16),
-                                              label: const Text(
-                                                  'Сохранить фото',
-                                                  style:
-                                                      TextStyle(fontSize: 13)),
-                                              style: TextButton.styleFrom(
-                                                foregroundColor:
-                                                    AppTheme.primary,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 12,
-                                                        vertical: 0),
-                                              ),
+
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                        content: Text(
+                                                            'Сохраняем фото...'),
+                                                        duration: Duration(
+                                                            seconds: 1)),
+                                                  );
+                                                }
+
+                                                List<int> bytes;
+                                                if (fullUrl
+                                                    .startsWith('http')) {
+                                                  final response = await http
+                                                      .get(Uri.parse(fullUrl))
+                                                      .timeout(
+                                                          _imageDownloadTimeout);
+                                                  if (response.statusCode ==
+                                                      200) {
+                                                    bytes = response.bodyBytes;
+                                                  } else {
+                                                    throw Exception(
+                                                        'Не удалось загрузить фото');
+                                                  }
+                                                } else {
+                                                  final f = File(fullUrl);
+                                                  if (!f.existsSync()) {
+                                                    if (context.mounted) {
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                            content: Text(
+                                                                'Файл не найден (кэш очищен)')),
+                                                      );
+                                                    }
+                                                    return;
+                                                  }
+                                                  bytes = await f.readAsBytes();
+                                                }
+
+                                                await Gal.putImageBytes(
+                                                    Uint8List.fromList(bytes));
+                                                if (context.mounted) {
+                                                  _showTopNotification(context,
+                                                      'Фото успешно сохранено в галерею!');
+                                                }
+                                              } catch (e) {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                        content: Text(
+                                                            'Ошибка при сохранении: $e')),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            icon: const Icon(
+                                                Icons.download_rounded,
+                                                size: 16),
+                                            label: const Text('Сохранить фото',
+                                                style: TextStyle(fontSize: 13)),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: AppTheme.primary,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 0),
                                             ),
                                           ),
-                                          const SizedBox(height: 12),
-                                        ],
-                                      );
-                                    }),
-                                  ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                      ],
+                                    );
+                                  }),
                                 ],
-                              ),
-                            )),
-                      ],
-                    ),
+                              ],
+                            ),
+                          )),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -916,10 +970,10 @@ class DiaryScreenState extends State<DiaryScreen>
                         minScale: 0.5,
                         maxScale: 8.0,
                         child: url.startsWith('http')
-                            ? CachedNetworkImage(
-                                imageUrl: url,
+                            ? NetworkPhoto(
+                                url: url,
                                 fit: BoxFit.contain,
-                                placeholder: (ctx, value) => const SizedBox(
+                                loading: const SizedBox(
                                   width: 28,
                                   height: 28,
                                   child: CircularProgressIndicator(
@@ -927,7 +981,7 @@ class DiaryScreenState extends State<DiaryScreen>
                                     color: AppTheme.primary,
                                   ),
                                 ),
-                                errorWidget: (ctx, value, err) => const Icon(
+                                error: const Icon(
                                   Icons.broken_image_rounded,
                                   color: AppTheme.onSurface3,
                                 ),
