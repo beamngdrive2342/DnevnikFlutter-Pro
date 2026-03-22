@@ -292,7 +292,9 @@ class _MainScreenState extends State<MainScreen> {
         DiaryScreen(key: _diaryKey),
         AdminPanelScreen(
           key: _adminKey,
-          onHomeworkChanged: () => _diaryKey.currentState?.reloadHomework(),
+          onHomeworkChanged: () {
+            _diaryKey.currentState?.reloadHomework(forceRefresh: true);
+          },
         ),
       ];
     } else {
@@ -340,6 +342,8 @@ class _MainScreenState extends State<MainScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
@@ -349,285 +353,64 @@ class _MainScreenState extends State<MainScreen> {
               setModalState(fn);
             }
 
-            return Container(
-              margin:
-                  EdgeInsets.only(top: MediaQuery.of(context).padding.top + 40),
-              decoration: BoxDecoration(
-                color: const Color(0xFF251C14),
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppTheme.radiusXl)),
-                border: Border.all(color: AppTheme.cardBorder),
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
+            return PopScope(
+              canPop: !isUploading,
+              child: Container(
+                margin: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 40),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF251C14),
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppTheme.radiusXl)),
+                  border: Border.all(color: AppTheme.cardBorder),
                 ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Добавить задание',
-                                style: TextStyle(
-                                  fontFamily: AppTheme.fontSerif,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.onBg,
-                                )),
-                            Material(
-                              color: AppTheme.surface2,
-                              borderRadius: BorderRadius.circular(100),
-                              child: InkWell(
-                                onTap: () => Navigator.pop(ctx),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Добавить задание',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.fontSerif,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.onBg,
+                                  )),
+                              Material(
+                                color: AppTheme.surface2,
                                 borderRadius: BorderRadius.circular(100),
-                                child: const SizedBox(
-                                  width: 36,
-                                  height: 36,
-                                  child: Icon(Icons.close_rounded,
-                                      color: AppTheme.onSurface2, size: 20),
+                                child: InkWell(
+                                  onTap: isUploading
+                                      ? null
+                                      : () => Navigator.of(ctx).pop(),
+                                  borderRadius: BorderRadius.circular(100),
+                                  child: const SizedBox(
+                                    width: 36,
+                                    height: 36,
+                                    child: Icon(Icons.close_rounded,
+                                        color: AppTheme.onSurface2, size: 20),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Subject
-                        _formLabel('Предмет'),
-                        const SizedBox(height: 6),
-                        Container(
-                          height: 44,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E2218),
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusSm),
-                            border: Border.all(color: AppTheme.cardBorder),
+                            ],
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: selectedSubject,
-                              hint: Text('Выберите предмет',
-                                  style: TextStyle(
-                                      color: AppTheme.onSurface3
-                                          .withValues(alpha: 0.8),
-                                      fontSize: 14)),
-                              isExpanded: true,
-                              dropdownColor: const Color(0xFF2E2218),
-                              style: const TextStyle(
-                                  color: AppTheme.onBg, fontSize: 14),
-                              items: allSubjects
-                                  .map((s) => DropdownMenuItem(
-                                      value: s, child: Text(s)))
-                                  .toList(),
-                              onChanged: (v) =>
-                                  safeSetModalState(() => selectedSubject = v),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
-                        // Task
-                        _formLabel('Задание'),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: taskController,
-                          maxLines: 4,
-                          style: const TextStyle(
-                              color: AppTheme.onBg, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Опишите задание...',
-                            hintStyle: TextStyle(
-                                color:
-                                    AppTheme.onSurface3.withValues(alpha: 0.8)),
-                            filled: true,
-                            fillColor: const Color(0xFF2E2218),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 12),
-                            border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppTheme.radiusSm),
-                              borderSide:
-                                  const BorderSide(color: AppTheme.cardBorder),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppTheme.radiusSm),
-                              borderSide:
-                                  const BorderSide(color: AppTheme.cardBorder),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppTheme.radiusSm),
-                              borderSide:
-                                  const BorderSide(color: AppTheme.primary),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Photo picker
-                        _formLabel('Фото (необязательно)'),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: () async {
-                            await pickImages(ctx, setModalState);
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            height: pickedImagePaths.isEmpty ? 50 : 170,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2E2218),
-                              borderRadius:
-                                  BorderRadius.circular(AppTheme.radiusSm),
-                              border: Border.all(color: AppTheme.cardBorder),
-                            ),
-                            child: pickedImagePaths.isEmpty
-                                ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.photo_library_rounded,
-                                          color: AppTheme.onSurface3
-                                              .withValues(alpha: 0.8),
-                                          size: 22),
-                                      const SizedBox(width: 8),
-                                      Text('Добавить фото',
-                                          style: TextStyle(
-                                              color: AppTheme.onSurface3
-                                                  .withValues(alpha: 0.8),
-                                              fontSize: 14)),
-                                    ],
-                                  )
-                                : ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    padding: const EdgeInsets.all(8),
-                                    itemCount: pickedImagePaths.length + 1,
-                                    itemBuilder: (ctx, idx) {
-                                      if (idx == pickedImagePaths.length) {
-                                        return GestureDetector(
-                                          onTap: () async {
-                                            await pickImages(
-                                                ctx, setModalState);
-                                          },
-                                          child: Container(
-                                            width: 120,
-                                            margin:
-                                                const EdgeInsets.only(left: 8),
-                                            decoration: BoxDecoration(
-                                              color: AppTheme.surface2,
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      AppTheme.radiusSm),
-                                              border: Border.all(
-                                                  color: AppTheme.cardBorder),
-                                            ),
-                                            child: const Center(
-                                              child: Icon(
-                                                  Icons.add_a_photo_rounded,
-                                                  color: AppTheme.primaryDim),
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                      final path = pickedImagePaths[idx];
-                                      return Container(
-                                        width: 120,
-                                        margin: EdgeInsets.only(
-                                            right: idx ==
-                                                    pickedImagePaths.length - 1
-                                                ? 0
-                                                : 8),
-                                        child: Stack(
-                                          children: [
-                                            Positioned.fill(
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        AppTheme.radiusSm),
-                                                child: Image.file(
-                                                  File(path),
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
-                                            ),
-                                            Positioned(
-                                              top: 4,
-                                              right: 4,
-                                              child: GestureDetector(
-                                                onTap: () {
-                                                  safeSetModalState(() {
-                                                    pickedImagePaths
-                                                        .removeAt(idx);
-                                                  });
-                                                },
-                                                child: Container(
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                    color: Colors.black54,
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  child: const Icon(
-                                                      Icons.close_rounded,
-                                                      color: Colors.white,
-                                                      size: 14),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Deadline
-                        _formLabel('Срок сдачи'),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              locale: const Locale('ru', 'RU'),
-                              initialDate: selectedDeadline,
-                              firstDate: DateTime.now(),
-                              lastDate:
-                                  DateTime.now().add(const Duration(days: 365)),
-                              selectableDayPredicate: (DateTime val) =>
-                                  val.weekday != 6 && val.weekday != 7,
-                              builder: (context, child) {
-                                return Theme(
-                                  data: AppTheme.darkTheme.copyWith(
-                                    colorScheme: const ColorScheme.dark(
-                                      primary: AppTheme.primary,
-                                      onPrimary: Colors.white,
-                                      surface: Color(0xFF251C14),
-                                      onSurface: AppTheme.onBg,
-                                    ),
-                                    dialogTheme: const DialogThemeData(
-                                        backgroundColor: Color(0xFF251C14)),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              safeSetModalState(
-                                  () => selectedDeadline = picked);
-                            }
-                          },
-                          child: Container(
+                          // Subject
+                          _formLabel('Предмет'),
+                          const SizedBox(height: 6),
+                          Container(
                             height: 44,
-                            width: double.infinity,
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
                               color: const Color(0xFF2E2218),
@@ -635,125 +418,361 @@ class _MainScreenState extends State<MainScreen> {
                                   BorderRadius.circular(AppTheme.radiusSm),
                               border: Border.all(color: AppTheme.cardBorder),
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.calendar_today_rounded,
-                                    size: 18, color: AppTheme.onSurface2),
-                                const SizedBox(width: 10),
-                                Text(
-                                  '${selectedDeadline.day}.${selectedDeadline.month.toString().padLeft(2, '0')}.${selectedDeadline.year}',
-                                  style: const TextStyle(
-                                      color: AppTheme.onBg, fontSize: 14),
-                                ),
-                              ],
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: selectedSubject,
+                                hint: Text('Выберите предмет',
+                                    style: TextStyle(
+                                        color: AppTheme.onSurface3
+                                            .withValues(alpha: 0.8),
+                                        fontSize: 14)),
+                                isExpanded: true,
+                                dropdownColor: const Color(0xFF2E2218),
+                                style: const TextStyle(
+                                    color: AppTheme.onBg, fontSize: 14),
+                                items: allSubjects
+                                    .map((s) => DropdownMenuItem(
+                                        value: s, child: Text(s)))
+                                    .toList(),
+                                onChanged: (v) => safeSetModalState(
+                                    () => selectedSubject = v),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 16),
 
-                        // Save button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: isUploading
-                                ? null
-                                : () async {
-                                    if (selectedSubject == null ||
-                                        taskController.text.trim().isEmpty) {
-                                      messenger.showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'Заполните предмет и задание')),
-                                      );
-                                      return;
-                                    }
-
-                                    safeSetModalState(() => isUploading = true);
-
-                                    final displayUrls = <String>[];
-                                    final fullUrls = <String>[];
-                                    bool hasError = false;
-                                    final uploadResults = await Future.wait(
-                                      pickedImagePaths.map(_uploadImage),
-                                    );
-                                    for (final result in uploadResults) {
-                                      if (result != null) {
-                                        displayUrls.add(result['display']!);
-                                        fullUrls.add(result['full']!);
-                                      } else {
-                                        hasError = true;
-                                      }
-                                    }
-
-                                    if (hasError) {
-                                      safeSetModalState(
-                                          () => isUploading = false);
-                                      if (!context.mounted) return;
-                                      messenger.showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'Ошибка при загрузке фото в облако. Попробуйте ещё раз.')),
-                                      );
-                                      return;
-                                    }
-
-                                    final hw = HomeworkItem(
-                                      id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
-                                      subject: selectedSubject!,
-                                      task: taskController.text.trim(),
-                                      deadline:
-                                          '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
-                                      imageUrl: null,
-                                      imageUrls: displayUrls.isNotEmpty
-                                          ? displayUrls
-                                          : null,
-                                      fullResolutionUrls:
-                                          fullUrls.isNotEmpty ? fullUrls : null,
-                                      done: false,
-                                      fromSchedule: false,
-                                    );
-
-                                    final success =
-                                        await FirestoreService.addHomework(hw);
-
-                                    if (!context.mounted) return;
-
-                                    if (!success) {
-                                      safeSetModalState(
-                                          () => isUploading = false);
-                                      messenger.showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'Ошибка при сохранении в базу данных.')),
-                                      );
-                                      return;
-                                    }
-
-                                    await _cleanupTemporaryPickerFiles(
-                                        pickedImagePaths);
-                                    if (!context.mounted) return;
-                                    _diaryKey.currentState?.reloadHomework();
-                                    _adminKey.currentState?.reload();
-                                    if (ctx.mounted) Navigator.pop(ctx);
-
-                                    messenger.showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              'Задание по $selectedSubject добавлено')),
-                                    );
-                                  },
-                            child: isUploading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                        color: Colors.white, strokeWidth: 2))
-                                : const Text('Сохранить задание'),
+                          // Task
+                          _formLabel('Задание'),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: taskController,
+                            maxLines: 4,
+                            style: const TextStyle(
+                                color: AppTheme.onBg, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: 'Опишите задание...',
+                              hintStyle: TextStyle(
+                                  color: AppTheme.onSurface3
+                                      .withValues(alpha: 0.8)),
+                              filled: true,
+                              fillColor: const Color(0xFF2E2218),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                borderSide: const BorderSide(
+                                    color: AppTheme.cardBorder),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                borderSide: const BorderSide(
+                                    color: AppTheme.cardBorder),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.primary),
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                          const SizedBox(height: 16),
+
+                          // Photo picker
+                          _formLabel('Фото (необязательно)'),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: () async {
+                              await pickImages(ctx, setModalState);
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              height: pickedImagePaths.isEmpty ? 50 : 170,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2E2218),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                border: Border.all(color: AppTheme.cardBorder),
+                              ),
+                              child: pickedImagePaths.isEmpty
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.photo_library_rounded,
+                                            color: AppTheme.onSurface3
+                                                .withValues(alpha: 0.8),
+                                            size: 22),
+                                        const SizedBox(width: 8),
+                                        Text('Добавить фото',
+                                            style: TextStyle(
+                                                color: AppTheme.onSurface3
+                                                    .withValues(alpha: 0.8),
+                                                fontSize: 14)),
+                                      ],
+                                    )
+                                  : ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      padding: const EdgeInsets.all(8),
+                                      itemCount: pickedImagePaths.length + 1,
+                                      itemBuilder: (ctx, idx) {
+                                        if (idx == pickedImagePaths.length) {
+                                          return GestureDetector(
+                                            onTap: () async {
+                                              await pickImages(
+                                                  ctx, setModalState);
+                                            },
+                                            child: Container(
+                                              width: 120,
+                                              margin: const EdgeInsets.only(
+                                                  left: 8),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.surface2,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        AppTheme.radiusSm),
+                                                border: Border.all(
+                                                    color: AppTheme.cardBorder),
+                                              ),
+                                              child: const Center(
+                                                child: Icon(
+                                                    Icons.add_a_photo_rounded,
+                                                    color: AppTheme.primaryDim),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        final path = pickedImagePaths[idx];
+                                        return Container(
+                                          width: 120,
+                                          margin: EdgeInsets.only(
+                                              right: idx ==
+                                                      pickedImagePaths.length -
+                                                          1
+                                                  ? 0
+                                                  : 8),
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          AppTheme.radiusSm),
+                                                  child: Image.file(
+                                                    File(path),
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              ),
+                                              Positioned(
+                                                top: 4,
+                                                right: 4,
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    safeSetModalState(() {
+                                                      pickedImagePaths
+                                                          .removeAt(idx);
+                                                    });
+                                                  },
+                                                  child: Container(
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      color: Colors.black54,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                    child: const Icon(
+                                                        Icons.close_rounded,
+                                                        color: Colors.white,
+                                                        size: 14),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Deadline
+                          _formLabel('Срок сдачи'),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                locale: const Locale('ru', 'RU'),
+                                initialDate: selectedDeadline,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now()
+                                    .add(const Duration(days: 365)),
+                                selectableDayPredicate: (DateTime val) =>
+                                    val.weekday != 6 && val.weekday != 7,
+                                builder: (context, child) {
+                                  return Theme(
+                                    data: AppTheme.darkTheme.copyWith(
+                                      colorScheme: const ColorScheme.dark(
+                                        primary: AppTheme.primary,
+                                        onPrimary: Colors.white,
+                                        surface: Color(0xFF251C14),
+                                        onSurface: AppTheme.onBg,
+                                      ),
+                                      dialogTheme: const DialogThemeData(
+                                          backgroundColor: Color(0xFF251C14)),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                safeSetModalState(
+                                    () => selectedDeadline = picked);
+                              }
+                            },
+                            child: Container(
+                              height: 44,
+                              width: double.infinity,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2E2218),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                border: Border.all(color: AppTheme.cardBorder),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded,
+                                      size: 18, color: AppTheme.onSurface2),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    '${selectedDeadline.day}.${selectedDeadline.month.toString().padLeft(2, '0')}.${selectedDeadline.year}',
+                                    style: const TextStyle(
+                                        color: AppTheme.onBg, fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Save button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: isUploading
+                                  ? null
+                                  : () async {
+                                      if (selectedSubject == null ||
+                                          taskController.text.trim().isEmpty) {
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  'Заполните предмет и задание')),
+                                        );
+                                        return;
+                                      }
+
+                                      safeSetModalState(
+                                          () => isUploading = true);
+
+                                      final displayUrls = <String>[];
+                                      final fullUrls = <String>[];
+                                      bool hasError = false;
+                                      final uploadResults = await Future.wait(
+                                        pickedImagePaths.map(_uploadImage),
+                                      );
+                                      for (final result in uploadResults) {
+                                        if (result != null) {
+                                          displayUrls.add(result['display']!);
+                                          fullUrls.add(result['full']!);
+                                        } else {
+                                          hasError = true;
+                                        }
+                                      }
+
+                                      if (hasError) {
+                                        safeSetModalState(
+                                            () => isUploading = false);
+                                        if (!context.mounted) return;
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  'Ошибка при загрузке фото в облако. Попробуйте ещё раз.')),
+                                        );
+                                        return;
+                                      }
+
+                                      final hw = HomeworkItem(
+                                        id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+                                        subject: selectedSubject!,
+                                        task: taskController.text.trim(),
+                                        deadline:
+                                            '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
+                                        imageUrl: null,
+                                        imageUrls: displayUrls.isNotEmpty
+                                            ? displayUrls
+                                            : null,
+                                        fullResolutionUrls: fullUrls.isNotEmpty
+                                            ? fullUrls
+                                            : null,
+                                        done: false,
+                                        fromSchedule: false,
+                                      );
+
+                                      final success =
+                                          await FirestoreService.addHomework(
+                                              hw);
+
+                                      if (!context.mounted) return;
+
+                                      if (!success) {
+                                        safeSetModalState(
+                                            () => isUploading = false);
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  'Ошибка при сохранении в базу данных.')),
+                                        );
+                                        return;
+                                      }
+
+                                      await _cleanupTemporaryPickerFiles(
+                                          pickedImagePaths);
+                                      if (!context.mounted) return;
+                                      await _diaryKey.currentState
+                                          ?.reloadHomework(forceRefresh: true);
+                                      await _adminKey.currentState
+                                          ?.reload(forceRefresh: true);
+                                      if (ctx.mounted) {
+                                        Navigator.of(ctx).pop();
+                                      }
+
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'Задание по $selectedSubject добавлено')),
+                                      );
+                                    },
+                              child: isUploading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2))
+                                  : const Text('Сохранить задание'),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
                     ),
                   ),
                 ),
