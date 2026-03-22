@@ -92,57 +92,75 @@ class DiaryScreenState extends State<DiaryScreen>
         _buildCalendarStrip(),
         // Swipable day content
         Expanded(
-          child: GestureDetector(
-            onHorizontalDragStart: (details) {
-              _springController.stop();
-            },
-            onHorizontalDragUpdate: (details) {
-              _pageController.position.jumpTo(
-                _pageController.position.pixels - details.primaryDelta!,
-              );
-            },
-            onHorizontalDragEnd: (details) {
-              final velocity = details.primaryVelocity ?? 0.0;
-              final width = MediaQuery.of(context).size.width;
-              final currentPixels = _pageController.position.pixels;
+          child: Stack(
+            children: [
+              // Liquid Sweep Background Layer
+              AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  if (!_pageController.hasClients) return const SizedBox();
+                  
+                  final page = _pageController.page ?? 3.0;
+                  final index = page.floor();
+                  final nextIndex = page.ceil();
+                  final progress = page - index;
+                  
+                  return Stack(
+                    children: [
+                      // Current Day
+                      _buildLessonsSectionForDay(_days[index]),
+                      
+                      // Next Day with Liquid Mask Reveal
+                      if (progress > 0 && nextIndex < _days.length)
+                        ClipPath(
+                          clipper: LiquidRevealClipper(progress),
+                          child: _buildLessonsSectionForDay(_days[nextIndex]),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              
+              // High-Precision Gesture Handle
+              GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragStart: (details) {
+                  _springController.stop();
+                },
+                onHorizontalDragUpdate: (details) {
+                  _pageController.position.jumpTo(
+                    _pageController.position.pixels - details.primaryDelta!,
+                  );
+                },
+                onHorizontalDragEnd: (details) {
+                  final velocity = details.primaryVelocity ?? 0.0;
+                  final width = MediaQuery.of(context).size.width;
+                  final currentPixels = _pageController.position.pixels;
 
-              int currentPage = (currentPixels / width).round();
-              int targetPage = currentPage;
+                  int targetPage = (currentPixels / width).round();
+                  if (velocity < -400 && targetPage < _days.length - 1) {
+                    targetPage++;
+                  } else if (velocity > 400 && targetPage > 0) {
+                    targetPage--;
+                  }
+                  targetPage = targetPage.clamp(0, _days.length - 1);
 
-              if (velocity < -200 && targetPage < _days.length - 1) {
-                targetPage++;
-              } else if (velocity > 200 && targetPage > 0) {
-                targetPage--;
-              }
-              targetPage = targetPage.clamp(0, _days.length - 1);
+                  final targetPixels = targetPage * width;
+                  final simulation = SpringSimulation(
+                    SpringDescription.withDampingRatio(
+                      mass: 0.5,
+                      stiffness: 300.0,
+                      ratio: 0.8,
+                    ),
+                    currentPixels,
+                    targetPixels,
+                    -velocity,
+                  );
 
-              final targetPixels = targetPage * width;
-
-              final simulation = SpringSimulation(
-                SpringDescription.withDampingRatio(
-                  mass: 0.6,
-                  stiffness: 280.0,
-                  ratio: 0.85,
-                ),
-                currentPixels,
-                targetPixels,
-                -velocity,
-              );
-
-              _springController.animateWith(simulation);
-            },
-            child: PageView.builder(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (index) {
-                setState(() => _selectedDate = _days[index]);
-                _scrollToIndex(index);
-              },
-              itemCount: _days.length,
-              itemBuilder: (context, index) {
-                return _buildLessonsSectionForDay(_days[index]);
-              },
-            ),
+                  _springController.animateWith(simulation);
+                },
+              ),
+            ],
           ),
         ),
       ],
@@ -1031,4 +1049,42 @@ class _RoleGateRedirect extends StatelessWidget {
       home: const RoleGate(),
     );
   }
+}
+
+class LiquidRevealClipper extends CustomClipper<Path> {
+  final double progress;
+  LiquidRevealClipper(this.progress);
+
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    if (progress <= 0) return path;
+    if (progress >= 1) return path..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final width = size.width;
+    final height = size.height;
+    
+    // Smooth organic curve for liquid reveal
+    final centerX = width * (1.0 - progress);
+    
+    path.moveTo(width, 0);
+    path.lineTo(centerX, 0);
+    
+    path.cubicTo(
+      centerX - (width * 0.15 * (1 - progress)), 
+      height * 0.3,
+      centerX - (width * 0.25 * (1 - progress)),
+      height * 0.7,
+      centerX,
+      height
+    );
+    
+    path.lineTo(width, height);
+    path.close();
+    
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => true;
 }
