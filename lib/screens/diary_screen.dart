@@ -11,6 +11,7 @@ import '../main.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
+import 'package:liquid_swipe/liquid_swipe.dart';
 
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({super.key});
@@ -90,59 +91,27 @@ class DiaryScreenState extends State<DiaryScreen>
         _buildTopBar(context),
         const SizedBox(height: 12),
         _buildCalendarStrip(),
-        // Swipable day content
         Expanded(
-          child: GestureDetector(
-            onHorizontalDragStart: (details) {
-              _springController.stop();
-            },
-            onHorizontalDragUpdate: (details) {
-              _pageController.position.jumpTo(
-                _pageController.position.pixels - details.primaryDelta!,
+          child: LiquidSwipe.builder(
+            itemCount: _days.length,
+            itemBuilder: (context, index) {
+              return Container(
+                color: AppTheme.bg, // Keeps background consistent during transitions
+                child: _buildLessonsSectionForDay(_days[index]),
               );
             },
-            onHorizontalDragEnd: (details) {
-              final velocity = details.primaryVelocity ?? 0.0;
-              final width = MediaQuery.of(context).size.width;
-              final currentPixels = _pageController.position.pixels;
-
-              int currentPage = (currentPixels / width).round();
-              int targetPage = currentPage;
-
-              if (velocity < -200 && targetPage < _days.length - 1) {
-                targetPage++;
-              } else if (velocity > 200 && targetPage > 0) {
-                targetPage--;
-              }
-              targetPage = targetPage.clamp(0, _days.length - 1);
-
-              final targetPixels = targetPage * width;
-
-              final simulation = SpringSimulation(
-                SpringDescription.withDampingRatio(
-                  mass: 0.6,
-                  stiffness: 280.0,
-                  ratio: 0.85,
-                ),
-                currentPixels,
-                targetPixels,
-                -velocity,
-              );
-
-              _springController.animateWith(simulation);
+            positionSlideIcon: 0.8,
+            slideIconWidget: const Icon(Icons.arrow_back_ios_new_rounded, 
+                color: AppTheme.onSurface2, size: 20),
+            onPageChangeCallback: (index) {
+              setState(() => _selectedDate = _days[index]);
+              _scrollToIndex(index);
             },
-            child: PageView.builder(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (index) {
-                setState(() => _selectedDate = _days[index]);
-                _scrollToIndex(index);
-              },
-              itemCount: _days.length,
-              itemBuilder: (context, index) {
-                return _buildLessonsSectionForDay(_days[index]);
-              },
-            ),
+            waveType: WaveType.liquidReveal,
+            fullTransitionValue: 600,
+            enableSideReveal: true,
+            enableLoop: false,
+            ignoreUserGestureWhileAnimating: true,
           ),
         ),
       ],
