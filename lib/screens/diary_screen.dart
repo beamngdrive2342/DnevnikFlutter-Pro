@@ -734,37 +734,37 @@ class DiaryScreenState extends State<DiaryScreen>
                                                           ),
                                                         ),
                                                       ),
-                                                      errorWidget:
-                                                          (ctx, url, err) =>
-                                                              Container(
-                                                        height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
-                                                        child: const Center(
+                                                      errorWidget: (ctx, url, err) {
+                                                        debugPrint('❌ Ошибка загрузки картинки: $url \n Ошибка: $err');
+                                                        return Container(
+                                                          height: 120,
+                                                          color: AppTheme.surface3,
+                                                          child: const Center(
                                                             child: Icon(
-                                                                Icons
-                                                                    .broken_image_rounded,
-                                                                color: AppTheme
-                                                                    .onSurface3)),
-                                                      ),
+                                                              Icons.broken_image_rounded,
+                                                              color: AppTheme.onSurface3,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
                                                     )
                                                   : Image.file(
                                                       File(displayUrl),
                                                       width: double.infinity,
                                                       fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (ctx, err, stack) =>
-                                                              Container(
-                                                        height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
-                                                        child: const Center(
+                                                      errorBuilder: (ctx, err, stack) {
+                                                        debugPrint('❌ Ошибка чтения файла: $displayUrl \n Ошибка: $err');
+                                                        return Container(
+                                                          height: 120,
+                                                          color: AppTheme.surface3,
+                                                          child: const Center(
                                                             child: Icon(
-                                                                Icons
-                                                                    .broken_image_rounded,
-                                                                color: AppTheme
-                                                                    .onSurface3)),
-                                                      ),
+                                                              Icons.broken_image_rounded,
+                                                              color: AppTheme.onSurface3,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
                                                     ),
                                             ),
                                           ),
