@@ -15,6 +15,8 @@ class AdminPanelScreen extends StatefulWidget {
 
 class AdminPanelScreenState extends State<AdminPanelScreen> {
   List<HomeworkItem> _customHomework = [];
+  List<HomeworkItem> _activeHomework = [];
+  List<HomeworkItem> _pastHomework = [];
   bool _isLoading = true;
 
   @override
@@ -28,12 +30,32 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
       _isLoading = true;
     });
     final list = await FirestoreService.getHomework();
+    final sortedHomework = [...list]
+      ..sort((a, b) => b.deadline.compareTo(a.deadline));
+    final todayStr = _todayString();
+    final activeHomework = <HomeworkItem>[];
+    final pastHomework = <HomeworkItem>[];
+
+    for (final hw in sortedHomework) {
+      if (hw.deadline.compareTo(todayStr) >= 0) {
+        activeHomework.add(hw);
+      } else {
+        pastHomework.add(hw);
+      }
+    }
+
     if (!mounted) return;
     setState(() {
-      _customHomework = list;
-      _customHomework.sort((a, b) => b.deadline.compareTo(a.deadline));
+      _customHomework = sortedHomework;
+      _activeHomework = activeHomework;
+      _pastHomework = pastHomework;
       _isLoading = false;
     });
+  }
+
+  String _todayString() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   /// Public method so MainScreen can trigger a refresh
@@ -50,7 +72,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
       return;
     }
 
-    _loadAllHomework(); // reload the full list
+    await _loadAllHomework();
     widget.onHomeworkChanged();
 
     if (!mounted) return;
@@ -93,6 +115,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
         ],
       ),
     );
+    controller.dispose();
 
     if (newText != null && newText.trim().isNotEmpty && newText != hw.task) {
       final updatedHw = HomeworkItem(
@@ -102,13 +125,14 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
         deadline: hw.deadline,
         imageUrl: hw.imageUrl,
         imageUrls: hw.imageUrls,
+        fullResolutionUrls: hw.fullResolutionUrls,
         done: hw.done,
         fromSchedule: hw.fromSchedule,
       );
 
       final success = await FirestoreService.updateHomework(updatedHw);
       if (success) {
-        _loadAllHomework();
+        await _loadAllHomework();
         widget.onHomeworkChanged();
       }
     }
@@ -116,17 +140,6 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final todayStr =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-
-    final activeHw = _customHomework
-        .where((hw) => hw.deadline.compareTo(todayStr) >= 0)
-        .toList();
-    final pastHw = _customHomework
-        .where((hw) => hw.deadline.compareTo(todayStr) < 0)
-        .toList();
-
     return DefaultTabController(
       length: 2,
       child: Column(
@@ -146,8 +159,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                     child: CircularProgressIndicator(color: AppTheme.primary))
                 : TabBarView(
                     children: [
-                      _buildList(activeHw, editable: true),
-                      _buildList(pastHw, editable: false),
+                      _buildList(_activeHomework, editable: true),
+                      _buildList(_pastHomework, editable: false),
                     ],
                   ),
           ),
