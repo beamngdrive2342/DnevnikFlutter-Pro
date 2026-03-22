@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
+import '../widgets/network_photo.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   final VoidCallback onHomeworkChanged;
@@ -57,11 +57,6 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
       _pastHomework = pastHomework;
       _isLoading = false;
     });
-  }
-
-  Future<void> _refreshFromPull() async {
-    await _loadAllHomework(forceRefresh: true, showLoading: false);
-    widget.onHomeworkChanged();
   }
 
   String _todayString() {
@@ -181,35 +176,14 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
   }
 
   Widget _buildList(List<HomeworkItem> items, {required bool editable}) {
-    if (items.isEmpty) {
-      return RefreshIndicator(
-        color: AppTheme.primary,
-        onRefresh: _refreshFromPull,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          children: [
-            const SizedBox(height: 180),
-            _buildEmptyState(),
-          ],
-        ),
-      );
-    }
-    return RefreshIndicator(
-      color: AppTheme.primary,
-      onRefresh: _refreshFromPull,
-      child: ListView.builder(
-        padding:
-            const EdgeInsets.only(top: 16, bottom: 100, left: 20, right: 20),
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          return _buildAdminCard(items[index], editable: editable);
-        },
-      ),
+    if (items.isEmpty) return _buildEmptyState();
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 16, bottom: 100, left: 20, right: 20),
+      physics: const BouncingScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        return _buildAdminCard(items[index], editable: editable);
+      },
     );
   }
 
@@ -300,21 +274,24 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
             const SizedBox(height: 12),
             if ((hw.imageUrls != null && hw.imageUrls!.isNotEmpty) ||
                 (hw.imageUrl != null && hw.imageUrl!.trim().isNotEmpty)) ...[
-              ...((hw.imageUrls != null && hw.imageUrls!.isNotEmpty)
-                      ? hw.imageUrls!
-                      : [hw.imageUrl!])
+              ...((hw.fullResolutionUrls != null &&
+                          hw.fullResolutionUrls!.isNotEmpty)
+                      ? hw.fullResolutionUrls!
+                      : (hw.imageUrls != null && hw.imageUrls!.isNotEmpty)
+                          ? hw.imageUrls!
+                          : [hw.imageUrl!])
                   .map((url) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                     child: url.startsWith('http')
-                        ? CachedNetworkImage(
-                            imageUrl: url,
+                        ? NetworkPhoto(
+                            url: url,
                             height: 150,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            placeholder: (ctx, value) => Container(
+                            loading: Container(
                               height: 150,
                               color: AppTheme.surface3,
                               alignment: Alignment.center,
@@ -327,7 +304,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                                 ),
                               ),
                             ),
-                            errorWidget: (ctx, value, err) => Container(
+                            error: Container(
                               height: 150,
                               color: AppTheme.surface3,
                               child: const Center(
