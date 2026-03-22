@@ -315,7 +315,10 @@ class _MainScreenState extends State<MainScreen> {
     DateTime selectedDeadline = initDate;
     bool isUploading = false;
 
-    Future<void> pickImages(StateSetter setModalState) async {
+    Future<void> pickImages(
+      BuildContext sheetContext,
+      StateSetter setModalState,
+    ) async {
       final images = await _imagePicker.pickMultiImage(
         imageQuality: _pickedImageQuality,
         maxWidth: _pickedImageMaxSide,
@@ -324,6 +327,7 @@ class _MainScreenState extends State<MainScreen> {
       if (images.isEmpty) {
         return;
       }
+      if (!sheetContext.mounted) return;
       setModalState(() {
         for (final image in images) {
           if (!pickedImagePaths.contains(image.path)) {
@@ -340,6 +344,11 @@ class _MainScreenState extends State<MainScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            void safeSetModalState(VoidCallback fn) {
+              if (!ctx.mounted) return;
+              setModalState(fn);
+            }
+
             return Container(
               margin:
                   EdgeInsets.only(top: MediaQuery.of(context).padding.top + 40),
@@ -418,7 +427,7 @@ class _MainScreenState extends State<MainScreen> {
                                       value: s, child: Text(s)))
                                   .toList(),
                               onChanged: (v) =>
-                                  setModalState(() => selectedSubject = v),
+                                  safeSetModalState(() => selectedSubject = v),
                             ),
                           ),
                         ),
@@ -468,7 +477,7 @@ class _MainScreenState extends State<MainScreen> {
                         const SizedBox(height: 6),
                         GestureDetector(
                           onTap: () async {
-                            await pickImages(setModalState);
+                            await pickImages(ctx, setModalState);
                           },
                           child: Container(
                             width: double.infinity,
@@ -503,7 +512,8 @@ class _MainScreenState extends State<MainScreen> {
                                       if (idx == pickedImagePaths.length) {
                                         return GestureDetector(
                                           onTap: () async {
-                                            await pickImages(setModalState);
+                                            await pickImages(
+                                                ctx, setModalState);
                                           },
                                           child: Container(
                                             width: 120,
@@ -551,7 +561,7 @@ class _MainScreenState extends State<MainScreen> {
                                               right: 4,
                                               child: GestureDetector(
                                                 onTap: () {
-                                                  setModalState(() {
+                                                  safeSetModalState(() {
                                                     pickedImagePaths
                                                         .removeAt(idx);
                                                   });
@@ -611,7 +621,8 @@ class _MainScreenState extends State<MainScreen> {
                               },
                             );
                             if (picked != null) {
-                              setModalState(() => selectedDeadline = picked);
+                              safeSetModalState(
+                                  () => selectedDeadline = picked);
                             }
                           },
                           child: Container(
@@ -658,7 +669,7 @@ class _MainScreenState extends State<MainScreen> {
                                       return;
                                     }
 
-                                    setModalState(() => isUploading = true);
+                                    safeSetModalState(() => isUploading = true);
 
                                     final displayUrls = <String>[];
                                     final fullUrls = <String>[];
@@ -676,7 +687,8 @@ class _MainScreenState extends State<MainScreen> {
                                     }
 
                                     if (hasError) {
-                                      setModalState(() => isUploading = false);
+                                      safeSetModalState(
+                                          () => isUploading = false);
                                       if (!context.mounted) return;
                                       messenger.showSnackBar(
                                         const SnackBar(
@@ -708,7 +720,8 @@ class _MainScreenState extends State<MainScreen> {
                                     if (!context.mounted) return;
 
                                     if (!success) {
-                                      setModalState(() => isUploading = false);
+                                      safeSetModalState(
+                                          () => isUploading = false);
                                       messenger.showSnackBar(
                                         const SnackBar(
                                             content: Text(
