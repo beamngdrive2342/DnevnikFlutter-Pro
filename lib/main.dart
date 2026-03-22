@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -251,7 +252,12 @@ class _MainScreenState extends State<MainScreen> {
         final json = jsonDecode(respStr) as Map<String, dynamic>;
         if (json['image'] != null) {
           final fullUrl = json['image']['url'];
-          return {'display': fullUrl.toString(), 'full': fullUrl.toString()};
+          // Use medium if available, otherwise fallback to thumb or full
+          final displayUrl = json['image']['medium']?['url'] ??
+              json['image']['thumb']?['url'] ??
+              fullUrl;
+
+          return {'display': displayUrl.toString(), 'full': fullUrl.toString()};
         }
       }
     } catch (e) {
@@ -291,13 +297,12 @@ class _MainScreenState extends State<MainScreen> {
         DiaryScreen(key: _diaryKey),
         AdminPanelScreen(
           key: _adminKey,
-          onHomeworkChanged: () =>
-              _diaryKey.currentState?.reloadHomework(forceRefresh: true),
+          onHomeworkChanged: () => _diaryKey.currentState?.reloadHomework(),
         ),
       ];
     } else {
       _screens = [
-        DiaryScreen(key: _diaryKey, enableLiveUpdates: true),
+        DiaryScreen(key: _diaryKey),
       ];
     }
   }
@@ -720,17 +725,10 @@ class _MainScreenState extends State<MainScreen> {
                                     }
 
                                     await _cleanupTemporaryPickerFiles(
-                                      pickedImagePaths,
-                                    );
+                                        pickedImagePaths);
                                     if (!context.mounted) return;
-                                    await _diaryKey.currentState
-                                        ?.reloadHomework(
-                                      forceRefresh: true,
-                                    );
-                                    await _adminKey.currentState?.reload(
-                                      forceRefresh: true,
-                                    );
-                                    if (!context.mounted) return;
+                                    _diaryKey.currentState?.reloadHomework();
+                                    _adminKey.currentState?.reload();
                                     if (ctx.mounted) Navigator.pop(ctx);
 
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -801,18 +799,21 @@ class _MainScreenState extends State<MainScreen> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(100),
-          child: BottomNavigationBar(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            currentIndex: _currentIndex,
-            selectedItemColor: AppTheme.primary,
-            unselectedItemColor: AppTheme.onSurface2,
-            showSelectedLabels: true,
-            showUnselectedLabels: false,
-            selectedLabelStyle:
-                const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
-            onTap: (i) => setState(() => _currentIndex = i),
-            items: items,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: BottomNavigationBar(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              currentIndex: _currentIndex,
+              selectedItemColor: AppTheme.primary,
+              unselectedItemColor: AppTheme.onSurface2,
+              showSelectedLabels: true,
+              showUnselectedLabels: false,
+              selectedLabelStyle:
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
+              onTap: (i) => setState(() => _currentIndex = i),
+              items: items,
+            ),
           ),
         ),
       ),
@@ -851,16 +852,10 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppTheme.bg.withValues(alpha: 0.10),
-                    AppTheme.bg.withValues(alpha: 0.32),
-                  ],
-                ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: Container(
+                color: AppTheme.bg.withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -888,7 +883,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class PremiumGlowButton extends StatelessWidget {
+class PremiumGlowButton extends StatefulWidget {
   final VoidCallback onPressed;
   final Widget child;
 
@@ -899,33 +894,112 @@ class PremiumGlowButton extends StatelessWidget {
   });
 
   @override
+  State<PremiumGlowButton> createState() => _PremiumGlowButtonState();
+}
+
+class _PremiumGlowButtonState extends State<PremiumGlowButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     const double size = 64.0;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onPressed,
-        child: Ink(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black,
-            border: Border.all(
-              color: AppTheme.primary.withValues(alpha: 0.75),
-              width: 2,
+    const Color glowColor = AppTheme.primary; // Orange glow to match theme
+
+    return GestureDetector(
+      onTap: widget.onPressed,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 1. Atmosphere Glow (The soft light underneath)
+          Container(
+            width: size * 1.2,
+            height: size * 1.2,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: glowColor.withValues(alpha: 0.3),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primary.withValues(alpha: 0.22),
-                blurRadius: 18,
-                spreadRadius: 2,
-              ),
-            ],
           ),
-          child: Center(child: child),
-        ),
+
+          // 2. Rotating Border Glow
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: SweepGradient(
+                    colors: [
+                      Colors.transparent,
+                      glowColor.withValues(alpha: 0.8),
+                      glowColor,
+                      glowColor.withValues(alpha: 0.8),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.45, 0.5, 0.55, 1.0],
+                    transform:
+                        GradientRotation(_controller.value * 2 * 3.14159),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // 3. Black Inner Body
+          Container(
+            width: size - 3,
+            height: size - 3,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black,
+            ),
+            child: Center(child: widget.child),
+          ),
+
+          // 4. Glass Reflection (Subtle top highlight)
+          Positioned(
+            top: 6,
+            child: Container(
+              width: size * 0.6,
+              height: size * 0.3,
+              decoration: BoxDecoration(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(30)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.15),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
