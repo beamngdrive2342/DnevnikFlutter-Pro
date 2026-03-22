@@ -293,9 +293,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _showAddHomeworkModal() async {
-    String? selectedSubject;
     final taskController = TextEditingController();
     final pickedImagePaths = <String>[];
+    String? selectedSubject;
 
     DateTime initDate = DateTime.now().add(const Duration(days: 1));
     while (initDate.weekday == 6 || initDate.weekday == 7) {
@@ -303,6 +303,10 @@ class _MainScreenState extends State<MainScreen> {
     }
     DateTime selectedDeadline = initDate;
     bool isUploading = false;
+
+    final mediaQuery = MediaQuery.of(context);
+    final topPadding = mediaQuery.padding.top;
+    final viewInsets = mediaQuery.viewInsets;
 
     Future<void> pickImages(StateSetter setModalState) async {
       final images = await _imagePicker.pickMultiImage(
@@ -328,19 +332,19 @@ class _MainScreenState extends State<MainScreen> {
         builder: (ctx) {
           return StatefulBuilder(
             builder: (modalCtx, setModalState) {
-              final topPadding = MediaQuery.of(context).padding.top;
-              return Container(
-                margin: EdgeInsets.only(top: topPadding + 40),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF251C14),
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppTheme.radiusXl)),
-                  border: Border.all(color: AppTheme.cardBorder),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
+              try {
+                return Container(
+                  margin: EdgeInsets.only(top: topPadding + 40),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF251C14),
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppTheme.radiusXl)),
+                    border: Border.all(color: AppTheme.cardBorder),
                   ),
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: viewInsets.bottom,
+                    ),
                   child: SingleChildScrollView(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -399,11 +403,15 @@ class _MainScreenState extends State<MainScreen> {
                                 style: const TextStyle(
                                     color: AppTheme.onBg, fontSize: 14),
                                 items: allSubjects
-                                    .map((s) => DropdownMenuItem(
+                                    .where((s) => s.isNotEmpty)
+                                    .map((s) => DropdownMenuItem<String>(
                                         value: s, child: Text(s)))
                                     .toList(),
-                                onChanged: (v) =>
-                                    setModalState(() => selectedSubject = v),
+                                onChanged: (v) {
+                                  if (v != null) {
+                                    setModalState(() => selectedSubject = v);
+                                  }
+                                },
                               ),
                             ),
                           ),
@@ -726,16 +734,28 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
               );
-            },
-          );
-        },
-      );
-    } catch (e) {
-      debugPrint('❌ Ошибка при открытии модалки задания: $e');
-    } finally {
-      taskController.dispose();
-    }
+            } catch (e, stack) {
+              debugPrint('❌ Fatal modal build error: $e\n$stack');
+              return Material(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text('Ошибка интерфейса: $e',
+                        style: const TextStyle(color: Colors.red)),
+                  ),
+                ),
+              );
+            }
+          },
+        );
+      },
+    );
+  } catch (e) {
+    debugPrint('❌ Ошибка при открытии модалки задания: $e');
+  } finally {
+    taskController.dispose();
   }
+}
 
   Widget _formLabel(String text) {
     return Text(text,
