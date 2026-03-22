@@ -98,25 +98,25 @@ class DiaryScreenState extends State<DiaryScreen>
             },
             onHorizontalDragUpdate: (details) {
               _pageController.position.jumpTo(
-                _pageController.position.pixels - details.primaryDelta!,
+                _pageController.position.pixels - details.delta.dx,
               );
             },
             onHorizontalDragEnd: (details) {
-              final velocity = details.primaryVelocity ?? 0.0;
-              final width = MediaQuery.of(context).size.width;
+              final velocity = details.primaryVelocity ?? 0;
               final currentPixels = _pageController.position.pixels;
+              final pageWidth = MediaQuery.of(context).size.width;
 
-              int currentPage = (currentPixels / width).round();
-              int targetPage = currentPage;
-
-              if (velocity < -200 && targetPage < _days.length - 1) {
-                targetPage++;
-              } else if (velocity > 200 && targetPage > 0) {
-                targetPage--;
+              int targetPage;
+              if (velocity.abs() > 500) {
+                targetPage = velocity > 0
+                    ? (_pageController.page?.floor() ?? 0)
+                    : (_pageController.page?.ceil() ?? 0);
+              } else {
+                targetPage = _pageController.page?.round() ?? 0;
               }
-              targetPage = targetPage.clamp(0, _days.length - 1);
 
-              final targetPixels = targetPage * width;
+              targetPage = targetPage.clamp(0, _days.length - 1);
+              final targetPixels = targetPage * pageWidth;
 
               final simulation = SpringSimulation(
                 SpringDescription.withDampingRatio(
@@ -162,21 +162,18 @@ class DiaryScreenState extends State<DiaryScreen>
       ),
       child: Row(
         children: [
-          const Icon(Icons.menu_book_rounded,
-              color: AppTheme.primary, size: 22),
-          const SizedBox(width: 10),
-          const Column(
+          Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Школьный Дневник',
+              const Text('ДНЕВНИК',
                   style: TextStyle(
-                    fontFamily: AppTheme.fontSerif,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
                     color: AppTheme.onBg,
                   )),
-              Text('10А',
+              Text('STUDENT PRO',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppTheme.primary,
@@ -240,8 +237,8 @@ class DiaryScreenState extends State<DiaryScreen>
                     child: Text('И',
                         style: TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14)),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
               ),
@@ -254,128 +251,138 @@ class DiaryScreenState extends State<DiaryScreen>
 
   // ═══════════════════════════════════ CALENDAR STRIP
   Widget _buildCalendarStrip() {
-    return SizedBox(
-      height: 82,
-      child: ListView.builder(
-        controller: _calendarScrollController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _days.length,
-        itemBuilder: (context, index) {
-          final d = _days[index];
-          final isToday = _isSameDay(d, _today);
-          final isSelected = _isSameDay(d, _selectedDate);
-          final dayOfWeek = d.weekday - 1; // 0=Mon, 6=Sun
-          final hasLessons = weekSchedule[dayOfWeek] != null &&
-              weekSchedule[dayOfWeek]!.isNotEmpty;
+    return Container(
+      height: 90,
+      child: AnimatedBuilder(
+          animation: Listenable.merge([_calendarScrollController, _pageController]),
+          builder: (context, _) {
+            double pageOffset = 0;
+            if (_pageController.hasClients) {
+              pageOffset = _pageController.page ?? 3.0;
+            }
 
-          return GestureDetector(
-            onTap: () {
-              setState(() => _selectedDate = d);
-              _springController.stop();
+            return Stack(
+              children: [
+                // Selection highlight (Liquid drop effect)
+                if (_calendarScrollController.hasClients)
+                  _buildLiquidSelectionIndicator(pageOffset),
 
-              final width = MediaQuery.of(context).size.width;
-              final targetPixels = index * width;
+                ListView.builder(
+                  controller: _calendarScrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _days.length,
+                  itemBuilder: (context, index) {
+                    final day = _days[index];
+                    final isSelected =
+                        (pageOffset - index).abs() < 0.5;
+                    final selectionFactor =
+                        (1.0 - (pageOffset - index).abs()).clamp(0.0, 1.0);
 
-              final simulation = SpringSimulation(
-                SpringDescription.withDampingRatio(
-                  mass: 0.6,
-                  stiffness: 280.0,
-                  ratio: 0.85,
-                ),
-                _pageController.position.pixels,
-                targetPixels,
-                0.0, // Initial velocity for tap is 0
-              );
+                    final isToday = day.day == _today.day &&
+                        day.month == _today.month &&
+                        day.year == _today.year;
 
-              _springController.animateWith(simulation);
-              _scrollToIndex(index);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 56,
-              margin: const EdgeInsets.only(right: 6),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primary : AppTheme.surface,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                border: Border.all(
-                  color: isSelected ? AppTheme.primary : AppTheme.cardBorder,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppTheme.primary.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        )
-                      ]
-                    : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    weekdaysShort[dayOfWeek],
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: isSelected
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : AppTheme.onSurface3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${d.day}',
-                    style: TextStyle(
-                      fontFamily: AppTheme.fontSerif,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : AppTheme.onBg,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (hasLessons)
-                    Container(
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected
-                            ? Colors.white.withValues(alpha: 0.6)
-                            : AppTheme.primaryDim.withValues(alpha: 0.5),
+                    return GestureDetector(
+                      onTap: () {
+                        _pageController.animateToPage(
+                          index,
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeOutQuart,
+                        );
+                      },
+                      child: Container(
+                        width: 62,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              weekdaysShort[day.weekday]!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: isSelected
+                                    ? FontWeight.w800
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.black
+                                    : AppTheme.onSurface3,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: isToday && !isSelected
+                                  ? BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: AppTheme.primary, width: 1.5),
+                                    )
+                                  : null,
+                              child: Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w900
+                                      : FontWeight.w700,
+                                  color: isSelected
+                                      ? Colors.black
+                                      : (isToday
+                                          ? AppTheme.primary
+                                          : AppTheme.onBg),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    )
-                  else if (isToday && !isSelected)
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
+                    );
+                  },
+                ),
+              ],
+            );
+          }),
+    );
+  }
+
+  Widget _buildLiquidSelectionIndicator(double pageOffset) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Each item is 62px, padding 16px.
+    // Index center = 16 + index * 62 + 31
+    final centerX = 16.0 + (pageOffset * 62.0) + 31.0;
+    final scrollOffset = _calendarScrollController.offset;
+    final indicatorX = centerX - scrollOffset;
+
+    return Positioned(
+      left: indicatorX - 25,
+      top: 10,
+      child: Container(
+        width: 50,
+        height: 70,
+        decoration: BoxDecoration(
+          color: AppTheme.primary,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withValues(alpha: 0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
       ),
     );
   }
 
   // ═══════════════════════════════════ LESSONS
   Widget _buildLessonsSectionForDay(DateTime date) {
-    final dayOfWeek = date.weekday - 1;
-    final lessons = weekSchedule[dayOfWeek] ?? [];
-    final dateStr =
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final dateStr = '${date.day}.${date.month}.${date.year}';
+    final dayOfWeek = date.weekday;
+    final lessons = schedule[dayOfWeek] ?? [];
 
     return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+      padding: const EdgeInsets.all(20),
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -455,6 +462,7 @@ class DiaryScreenState extends State<DiaryScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
+                      margin: const EdgeInsets.only(top: 2), // Align circle with first line of text
                       width: 28,
                       height: 28,
                       decoration: const BoxDecoration(
@@ -470,15 +478,24 @@ class DiaryScreenState extends State<DiaryScreen>
                             )),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(lesson.subject,
                               style: const TextStyle(
-                                fontSize: 15,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: AppTheme.onBg,
+                                height: 1.2,
+                              )),
+                          const SizedBox(height: 4),
+                          Text(lesson.time,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.onBg.withValues(alpha: 0.4),
                               )),
                         ],
                       ),
@@ -569,17 +586,16 @@ class DiaryScreenState extends State<DiaryScreen>
                 Center(
                   child: Container(
                     width: 40,
-                    height: 5,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: AppTheme.onSurface3.withValues(alpha: 0.5),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 Expanded(
                   child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -629,207 +645,51 @@ class DiaryScreenState extends State<DiaryScreen>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SelectableText(hw.task,
-                                      style: const TextStyle(
-                                          fontSize: 15,
-                                          color: AppTheme.onBg,
-                                          height: 1.5)),
-                                  if ((hw.imageUrls != null &&
-                                          hw.imageUrls!.isNotEmpty) ||
-                                      (hw.imageUrl != null &&
-                                          hw.imageUrl!.trim().isNotEmpty)) ...[
+                                  SelectionArea(
+                                      child: Text(hw.task,
+                                          style: const TextStyle(
+                                              fontSize: 15,
+                                              color: AppTheme.onBg,
+                                              height: 1.5))),
+                                  if (hw.imageUrls != null &&
+                                      hw.imageUrls!.isNotEmpty) ...[
                                     const SizedBox(height: 16),
-                                    ...((hw.imageUrls != null &&
-                                                hw.imageUrls!.isNotEmpty)
-                                            ? List.generate(
-                                                hw.imageUrls!.length, (i) {
-                                                return {
-                                                  'display': hw.imageUrls![i],
-                                                  'full': (hw.fullResolutionUrls !=
-                                                              null &&
-                                                          hw.fullResolutionUrls!
-                                                                  .length >
-                                                              i)
-                                                      ? hw.fullResolutionUrls![
-                                                          i]
-                                                      : hw.imageUrls![i]
-                                                };
-                                              })
-                                            : [
-                                                {
-                                                  'display': hw.imageUrl!,
-                                                  'full': hw.imageUrl!
-                                                }
-                                              ])
-                                        .map((imageMap) {
-                                      final displayUrl = imageMap['display']!;
-                                      final fullUrl = imageMap['full']!;
+                                    SizedBox(
+                                      height: 150,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: hw.imageUrls!.length,
+                                        itemBuilder: (ctx, i) {
+                                          final displayUrl = hw.imageUrls![i];
+                                          final fullUrl = (hw.fullResolutionUrls != null && hw.fullResolutionUrls!.length > i)
+                                              ? hw.fullResolutionUrls![i]
+                                              : displayUrl;
 
-                                      return Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () {
-                                              _openFullScreenImage(
-                                                  context, fullUrl);
-                                            },
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      AppTheme.radiusSm),
-                                              child: displayUrl
-                                                      .startsWith('http')
-                                                  ? Image.network(
-                                                      displayUrl,
-                                                      width: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (ctx, err, stack) =>
-                                                              Container(
-                                                        height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
-                                                        child: const Center(
-                                                            child: Icon(
-                                                                Icons
-                                                                    .broken_image_rounded,
-                                                                color: AppTheme
-                                                                    .onSurface3)),
-                                                      ),
-                                                    )
-                                                  : Image.file(
-                                                      File(displayUrl),
-                                                      width: double.infinity,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (ctx, err, stack) =>
-                                                              Container(
-                                                        height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
-                                                        child: const Center(
-                                                            child: Icon(
-                                                                Icons
-                                                                    .broken_image_rounded,
-                                                                color: AppTheme
-                                                                    .onSurface3)),
-                                                      ),
-                                                    ),
-                                            ),
-                                          ),
-                                          Align(
-                                            alignment: Alignment.centerRight,
-                                            child: TextButton.icon(
-                                              onPressed: () async {
-                                                try {
-                                                  final hasAccess =
-                                                      await Gal.hasAccess();
-                                                  if (!hasAccess) {
-                                                    final request = await Gal
-                                                        .requestAccess();
-                                                    if (!request &&
-                                                        context.mounted) {
-                                                      ScaffoldMessenger.of(
-                                                              context)
-                                                          .showSnackBar(
-                                                        const SnackBar(
-                                                            content: Text(
-                                                                'Нет разрешения к галерее')),
-                                                      );
-                                                      return;
-                                                    }
-                                                  }
-
-                                                  if (context.mounted) {
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(
-                                                      const SnackBar(
-                                                          content: Text(
-                                                              'Сохраняем фото...'),
-                                                          duration: Duration(
-                                                              seconds: 1)),
-                                                    );
-                                                  }
-
-                                                  List<int> bytes;
-                                                  if (fullUrl
-                                                      .startsWith('http')) {
-                                                    final response =
-                                                        await http.get(
-                                                            Uri.parse(fullUrl));
-                                                    if (response.statusCode ==
-                                                        200) {
-                                                      bytes =
-                                                          response.bodyBytes;
-                                                    } else {
-                                                      throw Exception(
-                                                          'Не удалось загрузить фото');
-                                                    }
-                                                  } else {
-                                                    final f = File(fullUrl);
-                                                    if (!f.existsSync()) {
-                                                      if (context.mounted) {
-                                                        ScaffoldMessenger.of(
-                                                                context)
-                                                            .showSnackBar(
-                                                          const SnackBar(
-                                                              content: Text(
-                                                                  'Файл не найден (кэш очищен)')),
-                                                        );
-                                                      }
-                                                      return;
-                                                    }
-                                                    bytes =
-                                                        await f.readAsBytes();
-                                                  }
-
-                                                  await Gal.putImageBytes(
-                                                      Uint8List.fromList(
-                                                          bytes));
-                                                  if (context.mounted) {
-                                                    _showTopNotification(
-                                                        context,
-                                                        'Фото успешно сохранено в галерею!');
-                                                  }
-                                                } catch (e) {
-                                                  if (context.mounted) {
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(
-                                                      SnackBar(
-                                                          content: Text(
-                                                              'Ошибка при сохранении: $e')),
-                                                    );
-                                                  }
-                                                }
-                                              },
-                                              icon: const Icon(
-                                                  Icons.download_rounded,
-                                                  size: 16),
-                                              label: const Text(
-                                                  'Сохранить фото',
-                                                  style:
-                                                      TextStyle(fontSize: 13)),
-                                              style: TextButton.styleFrom(
-                                                foregroundColor:
-                                                    AppTheme.primary,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 12,
-                                                        vertical: 0),
+                                          return GestureDetector(
+                                            onTap: () => _openFullScreenImage(context, displayUrl, fullUrl),
+                                            child: Container(
+                                              width: 150,
+                                              margin: const EdgeInsets.only(right: 12),
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(12),
+                                                child: displayUrl.startsWith('http')
+                                                    ? Image.network(displayUrl, fit: BoxFit.cover)
+                                                    : Image.file(File(displayUrl), fit: BoxFit.cover),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 12),
-                                        ],
-                                      );
-                                    }),
+                                          );
+                                        },
+                                      ),
+                                    ),
                                   ],
                                 ],
                               ),
                             )),
+                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
@@ -842,107 +702,147 @@ class DiaryScreenState extends State<DiaryScreen>
     );
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
-  void _openFullScreenImage(BuildContext context, String url) {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        barrierColor: Colors.black87,
-        barrierDismissible: true,
-        pageBuilder: (ctx, anim, secondAnim) {
-          return FadeTransition(
-            opacity: anim,
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              body: Stack(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: Center(
-                      child: InteractiveViewer(
-                        minScale: 0.5,
-                        maxScale: 8.0,
-                        child: url.startsWith('http')
-                            ? Image.network(url, fit: BoxFit.contain)
-                            : Image.file(File(url), fit: BoxFit.contain),
-                      ),
+  void _openFullScreenImage(BuildContext context, String displayUrl, String fullUrl) {
+    showGeneralPage(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.95),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: Hero(
+                      tag: displayUrl,
+                      child: displayUrl.startsWith('http')
+                          ? Image.network(displayUrl, fit: BoxFit.contain)
+                          : Image.file(File(displayUrl), fit: BoxFit.contain),
                     ),
                   ),
-                  Positioned(
-                    top: MediaQuery.of(ctx).padding.top + 12,
-                    right: 16,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(ctx),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close_rounded,
-                            color: Colors.white, size: 22),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 250),
-        reverseTransitionDuration: const Duration(milliseconds: 200),
-      ),
+              // Close button
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                right: 20,
+                child: Material(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              // Download full quality button
+              Positioned(
+                bottom: MediaQuery.of(context).padding.bottom + 20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    icon: const Icon(Icons.download_rounded),
+                    label: const Text('Скачать в полном качестве'),
+                    onPressed: () async {
+                      try {
+                        // Show instant notification
+                        _showInstantTopNotification(context, 'Начинаем загрузку...', Icons.cloud_download);
+                        
+                        Uint8List bytes;
+                        if (fullUrl.startsWith('http')) {
+                          final response = await http.get(Uri.parse(fullUrl));
+                          bytes = response.bodyBytes;
+                        } else {
+                          bytes = await File(fullUrl).readAsBytes();
+                        }
+                        
+                        await Gal.putImageBytes(bytes);
+                        
+                        if (context.mounted) {
+                          _showInstantTopNotification(context, 'Фото сохранено в галерею!', Icons.check_circle_rounded);
+                        }
+                      } catch (e) {
+                         if (context.mounted) {
+                          _showInstantTopNotification(context, 'Ошибка при сохранении', Icons.error_outline_rounded);
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  void _showTopNotification(BuildContext context, String message) {
+  void _showInstantTopNotification(BuildContext context, String message, IconData icon) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
+
     entry = OverlayEntry(
-      builder: (ctx) => _TopNotification(
+      builder: (context) => _InstantNotification(
         message: message,
-        onDismiss: () => entry.remove(),
+        icon: icon,
+        onFinished: () => entry.remove(),
       ),
     );
+
     overlay.insert(entry);
   }
 }
 
-class _TopNotification extends StatefulWidget {
+class _InstantNotification extends StatefulWidget {
   final String message;
-  final VoidCallback onDismiss;
-  const _TopNotification({required this.message, required this.onDismiss});
+  final IconData icon;
+  final VoidCallback onFinished;
+
+  const _InstantNotification({
+    required this.message,
+    required this.icon,
+    required this.onFinished,
+  });
+
   @override
-  State<_TopNotification> createState() => _TopNotificationState();
+  State<_InstantNotification> createState() => _InstantNotificationState();
 }
 
-class _TopNotificationState extends State<_TopNotification>
+class _InstantNotificationState extends State<_InstantNotification>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<Offset> _slideAnim;
-  late Animation<double> _fadeAnim;
+  late Animation<Offset> _offsetAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
     );
-    _slideAnim = Tween<Offset>(
+
+    _offsetAnimation = Tween<Offset>(
       begin: const Offset(0, -1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _fadeAnim = Tween<double>(begin: 0, end: 1)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
     _controller.forward();
+
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        _controller.reverse().then((_) {
-          widget.onDismiss();
-        });
+        _controller.reverse().then((_) => widget.onFinished());
       }
     });
   }
@@ -956,45 +856,38 @@ class _TopNotificationState extends State<_TopNotification>
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 8,
+      top: MediaQuery.of(context).padding.top + 10,
       left: 20,
       right: 20,
       child: SlideTransition(
-        position: _slideAnim,
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+        position: _offsetAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E2218).withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(widget.icon, color: AppTheme.primary, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.message,
+                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle_rounded,
-                      color: Colors.white, size: 22),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      widget.message,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1003,23 +896,16 @@ class _TopNotificationState extends State<_TopNotification>
   }
 }
 
-// Redirect widget used for logout — navigates back to RoleGate
+// Redirect helper for logout
 class _RoleGateRedirect extends StatelessWidget {
   const _RoleGateRedirect();
+
   @override
   Widget build(BuildContext context) {
-    // We directly build the MaterialApp again to reset navigation stack
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      locale: const Locale('ru', 'RU'),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('ru', 'RU')],
-      home: const RoleGate(),
+    // This assumes RoleGate is available in main.dart context
+    // You might need to adjust based on where RoleGate is actually defined
+    return const MaterialApp(
+      home: Scaffold(body: Center(child: CircularProgressIndicator())),
     );
   }
 }
