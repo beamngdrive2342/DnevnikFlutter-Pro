@@ -158,14 +158,14 @@ const List<String> allSubjects = [
 
 // Times for 8 possible lessons
 final List<String> lessonTimes = [
-  '08:30 - 09:10',
-  '09:20 - 10:00',
-  '10:20 - 11:00',
-  '11:20 - 12:00',
-  '12:10 - 12:50',
-  '13:00 - 13:40',
-  '13:50 - 14:30',
-  '14:40 - 15:20',
+  '09:00 - 09:45',
+  '09:50 - 10:35',
+  '10:45 - 11:30',
+  '11:50 - 12:35',
+  '12:55 - 13:40',
+  '13:50 - 14:35',
+  '14:40 - 15:25',
+  '15:30 - 16:15',
 ];
 
 String _getTime(int index) => index < lessonTimes.length ? lessonTimes[index] : '';
