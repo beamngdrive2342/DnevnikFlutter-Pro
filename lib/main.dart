@@ -146,7 +146,8 @@ class _RoleGateState extends State<RoleGate> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.admin_panel_settings_rounded, size: 22),
+                  icon:
+                      const Icon(Icons.admin_panel_settings_rounded, size: 22),
                   label: const Text('Войти как админ'),
                   onPressed: () => _showAdminPinDialog(),
                 ),
@@ -158,9 +159,9 @@ class _RoleGateState extends State<RoleGate> {
     );
   }
 
-  void _showAdminPinDialog() {
+  Future<void> _showAdminPinDialog() async {
     final pinController = TextEditingController();
-    showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E2218),
@@ -206,6 +207,7 @@ class _RoleGateState extends State<RoleGate> {
         ],
       ),
     );
+    pinController.dispose();
   }
 }
 
@@ -221,37 +223,38 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  static const String _imageUploadUrl = 'https://freeimage.host/api/1/upload';
+  static const String _imageUploadKey = '6d207e02198a847aa98d0a2a901485a5';
+  static const Duration _uploadTimeout = Duration(seconds: 20);
+
   int _currentIndex = 0;
   final GlobalKey<DiaryScreenState> _diaryKey = GlobalKey<DiaryScreenState>();
   final GlobalKey<AdminPanelScreenState> _adminKey =
       GlobalKey<AdminPanelScreenState>();
+  final ImagePicker _imagePicker = ImagePicker();
 
   bool get isAdmin => widget.role == 'admin';
 
   Future<Map<String, String>?> _uploadImage(String path) async {
     try {
-      final bytes = await File(path).readAsBytes();
-      final request = http.MultipartRequest('POST', Uri.parse('https://freeimage.host/api/1/upload'));
-      request.fields['key'] = '6d207e02198a847aa98d0a2a901485a5';
+      final request = http.MultipartRequest('POST', Uri.parse(_imageUploadUrl));
+      request.fields['key'] = _imageUploadKey;
       request.fields['action'] = 'upload';
       request.fields['format'] = 'json';
-      request.files.add(http.MultipartFile.fromBytes('source', bytes, filename: 'photo.jpg'));
-      
-      final response = await request.send();
+      request.files.add(await http.MultipartFile.fromPath('source', path));
+
+      final response = await request.send().timeout(_uploadTimeout);
       if (response.statusCode == 200) {
         final respStr = await response.stream.bytesToString();
-        final json = jsonDecode(respStr);
+        final json = jsonDecode(respStr) as Map<String, dynamic>;
         if (json['image'] != null) {
           final fullUrl = json['image']['url'];
           // Use medium if available, otherwise fallback to thumb or full
-          final displayUrl = json['image']['medium']?['url'] ?? 
-                            json['image']['thumb']?['url'] ?? 
-                            fullUrl;
-          
-          return {
-            'display': displayUrl.toString(),
-            'full': fullUrl.toString()
-          };
+          final displayUrl = json['image']['medium']?['url'] ??
+              json['image']['thumb']?['url'] ??
+              fullUrl;
+
+          return {'display': displayUrl.toString(), 'full': fullUrl.toString()};
         }
       }
     } catch (e) {
@@ -280,10 +283,10 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  void _showAddHomeworkModal() {
+  Future<void> _showAddHomeworkModal() async {
     String? selectedSubject;
     final taskController = TextEditingController();
-    List<String> pickedImagePaths = [];
+    final pickedImagePaths = <String>[];
 
     DateTime initDate = DateTime.now().add(const Duration(days: 1));
     while (initDate.weekday == 6 || initDate.weekday == 7) {
@@ -292,7 +295,21 @@ class _MainScreenState extends State<MainScreen> {
     DateTime selectedDeadline = initDate;
     bool isUploading = false;
 
-    showModalBottomSheet(
+    Future<void> pickImages(StateSetter setModalState) async {
+      final images = await _imagePicker.pickMultiImage(imageQuality: 85);
+      if (images.isEmpty) {
+        return;
+      }
+      setModalState(() {
+        for (final image in images) {
+          if (!pickedImagePaths.contains(image.path)) {
+            pickedImagePaths.add(image.path);
+          }
+        }
+      });
+    }
+
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -370,8 +387,8 @@ class _MainScreenState extends State<MainScreen> {
                                       fontSize: 14)),
                               isExpanded: true,
                               dropdownColor: const Color(0xFF2E2218),
-                              style:
-                                  const TextStyle(color: AppTheme.onBg, fontSize: 14),
+                              style: const TextStyle(
+                                  color: AppTheme.onBg, fontSize: 14),
                               items: allSubjects
                                   .map((s) => DropdownMenuItem(
                                       value: s, child: Text(s)))
@@ -389,7 +406,8 @@ class _MainScreenState extends State<MainScreen> {
                         TextField(
                           controller: taskController,
                           maxLines: 4,
-                          style: const TextStyle(color: AppTheme.onBg, fontSize: 14),
+                          style: const TextStyle(
+                              color: AppTheme.onBg, fontSize: 14),
                           decoration: InputDecoration(
                             hintText: 'Опишите задание...',
                             hintStyle: TextStyle(
@@ -426,15 +444,7 @@ class _MainScreenState extends State<MainScreen> {
                         const SizedBox(height: 6),
                         GestureDetector(
                           onTap: () async {
-                            final picker = ImagePicker();
-                            final List<XFile> images = await picker.pickMultiImage(
-                              imageQuality: 85,
-                            );
-                            if (images.isNotEmpty) {
-                              setModalState(() {
-                                pickedImagePaths.addAll(images.map((e) => e.path));
-                              });
-                            }
+                            await pickImages(setModalState);
                           },
                           child: Container(
                             width: double.infinity,
@@ -469,23 +479,24 @@ class _MainScreenState extends State<MainScreen> {
                                       if (idx == pickedImagePaths.length) {
                                         return GestureDetector(
                                           onTap: () async {
-                                            final more = await ImagePicker().pickMultiImage(imageQuality: 85);
-                                            if (more.isNotEmpty) {
-                                              setModalState(() {
-                                                pickedImagePaths.addAll(more.map((e) => e.path));
-                                              });
-                                            }
+                                            await pickImages(setModalState);
                                           },
                                           child: Container(
                                             width: 120,
-                                            margin: const EdgeInsets.only(left: 8),
+                                            margin:
+                                                const EdgeInsets.only(left: 8),
                                             decoration: BoxDecoration(
                                               color: AppTheme.surface2,
-                                              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                                              border: Border.all(color: AppTheme.cardBorder),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      AppTheme.radiusSm),
+                                              border: Border.all(
+                                                  color: AppTheme.cardBorder),
                                             ),
                                             child: const Center(
-                                              child: Icon(Icons.add_a_photo_rounded, color: AppTheme.primaryDim),
+                                              child: Icon(
+                                                  Icons.add_a_photo_rounded,
+                                                  color: AppTheme.primaryDim),
                                             ),
                                           ),
                                         );
@@ -493,12 +504,18 @@ class _MainScreenState extends State<MainScreen> {
                                       final path = pickedImagePaths[idx];
                                       return Container(
                                         width: 120,
-                                        margin: EdgeInsets.only(right: idx == pickedImagePaths.length - 1 ? 0 : 8),
+                                        margin: EdgeInsets.only(
+                                            right: idx ==
+                                                    pickedImagePaths.length - 1
+                                                ? 0
+                                                : 8),
                                         child: Stack(
                                           children: [
                                             Positioned.fill(
                                               child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        AppTheme.radiusSm),
                                                 child: Image.file(
                                                   File(path),
                                                   fit: BoxFit.cover,
@@ -511,16 +528,22 @@ class _MainScreenState extends State<MainScreen> {
                                               child: GestureDetector(
                                                 onTap: () {
                                                   setModalState(() {
-                                                    pickedImagePaths.removeAt(idx);
+                                                    pickedImagePaths
+                                                        .removeAt(idx);
                                                   });
                                                 },
                                                 child: Container(
-                                                  decoration: const BoxDecoration(
+                                                  decoration:
+                                                      const BoxDecoration(
                                                     color: Colors.black54,
                                                     shape: BoxShape.circle,
                                                   ),
-                                                  padding: const EdgeInsets.all(4),
-                                                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  child: const Icon(
+                                                      Icons.close_rounded,
+                                                      color: Colors.white,
+                                                      size: 14),
                                                 ),
                                               ),
                                             ),
@@ -555,7 +578,9 @@ class _MainScreenState extends State<MainScreen> {
                                       onPrimary: Colors.white,
                                       surface: Color(0xFF251C14),
                                       onSurface: AppTheme.onBg,
-                                    ), dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF251C14)),
+                                    ),
+                                    dialogTheme: const DialogThemeData(
+                                        backgroundColor: Color(0xFF251C14)),
                                   ),
                                   child: child!,
                                 );
@@ -596,79 +621,97 @@ class _MainScreenState extends State<MainScreen> {
                           width: double.infinity,
                           height: 48,
                           child: ElevatedButton(
-                            onPressed: isUploading ? null : () async {
-                              if (selectedSubject == null ||
-                                  taskController.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Заполните предмет и задание')),
-                                );
-                                return;
-                              }
+                            onPressed: isUploading
+                                ? null
+                                : () async {
+                                    if (selectedSubject == null ||
+                                        taskController.text.trim().isEmpty) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Заполните предмет и задание')),
+                                      );
+                                      return;
+                                    }
 
-                              setModalState(() => isUploading = true);
+                                    setModalState(() => isUploading = true);
 
-                              List<String> displayUrls = [];
-                              List<String> fullUrls = [];
-                              bool hasError = false;
-                              for (String path in pickedImagePaths) {
-                                final result = await _uploadImage(path);
-                                if (result != null) {
-                                  displayUrls.add(result['display']!);
-                                  fullUrls.add(result['full']!);
-                                } else {
-                                  hasError = true;
-                                }
-                              }
+                                    final displayUrls = <String>[];
+                                    final fullUrls = <String>[];
+                                    bool hasError = false;
+                                    final uploadResults = await Future.wait(
+                                      pickedImagePaths.map(_uploadImage),
+                                    );
+                                    for (final result in uploadResults) {
+                                      if (result != null) {
+                                        displayUrls.add(result['display']!);
+                                        fullUrls.add(result['full']!);
+                                      } else {
+                                        hasError = true;
+                                      }
+                                    }
 
-                              if (hasError) {
-                                setModalState(() => isUploading = false);
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Ошибка при загрузке фото в облако. Попробуйте ещё раз.')),
-                                );
-                                return;
-                              }
+                                    if (hasError) {
+                                      setModalState(() => isUploading = false);
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Ошибка при загрузке фото в облако. Попробуйте ещё раз.')),
+                                      );
+                                      return;
+                                    }
 
-                              final hw = HomeworkItem(
-                                id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
-                                subject: selectedSubject!,
-                                task: taskController.text.trim(),
-                                deadline:
-                                    '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
-                                imageUrl: null,
-                                imageUrls: displayUrls.isNotEmpty ? displayUrls : null,
-                                fullResolutionUrls: fullUrls.isNotEmpty ? fullUrls : null,
-                                done: false,
-                                fromSchedule: false,
-                              );
+                                    final hw = HomeworkItem(
+                                      id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+                                      subject: selectedSubject!,
+                                      task: taskController.text.trim(),
+                                      deadline:
+                                          '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
+                                      imageUrl: null,
+                                      imageUrls: displayUrls.isNotEmpty
+                                          ? displayUrls
+                                          : null,
+                                      fullResolutionUrls:
+                                          fullUrls.isNotEmpty ? fullUrls : null,
+                                      done: false,
+                                      fromSchedule: false,
+                                    );
 
-                              final success = await FirestoreService.addHomework(hw);
+                                    final success =
+                                        await FirestoreService.addHomework(hw);
 
-                              if (!context.mounted) return;
+                                    if (!context.mounted) return;
 
-                              if (!success) {
-                                setModalState(() => isUploading = false);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Ошибка при сохранении в базу данных.')),
-                                );
-                                return;
-                              }
+                                    if (!success) {
+                                      setModalState(() => isUploading = false);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Ошибка при сохранении в базу данных.')),
+                                      );
+                                      return;
+                                    }
 
-                              _diaryKey.currentState?.reloadHomework();
-                              _adminKey.currentState?.reload();
-                              if (ctx.mounted) Navigator.pop(ctx);
+                                    _diaryKey.currentState?.reloadHomework();
+                                    _adminKey.currentState?.reload();
+                                    if (ctx.mounted) Navigator.pop(ctx);
 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        'Задание по $selectedSubject добавлено')),
-                              );
-                            },
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Задание по $selectedSubject добавлено')),
+                                    );
+                                  },
                             child: isUploading
-                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                        color: Colors.white, strokeWidth: 2))
                                 : const Text('Сохранить задание'),
                           ),
                         ),
@@ -683,6 +726,7 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
+    taskController.dispose();
   }
 
   Widget _formLabel(String text) {
@@ -799,7 +843,8 @@ class _MainScreenState extends State<MainScreen> {
               padding: const EdgeInsets.only(bottom: 20),
               child: PremiumGlowButton(
                 onPressed: _showAddHomeworkModal,
-                child: const Icon(Icons.add_rounded, size: 32, color: Colors.white),
+                child: const Icon(Icons.add_rounded,
+                    size: 32, color: Colors.white),
               ),
             )
           : null,
@@ -865,7 +910,7 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
               ],
             ),
           ),
-          
+
           // 2. Rotating Border Glow
           AnimatedBuilder(
             animation: _controller,
@@ -884,13 +929,14 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
                       Colors.transparent,
                     ],
                     stops: const [0.0, 0.45, 0.5, 0.55, 1.0],
-                    transform: GradientRotation(_controller.value * 2 * 3.14159),
+                    transform:
+                        GradientRotation(_controller.value * 2 * 3.14159),
                   ),
                 ),
               );
             },
           ),
-          
+
           // 3. Black Inner Body
           Container(
             width: size - 3,
@@ -901,7 +947,7 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
             ),
             child: Center(child: widget.child),
           ),
-          
+
           // 4. Glass Reflection (Subtle top highlight)
           Positioned(
             top: 6,
@@ -909,7 +955,8 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
               width: size * 0.6,
               height: size * 0.3,
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(30)),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
