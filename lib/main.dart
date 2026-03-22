@@ -337,22 +337,23 @@ class _MainScreenState extends State<MainScreen> {
       });
     }
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              margin:
-                  EdgeInsets.only(top: MediaQuery.of(context).padding.top + 40),
-              decoration: BoxDecoration(
-                color: const Color(0xFF251C14),
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppTheme.radiusXl)),
-                border: Border.all(color: AppTheme.cardBorder),
-              ),
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) {
+          return StatefulBuilder(
+            builder: (modalCtx, setModalState) {
+              final topPadding = MediaQuery.of(context).padding.top;
+              return Container(
+                margin: EdgeInsets.only(top: topPadding + 40),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF251C14),
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppTheme.radiusXl)),
+                  border: Border.all(color: AppTheme.cardBorder),
+                ),
               child: Padding(
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -755,10 +756,12 @@ class _MainScreenState extends State<MainScreen> {
             );
           },
         );
-      },
-    );
-    taskController.dispose();
-  }
+      } catch (e) {
+        debugPrint('❌ Ошибка при открытии модалки задания: $e');
+      } finally {
+        taskController.dispose();
+      }
+    }
 
   Widget _formLabel(String text) {
     return Text(text,
