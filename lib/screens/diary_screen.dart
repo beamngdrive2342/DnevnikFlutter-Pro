@@ -470,15 +470,24 @@ class DiaryScreenState extends State<DiaryScreen>
                             )),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(lesson.subject,
                               style: const TextStyle(
-                                fontSize: 15,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: AppTheme.onBg,
+                                height: 1.2,
+                              )),
+                          const SizedBox(height: 3),
+                          Text(lesson.time,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.onBg.withValues(alpha: 0.45),
                               )),
                         ],
                       ),
