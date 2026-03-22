@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gal/gal.dart';
@@ -11,6 +10,7 @@ import '../main.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
+import '../widgets/network_photo.dart';
 
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({super.key});
@@ -63,10 +63,6 @@ class DiaryScreenState extends State<DiaryScreen>
 
   void reloadHomework() {
     _loadCustomHomework();
-  }
-
-  Future<void> _refreshHomework() async {
-    await _loadCustomHomework(forceRefresh: true);
   }
 
   Map<String, List<HomeworkItem>> _buildHomeworkLookup(
@@ -391,45 +387,39 @@ class DiaryScreenState extends State<DiaryScreen>
     final dateStr =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-    return RefreshIndicator(
-      color: AppTheme.primary,
-      onRefresh: _refreshHomework,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Расписание',
+                style: TextStyle(
+                  fontFamily: AppTheme.fontSerif,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.onBg,
+                )),
+            Text(weekdaysFull[dayOfWeek],
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.onSurface2,
+                  fontWeight: FontWeight.w500,
+                )),
+          ],
         ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Расписание',
-                  style: TextStyle(
-                    fontFamily: AppTheme.fontSerif,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.onBg,
-                  )),
-              Text(weekdaysFull[dayOfWeek],
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.onSurface2,
-                    fontWeight: FontWeight.w500,
-                  )),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (lessons.isEmpty)
-            _buildNoLessons()
-          else
-            ...lessons.map((lesson) {
-              final additionalHw =
-                  _homeworkLookup[_buildHomeworkKey(dateStr, lesson.subject)] ??
-                      const <HomeworkItem>[];
-              return _buildLessonCard(lesson, additionalHw);
-            }),
-        ],
-      ),
+        const SizedBox(height: 16),
+        if (lessons.isEmpty)
+          _buildNoLessons()
+        else
+          ...lessons.map((lesson) {
+            final additionalHw =
+                _homeworkLookup[_buildHomeworkKey(dateStr, lesson.subject)] ??
+                    const <HomeworkItem>[];
+            return _buildLessonCard(lesson, additionalHw);
+          }),
+      ],
     );
   }
 
@@ -676,7 +666,14 @@ class DiaryScreenState extends State<DiaryScreen>
                                             ? List.generate(
                                                 hw.imageUrls!.length, (i) {
                                                 return {
-                                                  'display': hw.imageUrls![i],
+                                                  'display': (hw.fullResolutionUrls !=
+                                                              null &&
+                                                          hw.fullResolutionUrls!
+                                                                  .length >
+                                                              i)
+                                                      ? hw.fullResolutionUrls![
+                                                          i]
+                                                      : hw.imageUrls![i],
                                                   'full': (hw.fullResolutionUrls !=
                                                               null &&
                                                           hw.fullResolutionUrls!
@@ -712,12 +709,12 @@ class DiaryScreenState extends State<DiaryScreen>
                                                       AppTheme.radiusSm),
                                               child: displayUrl
                                                       .startsWith('http')
-                                                  ? CachedNetworkImage(
-                                                      imageUrl: displayUrl,
+                                                  ? NetworkPhoto(
+                                                      url: displayUrl,
                                                       width: double.infinity,
+                                                      height: 120,
                                                       fit: BoxFit.cover,
-                                                      placeholder: (ctx, url) =>
-                                                          Container(
+                                                      loading: Container(
                                                         height: 120,
                                                         color:
                                                             AppTheme.surface3,
@@ -734,9 +731,7 @@ class DiaryScreenState extends State<DiaryScreen>
                                                           ),
                                                         ),
                                                       ),
-                                                      errorWidget:
-                                                          (ctx, url, err) =>
-                                                              Container(
+                                                      error: Container(
                                                         height: 120,
                                                         color:
                                                             AppTheme.surface3,
@@ -916,10 +911,10 @@ class DiaryScreenState extends State<DiaryScreen>
                         minScale: 0.5,
                         maxScale: 8.0,
                         child: url.startsWith('http')
-                            ? CachedNetworkImage(
-                                imageUrl: url,
+                            ? NetworkPhoto(
+                                url: url,
                                 fit: BoxFit.contain,
-                                placeholder: (ctx, value) => const SizedBox(
+                                loading: const SizedBox(
                                   width: 28,
                                   height: 28,
                                   child: CircularProgressIndicator(
@@ -927,7 +922,7 @@ class DiaryScreenState extends State<DiaryScreen>
                                     color: AppTheme.primary,
                                   ),
                                 ),
-                                errorWidget: (ctx, value, err) => const Icon(
+                                error: const Icon(
                                   Icons.broken_image_rounded,
                                   color: AppTheme.onSurface3,
                                 ),
