@@ -1,11 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
-import 'dart:typed_data';
 import 'package:flutter/physics.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
@@ -21,13 +20,15 @@ class DiaryScreen extends StatefulWidget {
 
 class DiaryScreenState extends State<DiaryScreen>
     with SingleTickerProviderStateMixin {
+  static const Duration _imageDownloadTimeout = Duration(seconds: 15);
+
   late DateTime _selectedDate;
   late ScrollController _calendarScrollController;
   late PageController _pageController;
   late AnimationController _springController;
   late List<DateTime> _days;
   late DateTime _today;
-  List<HomeworkItem> _customHomework = [];
+  Map<String, List<HomeworkItem>> _homeworkLookup = {};
 
   @override
   void initState() {
@@ -55,13 +56,25 @@ class DiaryScreenState extends State<DiaryScreen>
     final list = await FirestoreService.getHomework();
     if (!mounted) return;
     setState(() {
-      _customHomework = list;
+      _homeworkLookup = _buildHomeworkLookup(list);
     });
   }
 
   void reloadHomework() {
     _loadCustomHomework();
   }
+
+  Map<String, List<HomeworkItem>> _buildHomeworkLookup(
+      List<HomeworkItem> homework) {
+    final lookup = <String, List<HomeworkItem>>{};
+    for (final item in homework) {
+      final key = _buildHomeworkKey(item.deadline, item.subject);
+      (lookup[key] ??= <HomeworkItem>[]).add(item);
+    }
+    return lookup;
+  }
+
+  String _buildHomeworkKey(String date, String subject) => '$date|$subject';
 
   void _scrollToIndex(int index) {
     if (!_calendarScrollController.hasClients) return;
@@ -400,10 +413,9 @@ class DiaryScreenState extends State<DiaryScreen>
           _buildNoLessons()
         else
           ...lessons.map((lesson) {
-            final additionalHw = _customHomework
-                .where((hw) =>
-                    hw.deadline == dateStr && hw.subject == lesson.subject)
-                .toList();
+            final additionalHw =
+                _homeworkLookup[_buildHomeworkKey(dateStr, lesson.subject)] ??
+                    const <HomeworkItem>[];
             return _buildLessonCard(lesson, additionalHw);
           }),
       ],
@@ -765,9 +777,10 @@ class DiaryScreenState extends State<DiaryScreen>
                                                   List<int> bytes;
                                                   if (fullUrl
                                                       .startsWith('http')) {
-                                                    final response =
-                                                        await http.get(
-                                                            Uri.parse(fullUrl));
+                                                    final response = await http
+                                                        .get(Uri.parse(fullUrl))
+                                                        .timeout(
+                                                            _imageDownloadTimeout);
                                                     if (response.statusCode ==
                                                         200) {
                                                       bytes =
@@ -1017,18 +1030,6 @@ class _RoleGateRedirect extends StatelessWidget {
   const _RoleGateRedirect();
   @override
   Widget build(BuildContext context) {
-    // We directly build the MaterialApp again to reset navigation stack
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      locale: const Locale('ru', 'RU'),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('ru', 'RU')],
-      home: const RoleGate(),
-    );
+    return const RoleGate();
   }
 }
