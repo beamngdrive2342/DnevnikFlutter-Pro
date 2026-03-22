@@ -61,8 +61,8 @@ class DiaryScreenState extends State<DiaryScreen>
     });
   }
 
-  void reloadHomework() {
-    _loadCustomHomework();
+  Future<void> reloadHomework({bool forceRefresh = false}) {
+    return _loadCustomHomework(forceRefresh: forceRefresh);
   }
 
   Map<String, List<HomeworkItem>> _buildHomeworkLookup(
