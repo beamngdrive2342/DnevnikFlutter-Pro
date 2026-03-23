@@ -442,124 +442,126 @@ class DiaryScreenState extends State<DiaryScreen>
   Widget _buildLessonCard(Lesson lesson, List<HomeworkItem> customHw) {
     final hasAnyHw = lesson.hw.isNotEmpty || customHw.isNotEmpty;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.cardBorder),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        child: InkWell(
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          onTap: () {
-            if (hasAnyHw) {
-              _showLessonDetails(context, lesson, customHw);
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          border: Border.all(color: AppTheme.cardBorder),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            onTap: () {
+              if (hasAnyHw) {
+                _showLessonDetails(context, lesson, customHw);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryLight,
+                        ),
+                        child: Center(
+                          child: Text('${lesson.num}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryDim,
+                              )),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(lesson.subject,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.onBg,
+                                  height: 1.2,
+                                )),
+                            const SizedBox(height: 3),
+                            Text(lesson.time,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppTheme.onBg.withValues(alpha: 0.45),
+                                )),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (hasAnyHw) ...[
+                    const SizedBox(height: 12),
                     Container(
-                      width: 28,
-                      height: 28,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.primaryLight,
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        border: Border.all(color: AppTheme.cardBorder),
                       ),
-                      child: Center(
-                        child: Text('${lesson.num}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.primaryDim,
-                            )),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(lesson.subject,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.onBg,
-                                height: 1.2,
-                              )),
-                          const SizedBox(height: 3),
-                          Text(lesson.time,
+                          const Text('ЗАДАНО',
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: AppTheme.onBg.withValues(alpha: 0.45),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.0,
+                                color: AppTheme.primaryDim,
                               )),
+                          const SizedBox(height: 5),
+                          if (lesson.hw.isNotEmpty)
+                            Text(lesson.hw,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppTheme.onSurface,
+                                  height: 1.5,
+                                )),
+                          for (var ch in customHw)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                  top: lesson.hw.isNotEmpty ? 6 : 0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('• ',
+                                      style: TextStyle(
+                                          color: AppTheme.primaryDim,
+                                          fontSize: 13)),
+                                  Expanded(
+                                      child: Text(ch.task,
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              color: AppTheme.onSurface,
+                                              height: 1.5))),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
                   ],
-                ),
-                if (hasAnyHw) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                      border: Border.all(color: AppTheme.cardBorder),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('ЗАДАНО',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.0,
-                              color: AppTheme.primaryDim,
-                            )),
-                        const SizedBox(height: 5),
-                        if (lesson.hw.isNotEmpty)
-                          Text(lesson.hw,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppTheme.onSurface,
-                                height: 1.5,
-                              )),
-                        for (var ch in customHw)
-                          Padding(
-                            padding: EdgeInsets.only(
-                                top: lesson.hw.isNotEmpty ? 6 : 0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('• ',
-                                    style: TextStyle(
-                                        color: AppTheme.primaryDim,
-                                        fontSize: 13)),
-                                Expanded(
-                                    child: Text(ch.task,
-                                        style: const TextStyle(
-                                            fontSize: 13,
-                                            color: AppTheme.onSurface,
-                                            height: 1.5))),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
