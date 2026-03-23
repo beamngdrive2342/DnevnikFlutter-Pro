@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -8,14 +8,16 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'theme/app_theme.dart';
 import 'screens/diary_screen.dart';
 import 'screens/admin_panel_screen.dart';
 import 'data/schedule_data.dart';
 import 'data/firestore_service.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _configureDisplayMode();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
@@ -23,6 +25,17 @@ void main() {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
   runApp(const DnevnikApp());
+}
+
+Future<void> _configureDisplayMode() async {
+  if (!Platform.isAndroid) {
+    return;
+  }
+  try {
+    await FlutterDisplayMode.setHighRefreshRate();
+  } catch (e) {
+    debugPrint('Display mode setup skipped: $e');
+  }
 }
 
 class DnevnikApp extends StatelessWidget {
@@ -825,7 +838,7 @@ class _MainScreenState extends State<MainScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(100),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
             child: BottomNavigationBar(
               elevation: 0,
               backgroundColor: Colors.transparent,
@@ -878,17 +891,19 @@ class _MainScreenState extends State<MainScreen> {
           ),
           Positioned.fill(
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
-                color: AppTheme.bg.withValues(alpha: 0.3),
+                color: AppTheme.bg.withValues(alpha: 0.2),
               ),
             ),
           ),
           SafeArea(
             bottom: false,
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _screens,
+            child: RepaintBoundary(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
             ),
           ),
         ],
@@ -1029,4 +1044,3 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
     );
   }
 }
-
