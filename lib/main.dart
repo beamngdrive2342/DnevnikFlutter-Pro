@@ -1,6 +1,7 @@
-import 'dart:ui';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
 import 'screens/diary_screen.dart';
 import 'screens/admin_panel_screen.dart';
 import 'data/schedule_data.dart';
@@ -17,14 +19,16 @@ import 'data/firestore_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _configureDisplayMode();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: AppTheme.surface,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
   runApp(const DnevnikApp());
+  unawaited(_bootstrapRuntime());
+}
+
+Future<void> _bootstrapRuntime() async {
+  await ThemeController.initialize();
+  // Give the first navigation/render path time to stabilize before touching
+  // vendor-specific display mode APIs.
+  await Future<void>.delayed(const Duration(seconds: 5));
+  unawaited(_configureDisplayMode());
 }
 
 Future<void> _configureDisplayMode() async {
@@ -43,27 +47,42 @@ class DnevnikApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Дневник',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      locale: const Locale('ru', 'RU'),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('ru', 'RU'),
-      ],
-      home: const RoleGate(),
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeController.hydrated,
+      builder: (context, hydrated, _) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeController.notifier,
+          builder: (context, themeMode, child) {
+            return MaterialApp(
+              title: 'Дневник',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              themeAnimationDuration:
+                  hydrated ? const Duration(milliseconds: 180) : Duration.zero,
+              themeAnimationCurve: Curves.easeOutCubic,
+              locale: const Locale('ru', 'RU'),
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('ru', 'RU'),
+              ],
+              home: const RoleGate(),
+            );
+          },
+        );
+      },
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// ROLE GATE — simple PIN-code role selection on first launch
-// ═══════════════════════════════════════════════════════
+// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+// ROLE GATE вЂ” simple PIN-code role selection on first launch
+// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
 class RoleGate extends StatefulWidget {
   const RoleGate({super.key});
   @override
@@ -73,14 +92,22 @@ class RoleGate extends StatefulWidget {
 class _RoleGateState extends State<RoleGate> {
   bool _isLoading = true;
   String? _role; // 'admin' or 'student'
+  AppPalette get palette => AppTheme.colorsOf(context);
 
-  // Admin PIN — can be changed by admin later
+  // Admin PIN вЂ” can be changed by admin later
   static const String _adminPin = '1234';
 
   @override
   void initState() {
     super.initState();
     _loadRole();
+    _scheduleStartupWarmup();
+  }
+
+  void _scheduleStartupWarmup() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(FirestoreService.getHomework());
+    });
   }
 
   Future<void> _loadRole() async {
@@ -103,9 +130,10 @@ class _RoleGateState extends State<RoleGate> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: AppTheme.bg,
-        body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      return Scaffold(
+        backgroundColor: palette.bg,
+        body: const Center(
+            child: CircularProgressIndicator(color: AppTheme.primary)),
       );
     }
     if (_role != null) {
@@ -116,7 +144,7 @@ class _RoleGateState extends State<RoleGate> {
 
   Widget _buildRoleSelector() {
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: palette.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -126,18 +154,18 @@ class _RoleGateState extends State<RoleGate> {
               const Icon(Icons.school_rounded,
                   size: 64, color: AppTheme.primary),
               const SizedBox(height: 24),
-              const Text('Школьный Дневник',
+              Text('Школьный дневник',
                   style: TextStyle(
                     fontFamily: AppTheme.fontSerif,
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.onBg,
+                    color: palette.onBg,
                   )),
               const SizedBox(height: 8),
-              const Text('Выберите роль для входа',
+              Text('Выберите роль для входа',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.onSurface2,
+                    color: palette.onSurface2,
                   )),
               const SizedBox(height: 48),
               // Student button
@@ -148,7 +176,7 @@ class _RoleGateState extends State<RoleGate> {
                   icon: const Icon(Icons.person_rounded, size: 22),
                   label: const Text('Войти как ученик'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.surface3,
+                    backgroundColor: palette.surface3,
                     foregroundColor: AppTheme.primaryDim,
                   ),
                   onPressed: () => _setRole('student'),
@@ -172,62 +200,125 @@ class _RoleGateState extends State<RoleGate> {
       ),
     );
   }
-
   Future<void> _showAdminPinDialog() async {
-    final pinController = TextEditingController();
-    await showDialog<void>(
+    final isAuthorized = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2E2218),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Введите PIN администратора',
-            style: TextStyle(color: Colors.white, fontSize: 18)),
-        content: TextField(
-          controller: pinController,
-          keyboardType: TextInputType.number,
-          obscureText: true,
-          maxLength: 4,
-          style: const TextStyle(
-              color: Colors.white, fontSize: 24, letterSpacing: 8),
-          textAlign: TextAlign.center,
-          decoration: InputDecoration(
-            counterText: '',
-            filled: true,
-            fillColor: AppTheme.surface3,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.cardBorder),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (pinController.text == _adminPin) {
-                Navigator.pop(ctx);
-                _setRole('admin');
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Неверный PIN')),
-                );
-              }
-            },
-            child: const Text('Войти'),
-          ),
-        ],
-      ),
+      builder: (ctx) => const _AdminPinDialog(expectedPin: _adminPin),
     );
-    pinController.dispose();
+
+    if (isAuthorized == true) {
+      await _setRole('admin');
+    }
   }
 }
 
-// ═══════════════════════════════════════════════════════
+class _AdminPinDialog extends StatefulWidget {
+  final String expectedPin;
+
+  const _AdminPinDialog({required this.expectedPin});
+
+  @override
+  State<_AdminPinDialog> createState() => _AdminPinDialogState();
+}
+
+class _AdminPinDialogState extends State<_AdminPinDialog> {
+  late final TextEditingController _pinController;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _pinController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_pinController.text == widget.expectedPin) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+
+    setState(() {
+      _errorText = 'Неверный PIN';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppTheme.colorsOf(context);
+    final dialogSurface = palette.surface2.withValues(alpha: 1);
+    final fieldSurface = palette.surface3.withValues(alpha: 1);
+
+    return AlertDialog(
+      backgroundColor: dialogSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Введите PIN администратора',
+        style: TextStyle(color: palette.onBg, fontSize: 18),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _pinController,
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            autofocus: true,
+            maxLength: 4,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onSubmitted: (_) => _submit(),
+            style: TextStyle(
+              color: palette.onBg,
+              fontSize: 24,
+              letterSpacing: 8,
+            ),
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              counterText: '',
+              errorText: _errorText,
+              filled: true,
+              fillColor: fieldSurface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: palette.cardBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: palette.cardBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.primary),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            'Отмена',
+            style: TextStyle(color: palette.onSurface2),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: const Text('Войти'),
+        ),
+      ],
+    );
+  }
+}
+
+// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
 // MAIN SCREEN
-// ═══════════════════════════════════════════════════════
+// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
 class MainScreen extends StatefulWidget {
   final String role;
   const MainScreen({super.key, required this.role});
@@ -250,6 +341,7 @@ class _MainScreenState extends State<MainScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   bool get isAdmin => widget.role == 'admin';
+  AppPalette get palette => AppTheme.colorsOf(context);
 
   Future<Map<String, String>?> _uploadImage(String path) async {
     try {
@@ -295,26 +387,35 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  late final List<Widget> _screens;
+  late final Widget _diaryScreen;
+  Widget? _adminScreen;
 
   @override
   void initState() {
     super.initState();
-    if (isAdmin) {
-      _screens = [
-        DiaryScreen(key: _diaryKey),
-        AdminPanelScreen(
-          key: _adminKey,
-          onHomeworkChanged: () {
-            _diaryKey.currentState?.reloadHomework(forceRefresh: true);
-          },
-        ),
-      ];
-    } else {
-      _screens = [
-        DiaryScreen(key: _diaryKey),
-      ];
+    _diaryScreen = DiaryScreen(key: _diaryKey);
+  }
+
+  Widget _buildAdminScreen() {
+    return AdminPanelScreen(
+      key: _adminKey,
+      onHomeworkChanged: () {
+        _diaryKey.currentState?.reloadHomework(forceRefresh: true);
+      },
+    );
+  }
+
+  void _handleNavigationTap(int index) {
+    if (_currentIndex == index) {
+      return;
     }
+
+    setState(() {
+      if (isAdmin && index == 1 && _adminScreen == null) {
+        _adminScreen = _buildAdminScreen();
+      }
+      _currentIndex = index;
+    });
   }
 
   Future<void> _showAddHomeworkModal() async {
@@ -329,6 +430,8 @@ class _MainScreenState extends State<MainScreen> {
     }
     DateTime selectedDeadline = initDate;
     bool isUploading = false;
+    final modalSurface = palette.surface2.withValues(alpha: 1);
+    final fieldSurface = palette.surface3.withValues(alpha: 1);
 
     Future<void> pickImages(
       BuildContext sheetContext,
@@ -372,10 +475,10 @@ class _MainScreenState extends State<MainScreen> {
                 margin: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top + 40),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF251C14),
+                  color: modalSurface,
                   borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(AppTheme.radiusXl)),
-                  border: Border.all(color: AppTheme.cardBorder),
+                  border: Border.all(color: palette.cardBorder),
                 ),
                 child: Padding(
                   padding: EdgeInsets.only(
@@ -392,26 +495,26 @@ class _MainScreenState extends State<MainScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Добавить задание',
+                              Text('Добавить задание',
                                   style: TextStyle(
                                     fontFamily: AppTheme.fontSerif,
                                     fontSize: 22,
                                     fontWeight: FontWeight.w500,
-                                    color: AppTheme.onBg,
+                                    color: palette.onBg,
                                   )),
                               Material(
-                                color: AppTheme.surface2,
+                                color: palette.surface2,
                                 borderRadius: BorderRadius.circular(100),
                                 child: InkWell(
                                   onTap: isUploading
                                       ? null
                                       : () => Navigator.of(ctx).pop(),
                                   borderRadius: BorderRadius.circular(100),
-                                  child: const SizedBox(
+                                  child: SizedBox(
                                     width: 36,
                                     height: 36,
                                     child: Icon(Icons.close_rounded,
-                                        color: AppTheme.onSurface2, size: 20),
+                                        color: palette.onSurface2, size: 20),
                                   ),
                                 ),
                               ),
@@ -426,23 +529,23 @@ class _MainScreenState extends State<MainScreen> {
                             height: 44,
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2E2218),
+                              color: fieldSurface,
                               borderRadius:
                                   BorderRadius.circular(AppTheme.radiusSm),
-                              border: Border.all(color: AppTheme.cardBorder),
+                              border: Border.all(color: palette.cardBorder),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: selectedSubject,
                                 hint: Text('Выберите предмет',
                                     style: TextStyle(
-                                        color: AppTheme.onSurface3
+                                        color: palette.onSurface3
                                             .withValues(alpha: 0.8),
                                         fontSize: 14)),
                                 isExpanded: true,
-                                dropdownColor: const Color(0xFF2E2218),
-                                style: const TextStyle(
-                                    color: AppTheme.onBg, fontSize: 14),
+                                dropdownColor: fieldSurface,
+                                style: TextStyle(
+                                    color: palette.onBg, fontSize: 14),
                                 items: allSubjects
                                     .map((s) => DropdownMenuItem(
                                         value: s, child: Text(s)))
@@ -460,28 +563,27 @@ class _MainScreenState extends State<MainScreen> {
                           TextField(
                             controller: taskController,
                             maxLines: 4,
-                            style: const TextStyle(
-                                color: AppTheme.onBg, fontSize: 14),
+                            style: TextStyle(color: palette.onBg, fontSize: 14),
                             decoration: InputDecoration(
                               hintText: 'Опишите задание...',
                               hintStyle: TextStyle(
-                                  color: AppTheme.onSurface3
+                                  color: palette.onSurface3
                                       .withValues(alpha: 0.8)),
                               filled: true,
-                              fillColor: const Color(0xFF2E2218),
+                              fillColor: fieldSurface,
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 12),
                               border: OutlineInputBorder(
                                 borderRadius:
                                     BorderRadius.circular(AppTheme.radiusSm),
-                                borderSide: const BorderSide(
-                                    color: AppTheme.cardBorder),
+                                borderSide:
+                                    BorderSide(color: palette.cardBorder),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius:
                                     BorderRadius.circular(AppTheme.radiusSm),
-                                borderSide: const BorderSide(
-                                    color: AppTheme.cardBorder),
+                                borderSide:
+                                    BorderSide(color: palette.cardBorder),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius:
@@ -504,10 +606,10 @@ class _MainScreenState extends State<MainScreen> {
                               width: double.infinity,
                               height: pickedImagePaths.isEmpty ? 50 : 170,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2E2218),
+                                color: fieldSurface,
                                 borderRadius:
                                     BorderRadius.circular(AppTheme.radiusSm),
-                                border: Border.all(color: AppTheme.cardBorder),
+                                border: Border.all(color: palette.cardBorder),
                               ),
                               child: pickedImagePaths.isEmpty
                                   ? Row(
@@ -515,13 +617,13 @@ class _MainScreenState extends State<MainScreen> {
                                           MainAxisAlignment.center,
                                       children: [
                                         Icon(Icons.photo_library_rounded,
-                                            color: AppTheme.onSurface3
+                                            color: palette.onSurface3
                                                 .withValues(alpha: 0.8),
                                             size: 22),
                                         const SizedBox(width: 8),
                                         Text('Добавить фото',
                                             style: TextStyle(
-                                                color: AppTheme.onSurface3
+                                                color: palette.onSurface3
                                                     .withValues(alpha: 0.8),
                                                 fontSize: 14)),
                                       ],
@@ -542,12 +644,12 @@ class _MainScreenState extends State<MainScreen> {
                                               margin: const EdgeInsets.only(
                                                   left: 8),
                                               decoration: BoxDecoration(
-                                                color: AppTheme.surface2,
+                                                color: modalSurface,
                                                 borderRadius:
                                                     BorderRadius.circular(
                                                         AppTheme.radiusSm),
                                                 border: Border.all(
-                                                    color: AppTheme.cardBorder),
+                                                    color: palette.cardBorder),
                                               ),
                                               child: const Center(
                                                 child: Icon(
@@ -576,6 +678,19 @@ class _MainScreenState extends State<MainScreen> {
                                                   child: Image.file(
                                                     File(path),
                                                     fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (ctx, err, stack) =>
+                                                            Container(
+                                                      color: palette.surface2,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: const Icon(
+                                                        Icons
+                                                            .broken_image_rounded,
+                                                        color: Colors.white70,
+                                                        size: 24,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -628,16 +743,19 @@ class _MainScreenState extends State<MainScreen> {
                                 selectableDayPredicate: (DateTime val) =>
                                     val.weekday != 6 && val.weekday != 7,
                                 builder: (context, child) {
+                                  final pickerBaseTheme = Theme.of(context);
                                   return Theme(
-                                    data: AppTheme.darkTheme.copyWith(
-                                      colorScheme: const ColorScheme.dark(
+                                    data: pickerBaseTheme.copyWith(
+                                      colorScheme:
+                                          pickerBaseTheme.colorScheme.copyWith(
                                         primary: AppTheme.primary,
                                         onPrimary: Colors.white,
-                                        surface: Color(0xFF251C14),
-                                        onSurface: AppTheme.onBg,
+                                        surface: palette.surface2,
+                                        onSurface: palette.onBg,
                                       ),
-                                      dialogTheme: const DialogThemeData(
-                                          backgroundColor: Color(0xFF251C14)),
+                                      dialogTheme: DialogThemeData(
+                                        backgroundColor: palette.surface2,
+                                      ),
                                     ),
                                     child: child!,
                                   );
@@ -654,20 +772,20 @@ class _MainScreenState extends State<MainScreen> {
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 14),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2E2218),
+                                color: fieldSurface,
                                 borderRadius:
                                     BorderRadius.circular(AppTheme.radiusSm),
-                                border: Border.all(color: AppTheme.cardBorder),
+                                border: Border.all(color: palette.cardBorder),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.calendar_today_rounded,
-                                      size: 18, color: AppTheme.onSurface2),
+                                  Icon(Icons.calendar_today_rounded,
+                                      size: 18, color: palette.onSurface2),
                                   const SizedBox(width: 10),
                                   Text(
                                     '${selectedDeadline.day}.${selectedDeadline.month.toString().padLeft(2, '0')}.${selectedDeadline.year}',
-                                    style: const TextStyle(
-                                        color: AppTheme.onBg, fontSize: 14),
+                                    style: TextStyle(
+                                        color: palette.onBg, fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -693,86 +811,103 @@ class _MainScreenState extends State<MainScreen> {
                                         return;
                                       }
 
-                                      safeSetModalState(
-                                          () => isUploading = true);
+                                      try {
+                                        safeSetModalState(
+                                            () => isUploading = true);
 
-                                      final displayUrls = <String>[];
-                                      final fullUrls = <String>[];
-                                      bool hasError = false;
-                                      final uploadResults = await Future.wait(
-                                        pickedImagePaths.map(_uploadImage),
-                                      );
-                                      for (final result in uploadResults) {
-                                        if (result != null) {
-                                          displayUrls.add(result['display']!);
-                                          fullUrls.add(result['full']!);
-                                        } else {
-                                          hasError = true;
+                                        final displayUrls = <String>[];
+                                        final fullUrls = <String>[];
+                                        bool hasError = false;
+                                        final uploadResults = await Future.wait(
+                                          pickedImagePaths.map(_uploadImage),
+                                        );
+                                        for (final result in uploadResults) {
+                                          if (result != null) {
+                                            displayUrls.add(result['display']!);
+                                            fullUrls.add(result['full']!);
+                                          } else {
+                                            hasError = true;
+                                          }
                                         }
-                                      }
 
-                                      if (hasError) {
+                                        if (hasError) {
+                                          safeSetModalState(
+                                              () => isUploading = false);
+                                          if (!context.mounted) return;
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    'Ошибка при загрузке фото в облако. Попробуйте еще раз.')),
+                                          );
+                                          return;
+                                        }
+
+                                        final hw = HomeworkItem(
+                                          id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+                                          subject: selectedSubject!,
+                                          task: taskController.text.trim(),
+                                          deadline:
+                                              '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
+                                          imageUrl: null,
+                                          imageUrls: displayUrls.isNotEmpty
+                                              ? displayUrls
+                                              : null,
+                                          fullResolutionUrls:
+                                              fullUrls.isNotEmpty
+                                                  ? fullUrls
+                                                  : null,
+                                          done: false,
+                                          fromSchedule: false,
+                                        );
+
+                                        final success =
+                                            await FirestoreService.addHomework(
+                                                hw);
+
+                                        if (!context.mounted) return;
+
+                                        if (!success) {
+                                          safeSetModalState(
+                                              () => isUploading = false);
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    'Ошибка при сохранении в базу данных.')),
+                                          );
+                                          return;
+                                        }
+
+                                        if (!context.mounted) return;
+                                        await _diaryKey.currentState
+                                            ?.reloadHomework(
+                                                forceRefresh: true);
+                                        await _adminKey.currentState
+                                            ?.reload(forceRefresh: true);
+                                        if (ctx.mounted) {
+                                          Navigator.of(ctx).pop();
+                                        }
+                                        unawaited(
+                                          _cleanupTemporaryPickerFiles(
+                                              pickedImagePaths),
+                                        );
+
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  'Задание по $selectedSubject добавлено')),
+                                        );
+                                      } catch (e, st) {
+                                        debugPrint(
+                                            'Save homework failed: $e\n$st');
                                         safeSetModalState(
                                             () => isUploading = false);
                                         if (!context.mounted) return;
                                         messenger.showSnackBar(
                                           const SnackBar(
                                               content: Text(
-                                                  'Ошибка при загрузке фото в облако. Попробуйте ещё раз.')),
+                                                  'Произошла ошибка при сохранении задания. Попробуйте еще раз.')),
                                         );
-                                        return;
                                       }
-
-                                      final hw = HomeworkItem(
-                                        id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
-                                        subject: selectedSubject!,
-                                        task: taskController.text.trim(),
-                                        deadline:
-                                            '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
-                                        imageUrl: null,
-                                        imageUrls: displayUrls.isNotEmpty
-                                            ? displayUrls
-                                            : null,
-                                        fullResolutionUrls: fullUrls.isNotEmpty
-                                            ? fullUrls
-                                            : null,
-                                        done: false,
-                                        fromSchedule: false,
-                                      );
-
-                                      final success =
-                                          await FirestoreService.addHomework(
-                                              hw);
-
-                                      if (!context.mounted) return;
-
-                                      if (!success) {
-                                        safeSetModalState(
-                                            () => isUploading = false);
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                              content: Text(
-                                                  'Ошибка при сохранении в базу данных.')),
-                                        );
-                                        return;
-                                      }
-
-                                      await _cleanupTemporaryPickerFiles(
-                                          pickedImagePaths);
-                                      if (!context.mounted) return;
-                                      await _diaryKey.currentState
-                                          ?.reloadHomework(forceRefresh: true);
-                                      await _adminKey.currentState
-                                          ?.reload(forceRefresh: true);
-                                      if (ctx.mounted) {
-                                        Navigator.of(ctx).pop();
-                                      }
-
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                            content: Text(
-                                                'Задание по $selectedSubject добавлено')),
-                                      );
                                     },
                               child: isUploading
                                   ? const SizedBox(
@@ -800,11 +935,11 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _formLabel(String text) {
     return Text(text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
-          color: AppTheme.onSurface2,
+          color: palette.onSurface2,
         ));
   }
 
@@ -819,39 +954,48 @@ class _MainScreenState extends State<MainScreen> {
     ];
 
     return SafeArea(
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
         margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
         height: 64,
         decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: 0.6),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              palette.surface.withValues(alpha: 0.96),
+              palette.surface2.withValues(alpha: 0.88),
+            ],
+          ),
           borderRadius: BorderRadius.circular(100),
           border: Border.all(
-              color: Colors.white.withValues(alpha: 0.1), width: 1.5),
+            color: (ThemeController.isDark ? Colors.white : Colors.black)
+                .withValues(alpha: 0.08),
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             )
           ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(100),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: BottomNavigationBar(
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              currentIndex: _currentIndex,
-              selectedItemColor: AppTheme.primary,
-              unselectedItemColor: AppTheme.onSurface2,
-              showSelectedLabels: true,
-              showUnselectedLabels: false,
-              selectedLabelStyle:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
-              onTap: (i) => setState(() => _currentIndex = i),
-              items: items,
-            ),
+          child: BottomNavigationBar(
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            currentIndex: _currentIndex,
+            selectedItemColor: AppTheme.primary,
+            unselectedItemColor: palette.onSurface2,
+            showSelectedLabels: true,
+            showUnselectedLabels: false,
+            selectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
+            onTap: _handleNavigationTap,
+            items: items,
           ),
         ),
       ),
@@ -862,38 +1006,54 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      backgroundColor: AppTheme.bg,
+      backgroundColor: palette.bg,
       body: Stack(
         children: [
           Positioned(
             top: -100,
             right: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primary.withValues(alpha: 0.15),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 36, sigmaY: 36),
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.primary.withValues(alpha: 0.15),
+                ),
               ),
             ),
           ),
           Positioned(
             bottom: 50,
             left: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.blue.withValues(alpha: 0.1),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 42, sigmaY: 42),
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.blue.withValues(alpha: 0.1),
+                ),
               ),
             ),
           ),
           Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                color: AppTheme.bg.withValues(alpha: 0.2),
+            child: IgnorePointer(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutCubic,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      palette.bg.withValues(alpha: 0.06),
+                      palette.surface.withValues(alpha: 0.18),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -902,7 +1062,12 @@ class _MainScreenState extends State<MainScreen> {
             child: RepaintBoundary(
               child: IndexedStack(
                 index: _currentIndex,
-                children: _screens,
+                children: isAdmin
+                    ? <Widget>[
+                        _diaryScreen,
+                        _adminScreen ?? const SizedBox.expand(),
+                      ]
+                    : <Widget>[_diaryScreen],
               ),
             ),
           ),
@@ -937,36 +1102,17 @@ class PremiumGlowButton extends StatefulWidget {
   State<PremiumGlowButton> createState() => _PremiumGlowButtonState();
 }
 
-class _PremiumGlowButtonState extends State<PremiumGlowButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _PremiumGlowButtonState extends State<PremiumGlowButton> {
   @override
   Widget build(BuildContext context) {
     const double size = 64.0;
-    const Color glowColor = AppTheme.primary; // Orange glow to match theme
+    const Color glowColor = AppTheme.primary;
 
     return GestureDetector(
       onTap: widget.onPressed,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 1. Atmosphere Glow (The soft light underneath)
           Container(
             width: size * 1.2,
             height: size * 1.2,
@@ -974,41 +1120,26 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: glowColor.withValues(alpha: 0.3),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+                  color: glowColor.withValues(alpha: 0.24),
+                  blurRadius: 18,
+                  spreadRadius: 2,
                 ),
               ],
             ),
           ),
-
-          // 2. Rotating Border Glow
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [
-                      Colors.transparent,
-                      glowColor.withValues(alpha: 0.8),
-                      glowColor,
-                      glowColor.withValues(alpha: 0.8),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 0.45, 0.5, 0.55, 1.0],
-                    transform:
-                        GradientRotation(_controller.value * 2 * 3.14159),
-                  ),
-                ),
-              );
-            },
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  glowColor.withValues(alpha: 0.85),
+                  glowColor.withValues(alpha: 0.35),
+                ],
+              ),
+            ),
           ),
-
-          // 3. Black Inner Body
           Container(
             width: size - 3,
             height: size - 3,
@@ -1018,8 +1149,6 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
             ),
             child: Center(child: widget.child),
           ),
-
-          // 4. Glass Reflection (Subtle top highlight)
           Positioned(
             top: 6,
             child: Container(
