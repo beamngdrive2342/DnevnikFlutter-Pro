@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
+import '../widgets/fast_page_scroll_physics.dart';
 import '../widgets/network_photo.dart';
+import '../widgets/theme_switch_button.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   final VoidCallback onHomeworkChanged;
@@ -19,11 +21,14 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
   List<HomeworkItem> _activeHomework = [];
   List<HomeworkItem> _pastHomework = [];
   bool _isLoading = true;
+  AppPalette get palette => AppTheme.colorsOf(context);
 
   @override
   void initState() {
     super.initState();
-    _loadAllHomework();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAllHomework();
+    });
   }
 
   Future<void> _loadAllHomework({
@@ -94,27 +99,27 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     final newText = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2E2218),
+        backgroundColor: palette.surface2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Редактировать задание',
-            style: TextStyle(color: Colors.white, fontSize: 18)),
+        title: Text('Редактировать задание',
+            style: TextStyle(color: palette.onBg, fontSize: 18)),
         content: TextField(
           controller: controller,
           maxLines: 4,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: palette.onBg),
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppTheme.surface3,
+            fillColor: palette.surface3,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              borderSide: const BorderSide(color: AppTheme.cardBorder),
+              borderSide: BorderSide(color: palette.cardBorder),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена', style: TextStyle(color: Colors.grey)),
+            child: Text('Отмена', style: TextStyle(color: palette.onSurface2)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
@@ -153,19 +158,20 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
       child: Column(
         children: [
           _buildTopBar(),
-          const TabBar(
+          TabBar(
             indicatorColor: AppTheme.primary,
             labelColor: AppTheme.primary,
-            unselectedLabelColor: AppTheme.onSurface2,
+            unselectedLabelColor: palette.onSurface2,
             indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: AppTheme.cardBorder,
-            tabs: [Tab(text: 'Текущие'), Tab(text: 'Завершённые')],
+            dividerColor: palette.cardBorder,
+            tabs: const [Tab(text: 'Текущие'), Tab(text: 'Завершённые')],
           ),
           Expanded(
             child: _isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppTheme.primary))
                 : TabBarView(
+                    physics: const FastPageScrollPhysics(),
                     children: [
                       _buildList(_activeHomework, editable: true),
                       _buildList(_pastHomework, editable: false),
@@ -194,29 +200,30 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: AppTheme.bg.withValues(alpha: 0.4),
-        border: const Border(
-            bottom: BorderSide(color: AppTheme.cardBorder, width: 1)),
+        color: palette.bg.withValues(alpha: 0.4),
+        border: Border(bottom: BorderSide(color: palette.cardBorder, width: 1)),
       ),
       child: Row(
         children: [
           const Icon(Icons.admin_panel_settings_rounded,
               color: AppTheme.primary, size: 22),
           const SizedBox(width: 10),
-          const Text('Админ-панель',
+          Text('Админ-панель',
               style: TextStyle(
                 fontFamily: AppTheme.fontSerif,
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: AppTheme.onBg,
+                color: palette.onBg,
               )),
           const Spacer(),
           Text('Всего: ${_customHomework.length}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.onSurface2,
+                color: palette.onSurface2,
                 fontWeight: FontWeight.w600,
               )),
+          const SizedBox(width: 12),
+          const ThemeSwitchButton(),
         ],
       ),
     );
@@ -228,10 +235,10 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.inbox_rounded,
-              size: 64, color: AppTheme.onSurface3.withValues(alpha: 0.4)),
+              size: 64, color: palette.onSurface3.withValues(alpha: 0.4)),
           const SizedBox(height: 16),
-          const Text('Нет заданий',
-              style: TextStyle(color: AppTheme.onSurface3, fontSize: 16)),
+          Text('Нет заданий',
+              style: TextStyle(color: palette.onSurface3, fontSize: 16)),
         ],
       ),
     );
@@ -241,8 +248,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        border: Border.all(color: AppTheme.cardBorder),
+        color: palette.cardBg,
+        border: Border.all(color: palette.cardBorder),
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
       ),
       child: Padding(
@@ -267,9 +274,9 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                 ),
                 const Spacer(),
                 Text(hw.deadline,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.onSurface2,
+                        color: palette.onSurface2,
                         fontWeight: FontWeight.w600)),
               ],
             ),
@@ -295,7 +302,7 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                             fit: BoxFit.cover,
                             loading: Container(
                               height: 150,
-                              color: AppTheme.surface3,
+                              color: palette.surface3,
                               alignment: Alignment.center,
                               child: const SizedBox(
                                 width: 20,
@@ -308,10 +315,10 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                             ),
                             error: Container(
                               height: 150,
-                              color: AppTheme.surface3,
-                              child: const Center(
+                              color: palette.surface3,
+                              child: Center(
                                   child: Icon(Icons.broken_image_rounded,
-                                      color: AppTheme.onSurface3)),
+                                      color: palette.onSurface3)),
                             ),
                           )
                         : Image.file(
@@ -321,10 +328,10 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
                             fit: BoxFit.cover,
                             errorBuilder: (ctx, err, stack) => Container(
                               height: 150,
-                              color: AppTheme.surface3,
-                              child: const Center(
+                              color: palette.surface3,
+                              child: Center(
                                   child: Icon(Icons.broken_image_rounded,
-                                      color: AppTheme.onSurface3)),
+                                      color: palette.onSurface3)),
                             ),
                           ),
                   ),
@@ -332,8 +339,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen> {
               }),
             ],
             Text(hw.task,
-                style: const TextStyle(
-                    fontSize: 14, color: AppTheme.onBg, height: 1.4)),
+                style:
+                    TextStyle(fontSize: 14, color: palette.onBg, height: 1.4)),
             if (editable) ...[
               const SizedBox(height: 16),
               Row(
