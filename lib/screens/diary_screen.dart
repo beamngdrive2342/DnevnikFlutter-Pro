@@ -5,12 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/physics.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
+import '../widgets/fast_page_scroll_physics.dart';
 import '../widgets/network_photo.dart';
+import '../widgets/theme_switch_button.dart';
 
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({super.key});
@@ -19,14 +20,14 @@ class DiaryScreen extends StatefulWidget {
   State<DiaryScreen> createState() => DiaryScreenState();
 }
 
-class DiaryScreenState extends State<DiaryScreen>
-    with SingleTickerProviderStateMixin {
+class DiaryScreenState extends State<DiaryScreen> {
   static const Duration _imageDownloadTimeout = Duration(seconds: 15);
+  AppPalette get palette => AppTheme.colorsOf(context);
 
-  late DateTime _selectedDate;
+  static const int _initialDayIndex = 3;
+  late int _selectedDayIndex;
   late ScrollController _calendarScrollController;
   late PageController _pageController;
-  late AnimationController _springController;
   late List<DateTime> _days;
   late DateTime _today;
   Map<String, List<HomeworkItem>> _homeworkLookup = {};
@@ -36,21 +37,14 @@ class DiaryScreenState extends State<DiaryScreen>
     super.initState();
     _today = DateTime.now();
     _days = List.generate(14, (i) => _today.add(Duration(days: i - 3)));
-    _selectedDate = _today;
+    _selectedDayIndex = _initialDayIndex;
     _calendarScrollController = ScrollController();
-    _pageController = PageController(initialPage: 3);
-
-    _springController = AnimationController.unbounded(vsync: this);
-    _springController.addListener(() {
-      if (_pageController.hasClients) {
-        _pageController.position.jumpTo(_springController.value);
-      }
-    });
+    _pageController = PageController(initialPage: _initialDayIndex);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToIndex(3);
+      _scrollToIndex(_initialDayIndex);
+      _loadCustomHomework();
     });
-    _loadCustomHomework();
   }
 
   Future<void> _loadCustomHomework({bool forceRefresh = false}) async {
@@ -84,8 +78,8 @@ class DiaryScreenState extends State<DiaryScreen>
 
     _calendarScrollController.animateTo(
       offset.clamp(0.0, _calendarScrollController.position.maxScrollExtent),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
     );
   }
 
@@ -93,7 +87,6 @@ class DiaryScreenState extends State<DiaryScreen>
   void dispose() {
     _calendarScrollController.dispose();
     _pageController.dispose();
-    _springController.dispose();
     super.dispose();
   }
 
@@ -104,59 +97,20 @@ class DiaryScreenState extends State<DiaryScreen>
         _buildTopBar(context),
         const SizedBox(height: 12),
         _buildCalendarStrip(),
-        // Swipable day content
+        // Native paged scrolling: smoother and less jank than manual drag+spring.
         Expanded(
-          child: GestureDetector(
-            onHorizontalDragStart: (details) {
-              _springController.stop();
+          child: PageView.builder(
+            controller: _pageController,
+            physics: const FastPageScrollPhysics(),
+            allowImplicitScrolling: true,
+            onPageChanged: (index) {
+              setState(() => _selectedDayIndex = index);
+              _scrollToIndex(index);
             },
-            onHorizontalDragUpdate: (details) {
-              _pageController.position.jumpTo(
-                _pageController.position.pixels - details.primaryDelta!,
-              );
+            itemCount: _days.length,
+            itemBuilder: (context, index) {
+              return _buildLessonsSectionForDay(_days[index]);
             },
-            onHorizontalDragEnd: (details) {
-              final velocity = details.primaryVelocity ?? 0.0;
-              final width = MediaQuery.of(context).size.width;
-              final currentPixels = _pageController.position.pixels;
-
-              int currentPage = (currentPixels / width).round();
-              int targetPage = currentPage;
-
-              if (velocity < -200 && targetPage < _days.length - 1) {
-                targetPage++;
-              } else if (velocity > 200 && targetPage > 0) {
-                targetPage--;
-              }
-              targetPage = targetPage.clamp(0, _days.length - 1);
-
-              final targetPixels = targetPage * width;
-
-              final simulation = SpringSimulation(
-                SpringDescription.withDampingRatio(
-                  mass: 0.6,
-                  stiffness: 280.0,
-                  ratio: 0.85,
-                ),
-                currentPixels,
-                targetPixels,
-                -velocity,
-              );
-
-              _springController.animateWith(simulation);
-            },
-            child: PageView.builder(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (index) {
-                setState(() => _selectedDate = _days[index]);
-                _scrollToIndex(index);
-              },
-              itemCount: _days.length,
-              itemBuilder: (context, index) {
-                return _buildLessonsSectionForDay(_days[index]);
-              },
-            ),
           ),
         ),
       ],
@@ -169,9 +123,9 @@ class DiaryScreenState extends State<DiaryScreen>
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: AppTheme.bg.withValues(alpha: 0.4),
-        border: const Border(
-          bottom: BorderSide(color: AppTheme.cardBorder, width: 1),
+        color: palette.bg.withValues(alpha: 0.4),
+        border: Border(
+          bottom: BorderSide(color: palette.cardBorder, width: 1),
         ),
       ),
       child: Row(
@@ -179,7 +133,7 @@ class DiaryScreenState extends State<DiaryScreen>
           const Icon(Icons.menu_book_rounded,
               color: AppTheme.primary, size: 22),
           const SizedBox(width: 10),
-          const Column(
+          Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -188,9 +142,9 @@ class DiaryScreenState extends State<DiaryScreen>
                     fontFamily: AppTheme.fontSerif,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.onBg,
+                    color: palette.onBg,
                   )),
-              Text('10А',
+              const Text('10А',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppTheme.primary,
@@ -200,24 +154,26 @@ class DiaryScreenState extends State<DiaryScreen>
             ],
           ),
           const Spacer(),
+          const ThemeSwitchButton(),
+          const SizedBox(width: 12),
           // Logout / Profile button
           GestureDetector(
             onTap: () async {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  backgroundColor: const Color(0xFF2E2218),
+                  backgroundColor: palette.surface2.withValues(alpha: 1),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
-                  title: const Text('Выйти из аккаунта?',
-                      style: TextStyle(color: Colors.white, fontSize: 18)),
-                  content: const Text('Вы вернётесь к выбору роли',
-                      style: TextStyle(color: Colors.grey)),
+                  title: Text('Выйти из аккаунта?',
+                      style: TextStyle(color: palette.onBg, fontSize: 18)),
+                  content: Text('Вы вернётесь к выбору роли',
+                      style: TextStyle(color: palette.onSurface2)),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Отмена',
-                          style: TextStyle(color: Colors.grey)),
+                      child: Text('Отмена',
+                          style: TextStyle(color: palette.onSurface2)),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -278,43 +234,32 @@ class DiaryScreenState extends State<DiaryScreen>
         itemBuilder: (context, index) {
           final d = _days[index];
           final isToday = _isSameDay(d, _today);
-          final isSelected = _isSameDay(d, _selectedDate);
+          final isSelected = index == _selectedDayIndex;
           final dayOfWeek = d.weekday - 1; // 0=Mon, 6=Sun
           final hasLessons = weekSchedule[dayOfWeek] != null &&
               weekSchedule[dayOfWeek]!.isNotEmpty;
 
           return GestureDetector(
             onTap: () {
-              setState(() => _selectedDate = d);
-              _springController.stop();
-
-              final width = MediaQuery.of(context).size.width;
-              final targetPixels = index * width;
-
-              final simulation = SpringSimulation(
-                SpringDescription.withDampingRatio(
-                  mass: 0.6,
-                  stiffness: 280.0,
-                  ratio: 0.85,
-                ),
-                _pageController.position.pixels,
-                targetPixels,
-                0.0, // Initial velocity for tap is 0
+              setState(() => _selectedDayIndex = index);
+              _pageController.animateToPage(
+                index,
+                duration: const Duration(milliseconds: 170),
+                curve: Curves.easeOutCubic,
               );
-
-              _springController.animateWith(simulation);
               _scrollToIndex(index);
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
               width: 56,
               margin: const EdgeInsets.only(right: 6),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primary : AppTheme.surface,
+                color: isSelected ? AppTheme.primary : palette.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 border: Border.all(
-                  color: isSelected ? AppTheme.primary : AppTheme.cardBorder,
+                  color: isSelected ? AppTheme.primary : palette.cardBorder,
                 ),
                 boxShadow: isSelected
                     ? [
@@ -336,8 +281,8 @@ class DiaryScreenState extends State<DiaryScreen>
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                       color: isSelected
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : AppTheme.onSurface3,
+                          ? Colors.white.withValues(alpha: 0.78)
+                          : palette.onSurface3,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -347,7 +292,7 @@ class DiaryScreenState extends State<DiaryScreen>
                       fontFamily: AppTheme.fontSerif,
                       fontSize: 20,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : AppTheme.onBg,
+                      color: isSelected ? Colors.white : palette.onBg,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -394,17 +339,17 @@ class DiaryScreenState extends State<DiaryScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Расписание',
+            Text('Расписание',
                 style: TextStyle(
                   fontFamily: AppTheme.fontSerif,
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.onBg,
+                  color: palette.onBg,
                 )),
             Text(weekdaysFull[dayOfWeek],
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.onSurface2,
+                  color: palette.onSurface2,
                   fontWeight: FontWeight.w500,
                 )),
           ],
@@ -430,10 +375,10 @@ class DiaryScreenState extends State<DiaryScreen>
       child: Column(
         children: [
           Icon(Icons.weekend_rounded,
-              size: 48, color: AppTheme.onSurface3.withValues(alpha: 0.4)),
+              size: 48, color: palette.onSurface3.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
-          const Text('В этот день уроков нет. Отдыхай!',
-              style: TextStyle(fontSize: 14, color: AppTheme.onSurface3)),
+          Text('В этот день уроков нет. Отдыхай!',
+              style: TextStyle(fontSize: 14, color: palette.onSurface3)),
         ],
       ),
     );
@@ -446,9 +391,9 @@ class DiaryScreenState extends State<DiaryScreen>
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: AppTheme.cardBg,
+          color: palette.cardBg,
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          border: Border.all(color: AppTheme.cardBorder),
+          border: Border.all(color: palette.cardBorder),
         ),
         child: Material(
           color: Colors.transparent,
@@ -490,10 +435,10 @@ class DiaryScreenState extends State<DiaryScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(lesson.subject,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: AppTheme.onBg,
+                                  color: palette.onBg,
                                   height: 1.2,
                                 )),
                             const SizedBox(height: 3),
@@ -501,7 +446,7 @@ class DiaryScreenState extends State<DiaryScreen>
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: AppTheme.onBg.withValues(alpha: 0.45),
+                                  color: palette.onBg.withValues(alpha: 0.45),
                                 )),
                           ],
                         ),
@@ -516,7 +461,7 @@ class DiaryScreenState extends State<DiaryScreen>
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        border: Border.all(color: AppTheme.cardBorder),
+                        border: Border.all(color: palette.cardBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,9 +476,9 @@ class DiaryScreenState extends State<DiaryScreen>
                           const SizedBox(height: 5),
                           if (lesson.hw.isNotEmpty)
                             Text(lesson.hw,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: AppTheme.onSurface,
+                                  color: palette.onSurface,
                                   height: 1.5,
                                 )),
                           for (var ch in customHw)
@@ -549,9 +494,9 @@ class DiaryScreenState extends State<DiaryScreen>
                                           fontSize: 13)),
                                   Expanded(
                                       child: Text(ch.task,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               fontSize: 13,
-                                              color: AppTheme.onSurface,
+                                              color: palette.onSurface,
                                               height: 1.5))),
                                 ],
                               ),
@@ -576,15 +521,16 @@ class DiaryScreenState extends State<DiaryScreen>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
-        return BackdropFilter(
+        return ClipRect(
+            child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Container(
             height: MediaQuery.of(context).size.height * 0.75,
             decoration: BoxDecoration(
-              color: AppTheme.bg.withValues(alpha: 0.85),
+              color: palette.bg.withValues(alpha: 0.85),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(32)),
-              border: Border.all(color: AppTheme.cardBorder),
+              border: Border.all(color: palette.cardBorder),
             ),
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             child: Column(
@@ -595,7 +541,7 @@ class DiaryScreenState extends State<DiaryScreen>
                     width: 40,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: AppTheme.onSurface3.withValues(alpha: 0.5),
+                      color: palette.onSurface3.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -609,32 +555,32 @@ class DiaryScreenState extends State<DiaryScreen>
                       children: [
                         Text(
                           lesson.subject,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: AppTheme.fontSerif,
                               fontSize: 32,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.onBg),
+                              color: palette.onBg),
                         ),
                         const SizedBox(height: 32),
-                        const Text('Задание',
+                        Text('Задание',
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.onBg)),
+                                color: palette.onBg)),
                         const SizedBox(height: 16),
                         if (lesson.hw.isNotEmpty)
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppTheme.surface2,
+                              color: palette.surface2,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.cardBorder),
+                              border: Border.all(color: palette.cardBorder),
                             ),
                             child: Text(lesson.hw,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 15,
-                                    color: AppTheme.onBg,
+                                    color: palette.onBg,
                                     height: 1.5)),
                           ),
                         if (lesson.hw.isNotEmpty && customHw.isNotEmpty)
@@ -654,9 +600,9 @@ class DiaryScreenState extends State<DiaryScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SelectableText(hw.task,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           fontSize: 15,
-                                          color: AppTheme.onBg,
+                                          color: palette.onBg,
                                           height: 1.5)),
                                   if ((hw.imageUrls != null &&
                                           hw.imageUrls!.isNotEmpty) ||
@@ -718,8 +664,7 @@ class DiaryScreenState extends State<DiaryScreen>
                                                       fit: BoxFit.cover,
                                                       loading: Container(
                                                         height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
+                                                        color: palette.surface3,
                                                         alignment:
                                                             Alignment.center,
                                                         child: const SizedBox(
@@ -735,8 +680,7 @@ class DiaryScreenState extends State<DiaryScreen>
                                                       ),
                                                       error: Container(
                                                         height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
+                                                        color: palette.surface3,
                                                         child: const Center(
                                                             child: Icon(
                                                                 Icons
@@ -753,8 +697,7 @@ class DiaryScreenState extends State<DiaryScreen>
                                                           (ctx, err, stack) =>
                                                               Container(
                                                         height: 120,
-                                                        color:
-                                                            AppTheme.surface3,
+                                                        color: palette.surface3,
                                                         child: const Center(
                                                             child: Icon(
                                                                 Icons
@@ -885,7 +828,7 @@ class DiaryScreenState extends State<DiaryScreen>
               ],
             ),
           ),
-        );
+        ));
       },
     );
   }
@@ -924,9 +867,9 @@ class DiaryScreenState extends State<DiaryScreen>
                                     color: AppTheme.primary,
                                   ),
                                 ),
-                                error: const Icon(
+                                error: Icon(
                                   Icons.broken_image_rounded,
-                                  color: AppTheme.onSurface3,
+                                  color: palette.onSurface3,
                                 ),
                               )
                             : Image.file(File(url), fit: BoxFit.contain),
