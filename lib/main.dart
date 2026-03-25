@@ -1,13 +1,12 @@
 ﻿import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'theme/app_theme.dart';
@@ -16,6 +15,8 @@ import 'screens/diary_screen.dart';
 import 'screens/admin_panel_screen.dart';
 import 'data/schedule_data.dart';
 import 'data/firestore_service.dart';
+import 'utils/image_data.dart';
+import 'widgets/fast_page_scroll_physics.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,9 +60,8 @@ class DnevnikApp extends StatelessWidget {
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: themeMode,
-              themeAnimationDuration:
-                  hydrated ? const Duration(milliseconds: 180) : Duration.zero,
-              themeAnimationCurve: Curves.easeOutCubic,
+              themeAnimationDuration: Duration.zero,
+              themeAnimationCurve: Curves.linear,
               locale: const Locale('ru', 'RU'),
               localizationsDelegates: const [
                 GlobalMaterialLocalizations.delegate,
@@ -71,6 +71,14 @@ class DnevnikApp extends StatelessWidget {
               supportedLocales: const [
                 Locale('ru', 'RU'),
               ],
+              builder: (context, child) {
+                return Stack(
+                  children: [
+                    child ?? const SizedBox.shrink(),
+                    const _ThemeRevealOverlay(),
+                  ],
+                );
+              },
               home: const RoleGate(),
             );
           },
@@ -316,6 +324,69 @@ class _AdminPinDialogState extends State<_AdminPinDialog> {
   }
 }
 
+class _ThemeRevealOverlay extends StatelessWidget {
+  const _ThemeRevealOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: ValueListenableBuilder<ThemeRevealTransition?>(
+        valueListenable: ThemeController.reveal,
+        builder: (context, transition, _) {
+          if (transition == null) {
+            return const SizedBox.shrink();
+          }
+
+          final targetPalette = transition.toMode == ThemeMode.dark
+              ? AppTheme.darkPalette
+              : AppTheme.lightPalette;
+
+          return TweenAnimationBuilder<double>(
+            key: ValueKey<int>(transition.token),
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) {
+              return CustomPaint(
+                size: MediaQuery.of(context).size,
+                painter: _ThemeRevealPainter(
+                  progress: value,
+                  color: targetPalette.bg,
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ThemeRevealPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  const _ThemeRevealPainter({
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final origin = Offset(size.width - 28, 28);
+    final maxRadius =
+        math.sqrt((size.width * size.width) + (size.height * size.height));
+    final radius = lerpDouble(0, maxRadius, progress) ?? 0;
+    final paint = Paint()..color = color;
+    canvas.drawCircle(origin, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThemeRevealPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.color != color;
+  }
+}
+
 // в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
 // MAIN SCREEN
 // в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
@@ -328,40 +399,32 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  static const String _imageUploadUrl = 'https://freeimage.host/api/1/upload';
-  static const String _imageUploadKey = '6d207e02198a847aa98d0a2a901485a5';
-  static const Duration _uploadTimeout = Duration(seconds: 20);
-  static const int _pickedImageQuality = 70;
-  static const double _pickedImageMaxSide = 1920;
+  static const int _pickedImageQuality = 55;
+  static const double _pickedImageMaxSide = 1280;
+  static const int _maxEmbeddedImageChars = 700000;
 
   int _currentIndex = 0;
   final GlobalKey<DiaryScreenState> _diaryKey = GlobalKey<DiaryScreenState>();
   final GlobalKey<AdminPanelScreenState> _adminKey =
       GlobalKey<AdminPanelScreenState>();
   final ImagePicker _imagePicker = ImagePicker();
+  late final PageController _rootPageController;
 
   bool get isAdmin => widget.role == 'admin';
   AppPalette get palette => AppTheme.colorsOf(context);
 
-  Future<Map<String, String>?> _uploadImage(String path) async {
+  Future<String?> _prepareEmbeddedImage(String path) async {
     try {
-      final request = http.MultipartRequest('POST', Uri.parse(_imageUploadUrl));
-      request.fields['key'] = _imageUploadKey;
-      request.fields['action'] = 'upload';
-      request.fields['format'] = 'json';
-      request.files.add(await http.MultipartFile.fromPath('source', path));
-
-      final response = await request.send().timeout(_uploadTimeout);
-      if (response.statusCode == 200) {
-        final respStr = await response.stream.bytesToString();
-        final json = jsonDecode(respStr) as Map<String, dynamic>;
-        if (json['image'] != null) {
-          final fullUrl = json['image']['url'];
-          return {'display': fullUrl.toString(), 'full': fullUrl.toString()};
-        }
+      final bytes = await File(path).readAsBytes();
+      if (bytes.isEmpty) {
+        return null;
       }
+      return encodeInlineImageData(
+        bytes,
+        mimeType: inferImageMimeType(path),
+      );
     } catch (e) {
-      debugPrint('Upload error: $e');
+      debugPrint('Image prepare error: $e');
     }
     return null;
   }
@@ -394,6 +457,13 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _diaryScreen = DiaryScreen(key: _diaryKey);
+    _rootPageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _rootPageController.dispose();
+    super.dispose();
   }
 
   Widget _buildAdminScreen() {
@@ -405,17 +475,34 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Widget _buildRootPage(int index) {
+    if (index == 0) {
+      return _diaryScreen;
+    }
+    return _adminScreen ??= _buildAdminScreen();
+  }
+
   void _handleNavigationTap(int index) {
     if (_currentIndex == index) {
       return;
     }
 
-    setState(() {
-      if (isAdmin && index == 1 && _adminScreen == null) {
+    if (isAdmin && index == 1 && _adminScreen == null) {
+      setState(() {
         _adminScreen = _buildAdminScreen();
-      }
-      _currentIndex = index;
-    });
+        _currentIndex = index;
+      });
+    } else {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+
+    _rootPageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> _showAddHomeworkModal() async {
@@ -811,23 +898,56 @@ class _MainScreenState extends State<MainScreen> {
                                         return;
                                       }
 
+                                      if (!_hasSubjectOnDate(
+                                        selectedSubject!,
+                                        selectedDeadline,
+                                      )) {
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'В этот день этого предмета нет, выберите другой день или предмет.',
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      }
+
                                       try {
                                         safeSetModalState(
                                             () => isUploading = true);
 
-                                        final displayUrls = <String>[];
-                                        final fullUrls = <String>[];
+                                        final embeddedImages = <String>[];
                                         bool hasError = false;
                                         final uploadResults = await Future.wait(
-                                          pickedImagePaths.map(_uploadImage),
+                                          pickedImagePaths
+                                              .map(_prepareEmbeddedImage),
                                         );
                                         for (final result in uploadResults) {
                                           if (result != null) {
-                                            displayUrls.add(result['display']!);
-                                            fullUrls.add(result['full']!);
+                                            embeddedImages.add(result);
                                           } else {
                                             hasError = true;
                                           }
+                                        }
+
+                                        final totalImageChars = embeddedImages
+                                            .fold<int>(
+                                                0,
+                                                (sum, item) =>
+                                                    sum + item.length);
+                                        if (totalImageChars >
+                                            _maxEmbeddedImageChars) {
+                                          safeSetModalState(
+                                              () => isUploading = false);
+                                          if (!context.mounted) return;
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Слишком большие фото. Уменьшите количество или выберите более лёгкие изображения.',
+                                              ),
+                                            ),
+                                          );
+                                          return;
                                         }
 
                                         if (hasError) {
@@ -837,7 +957,7 @@ class _MainScreenState extends State<MainScreen> {
                                           messenger.showSnackBar(
                                             const SnackBar(
                                                 content: Text(
-                                                    'Ошибка при загрузке фото в облако. Попробуйте еще раз.')),
+                                                    'Ошибка при подготовке фото. Попробуйте еще раз.')),
                                           );
                                           return;
                                         }
@@ -849,13 +969,10 @@ class _MainScreenState extends State<MainScreen> {
                                           deadline:
                                               '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
                                           imageUrl: null,
-                                          imageUrls: displayUrls.isNotEmpty
-                                              ? displayUrls
+                                          imageUrls: embeddedImages.isNotEmpty
+                                              ? embeddedImages
                                               : null,
-                                          fullResolutionUrls:
-                                              fullUrls.isNotEmpty
-                                                  ? fullUrls
-                                                  : null,
+                                          fullResolutionUrls: null,
                                           done: false,
                                           fromSchedule: false,
                                         );
@@ -891,10 +1008,10 @@ class _MainScreenState extends State<MainScreen> {
                                               pickedImagePaths),
                                         );
 
-                                        messenger.showSnackBar(
-                                          SnackBar(
-                                              content: Text(
-                                                  'Задание по $selectedSubject добавлено')),
+                                        if (!context.mounted) return;
+                                        _showTopNotification(
+                                          context,
+                                          'Задание на ${_formatDate(selectedDeadline)} успешно добавлено',
                                         );
                                       } catch (e, st) {
                                         debugPrint(
@@ -941,6 +1058,27 @@ class _MainScreenState extends State<MainScreen> {
           letterSpacing: 0.8,
           color: palette.onSurface2,
         ));
+  }
+
+  bool _hasSubjectOnDate(String subject, DateTime date) {
+    final lessons = weekSchedule[date.weekday - 1] ?? const <Lesson>[];
+    return lessons.any((lesson) => lesson.subject == subject);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+  }
+
+  void _showTopNotification(BuildContext context, String message) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (ctx) => _TopNotification(
+        message: message,
+        onDismiss: () => entry.remove(),
+      ),
+    );
+    overlay.insert(entry);
   }
 
   Widget? _buildGlassyNavBar() {
@@ -1060,14 +1198,24 @@ class _MainScreenState extends State<MainScreen> {
           SafeArea(
             bottom: false,
             child: RepaintBoundary(
-              child: IndexedStack(
-                index: _currentIndex,
-                children: isAdmin
-                    ? <Widget>[
-                        _diaryScreen,
-                        _adminScreen ?? const SizedBox.expand(),
-                      ]
-                    : <Widget>[_diaryScreen],
+              child: PageView.builder(
+                controller: _rootPageController,
+                physics: isAdmin
+                    ? const FastPageScrollPhysics()
+                    : const NeverScrollableScrollPhysics(),
+                allowImplicitScrolling: true,
+                onPageChanged: (index) {
+                  if (_currentIndex == index) {
+                    return;
+                  }
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                itemCount: isAdmin ? 2 : 1,
+                itemBuilder: (context, index) {
+                  return _buildRootPage(index);
+                },
               ),
             ),
           ),
@@ -1103,72 +1251,214 @@ class PremiumGlowButton extends StatefulWidget {
 }
 
 class _PremiumGlowButtonState extends State<PremiumGlowButton> {
+  bool _isPressed = false;
+
+  void _setPressed(bool value) {
+    if (_isPressed == value) {
+      return;
+    }
+    setState(() {
+      _isPressed = value;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     const double size = 64.0;
     const Color glowColor = AppTheme.primary;
 
     return GestureDetector(
+      onTapDown: (_) async {
+        _setPressed(true);
+        await HapticFeedback.lightImpact();
+      },
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
       onTap: widget.onPressed,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: size * 1.2,
-            height: size * 1.2,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: glowColor.withValues(alpha: 0.24),
-                  blurRadius: 18,
-                  spreadRadius: 2,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.93 : 1,
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        child: AnimatedSlide(
+          offset: _isPressed ? const Offset(0, 0.03) : Offset.zero,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                curve: Curves.easeOutCubic,
+                width: size * 1.2,
+                height: size * 1.2,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: glowColor.withValues(
+                        alpha: _isPressed ? 0.16 : 0.24,
+                      ),
+                      blurRadius: _isPressed ? 10 : 18,
+                      spreadRadius: _isPressed ? 0.5 : 2,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      glowColor.withValues(alpha: 0.85),
+                      glowColor.withValues(alpha: 0.35),
+                    ],
+                  ),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                curve: Curves.easeOutCubic,
+                width: size - 3,
+                height: size - 3,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _isPressed
+                      ? const Color(0xFF111111)
+                      : const Color(0xFF000000),
+                ),
+                child: Center(child: widget.child),
+              ),
+              Positioned(
+                top: 6,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 140),
+                  opacity: _isPressed ? 0.08 : 1,
+                  child: Container(
+                    width: size * 0.6,
+                    height: size * 0.3,
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(30)),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.15),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  glowColor.withValues(alpha: 0.85),
-                  glowColor.withValues(alpha: 0.35),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopNotification extends StatefulWidget {
+  final String message;
+  final VoidCallback onDismiss;
+
+  const _TopNotification({
+    required this.message,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_TopNotification> createState() => _TopNotificationState();
+}
+
+class _TopNotificationState extends State<_TopNotification>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<Offset> _slideAnim;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, -1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+    _controller.forward();
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _controller.reverse().then((_) {
+        widget.onDismiss();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 8,
+      left: 20,
+      right: 20,
+      child: SlideTransition(
+        position: _slideAnim,
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.message,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          Container(
-            width: size - 3,
-            height: size - 3,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.black,
-            ),
-            child: Center(child: widget.child),
-          ),
-          Positioned(
-            top: 6,
-            child: Container(
-              width: size * 0.6,
-              height: size * 0.3,
-              decoration: BoxDecoration(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(30)),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.15),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
