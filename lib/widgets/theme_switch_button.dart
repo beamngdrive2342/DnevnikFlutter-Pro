@@ -25,68 +25,77 @@ class ThemeSwitchButton extends StatelessWidget {
     final knobSize = switchHeight * 0.8;
     final knobIconSize = knobSize * 0.6;
     final inset = (switchHeight - knobSize) / 2;
+    final travel = switchWidth - knobSize - (inset * 2);
 
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeController.notifier,
-      builder: (context, mode, child) {
+      builder: (context, mode, _) {
         final isLightMode = mode == ThemeMode.light;
 
         return Semantics(
           button: true,
           toggled: isLightMode,
           label: 'Переключить тему',
-          child: GestureDetector(
-            onTap: () {
-              ThemeController.toggle();
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              width: switchWidth,
-              height: switchHeight,
-              decoration: BoxDecoration(
-                color: isLightMode ? switchActiveColor : switchTrackColor,
-                borderRadius: BorderRadius.circular(switchHeight / 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black
-                        .withValues(alpha: isLightMode ? 0.06 : 0.10),
-                    blurRadius: isLightMode ? 3 : 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    top: inset,
-                    left: isLightMode ? switchWidth - knobSize - inset : inset,
-                    child: Container(
-                      width: knobSize,
-                      height: knobSize,
+          child: RepaintBoundary(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                customBorder: const StadiumBorder(),
+                onTap: ThemeController.toggle,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: isLightMode ? 1.0 : 0.0),
+                  duration: const Duration(milliseconds: 160),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, _) {
+                    return Container(
+                      width: switchWidth,
+                      height: switchHeight,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.10),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
+                        color: Color.lerp(
+                          switchTrackColor,
+                          switchActiveColor,
+                          value,
+                        ),
+                        borderRadius: BorderRadius.circular(switchHeight / 2),
                       ),
-                      child: Icon(
-                        isLightMode
-                            ? Icons.wb_sunny_rounded
-                            : Icons.nightlight_round,
-                        color: isLightMode ? sunIconColor : moonIconColor,
-                        size: knobIconSize,
+                      child: Padding(
+                        padding: EdgeInsets.all(inset),
+                        child: Stack(
+                          children: [
+                            Transform.translate(
+                              offset: Offset(travel * value, 0),
+                              child: DecoratedBox(
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x1A000000),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 1),
+                                    ),
+                                  ],
+                                ),
+                                child: SizedBox(
+                                  width: knobSize,
+                                  height: knobSize,
+                                  child: Icon(
+                                    isLightMode
+                                        ? Icons.wb_sunny_rounded
+                                        : Icons.nightlight_round,
+                                    color:
+                                        isLightMode ? sunIconColor : moonIconColor,
+                                    size: knobIconSize,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
