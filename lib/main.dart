@@ -1,6 +1,5 @@
 ﻿import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -60,8 +59,8 @@ class DnevnikApp extends StatelessWidget {
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: themeMode,
-              themeAnimationDuration: Duration.zero,
-              themeAnimationCurve: Curves.linear,
+              themeAnimationDuration: const Duration(milliseconds: 300),
+              themeAnimationCurve: Curves.easeInOut,
               locale: const Locale('ru', 'RU'),
               localizationsDelegates: const [
                 GlobalMaterialLocalizations.delegate,
@@ -71,14 +70,6 @@ class DnevnikApp extends StatelessWidget {
               supportedLocales: const [
                 Locale('ru', 'RU'),
               ],
-              builder: (context, child) {
-                return Stack(
-                  children: [
-                    child ?? const SizedBox.shrink(),
-                    const _ThemeRevealOverlay(),
-                  ],
-                );
-              },
               home: const RoleGate(),
             );
           },
@@ -321,69 +312,6 @@ class _AdminPinDialogState extends State<_AdminPinDialog> {
         ),
       ],
     );
-  }
-}
-
-class _ThemeRevealOverlay extends StatelessWidget {
-  const _ThemeRevealOverlay();
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: ValueListenableBuilder<ThemeRevealTransition?>(
-        valueListenable: ThemeController.reveal,
-        builder: (context, transition, _) {
-          if (transition == null) {
-            return const SizedBox.shrink();
-          }
-
-          final targetPalette = transition.toMode == ThemeMode.dark
-              ? AppTheme.darkPalette
-              : AppTheme.lightPalette;
-
-          return TweenAnimationBuilder<double>(
-            key: ValueKey<int>(transition.token),
-            tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) {
-              return CustomPaint(
-                size: MediaQuery.of(context).size,
-                painter: _ThemeRevealPainter(
-                  progress: value,
-                  color: targetPalette.bg,
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ThemeRevealPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  const _ThemeRevealPainter({
-    required this.progress,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final origin = Offset(size.width - 28, 28);
-    final maxRadius =
-        math.sqrt((size.width * size.width) + (size.height * size.height));
-    final radius = lerpDouble(0, maxRadius, progress) ?? 0;
-    final paint = Paint()..color = color;
-    canvas.drawCircle(origin, radius, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ThemeRevealPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }
 
