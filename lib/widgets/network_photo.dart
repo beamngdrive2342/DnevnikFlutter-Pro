@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../utils/image_data.dart';
+
 class NetworkPhoto extends StatefulWidget {
   final String url;
   final double? width;
@@ -113,32 +115,35 @@ class _NetworkPhotoStore {
   static final Map<String, Future<Uint8List?>> _pending =
       <String, Future<Uint8List?>>{};
 
-  static Future<Uint8List?> load(String url) {
-    final cached = _cache[url];
+  static Future<Uint8List?> load(String source) {
+    final cached = _cache[source];
     if (cached != null) {
       return Future<Uint8List?>.value(cached);
     }
 
-    final pending = _pending[url];
+    final pending = _pending[source];
     if (pending != null) {
       return pending;
     }
 
-    final future = _fetch(url);
-    _pending[url] = future;
-    future.whenComplete(() => _pending.remove(url));
+    final future = _fetch(source);
+    _pending[source] = future;
+    future.whenComplete(() => _pending.remove(source));
     return future;
   }
 
-  static Future<Uint8List?> _fetch(String url) async {
+  static Future<Uint8List?> _fetch(String source) async {
     try {
-      final response = await _client.get(Uri.parse(url)).timeout(_timeout);
-      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+      final bytes = await loadImageBytes(
+        source,
+        client: _client,
+        timeout: _timeout,
+      );
+      if (bytes == null || bytes.isEmpty) {
         return null;
       }
 
-      final bytes = Uint8List.fromList(response.bodyBytes);
-      _cache[url] = bytes;
+      _cache[source] = bytes;
 
       while (_cache.length > _maxEntries) {
         _cache.remove(_cache.keys.first);
