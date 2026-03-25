@@ -6,6 +6,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_theme.dart';
 
+class ThemeRevealTransition {
+  final ThemeMode fromMode;
+  final ThemeMode toMode;
+  final int token;
+
+  const ThemeRevealTransition({
+    required this.fromMode,
+    required this.toMode,
+    required this.token,
+  });
+}
+
 class ThemeController {
   ThemeController._();
 
@@ -13,9 +25,12 @@ class ThemeController {
   static final ValueNotifier<ThemeMode> notifier =
       ValueNotifier<ThemeMode>(ThemeMode.dark);
   static final ValueNotifier<bool> hydrated = ValueNotifier<bool>(false);
+  static final ValueNotifier<ThemeRevealTransition?> reveal =
+      ValueNotifier<ThemeRevealTransition?>(null);
 
   static bool _initialized = false;
   static SharedPreferences? _prefs;
+  static int _transitionToken = 0;
 
   static bool get isDark => notifier.value == ThemeMode.dark;
 
@@ -41,18 +56,34 @@ class ThemeController {
       return;
     }
 
+    final previousMode = notifier.value;
+    final token = ++_transitionToken;
+    reveal.value = ThemeRevealTransition(
+      fromMode: previousMode,
+      toMode: mode,
+      token: token,
+    );
+
+    await Future<void>.delayed(const Duration(milliseconds: 170));
+    if (_transitionToken != token) {
+      return;
+    }
+
     notifier.value = mode;
     final modeStr = mode == ThemeMode.light ? 'light' : 'dark';
 
     if (_prefs != null) {
       unawaited(_prefs!.setString(_themeKey, modeStr));
-      return;
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      _prefs = prefs;
+      unawaited(prefs.setString(_themeKey, modeStr));
     }
 
-    // Fallback path if toggle happened before initialization completed.
-    final prefs = await SharedPreferences.getInstance();
-    _prefs = prefs;
-    unawaited(prefs.setString(_themeKey, modeStr));
+    await Future<void>.delayed(const Duration(milliseconds: 230));
+    if (_transitionToken == token) {
+      reveal.value = null;
+    }
   }
 
   static Future<void> toggle() {
