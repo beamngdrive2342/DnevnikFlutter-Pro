@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -16,6 +16,7 @@ import 'data/schedule_data.dart';
 import 'data/firestore_service.dart';
 import 'utils/image_data.dart';
 import 'widgets/fast_page_scroll_physics.dart';
+import 'widgets/ai_chat_bottom_sheet.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -978,6 +979,15 @@ class _MainScreenState extends State<MainScreen> {
     taskController.dispose();
   }
 
+  void _showAIChatModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AIChatBottomSheet(),
+    );
+  }
+
   Widget _formLabel(String text) {
     return Text(text,
         style: TextStyle(
@@ -1150,13 +1160,16 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       bottomNavigationBar: _buildGlassyNavBar(),
-      floatingActionButton: isAdmin && _currentIndex == 0
+      floatingActionButton: _currentIndex == 0
           ? Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: PremiumGlowButton(
-                onPressed: _showAddHomeworkModal,
-                child: const Icon(Icons.add_rounded,
-                    size: 32, color: Colors.white),
+                onPressed: isAdmin ? _showAddHomeworkModal : _showAIChatModal,
+                child: Icon(
+                  isAdmin ? Icons.add_rounded : Icons.auto_awesome_rounded,
+                  size: 32,
+                  color: Colors.white,
+                ),
               ),
             )
           : null,
