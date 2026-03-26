@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
-import '../theme/theme_controller.dart';
 import '../data/ai_service.dart';
 import '../data/firestore_service.dart';
 import '../data/schedule_data.dart';
@@ -28,15 +27,13 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
   List<Map<String, dynamic>> _messages = [
     {
       'isUser': false,
-      'text': 'Здравствуй! Я ассистент на базе Gemma 3. Чем могу помочь сегодня? ✨',
+      'text': 'Здравствуй! Я твой личный помощник по дневнику на базе Gemma 3. Я вижу твоё расписание и задания. Чем могу помочь? ✨',
       'time': DateTime.now().toIso8601String(),
     },
   ];
 
   bool _isTyping = false;
-  bool _isLoadingHistory = true;
   String? _selectedImageBase64;
-  File? _imagePreviewFile;
 
   @override
   void initState() {
@@ -59,15 +56,11 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
         final List<dynamic> decoded = jsonDecode(historyJson);
         setState(() {
           _messages = decoded.map((m) => Map<String, dynamic>.from(m)).toList();
-          _isLoadingHistory = false;
         });
         _scrollToBottom(immediate: true);
-      } else {
-        setState(() => _isLoadingHistory = false);
       }
     } catch (e) {
       debugPrint("Load History Error: $e");
-      setState(() => _isLoadingHistory = false);
     }
   }
 
@@ -87,7 +80,7 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
       _messages = [
         {
           'isUser': false,
-          'text': 'История очищена. Жду вопросов! 📩',
+          'text': 'История очищена! 📩',
           'time': DateTime.now().toIso8601String(),
         },
       ];
@@ -95,46 +88,71 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
   }
 
   void _scrollToBottom({bool immediate = false}) {
-    Future.delayed(Duration(milliseconds: immediate ? 50 : 200), () {
+    Future.delayed(Duration(milliseconds: immediate ? 50 : 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutQuart,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
         );
       }
     });
   }
 
-  Future<String> _getHomeworkContext() async {
-    try {
-      final list = await FirestoreService.getHomework();
-      if (list.isEmpty) return "Заданий пока нет.";
-      final buffer = StringBuffer("БАЗА ДАННЫХ ДНЕВНИКА:\n");
-      for (final hw in list) {
-        buffer.writeln("- ${hw.subject} (${hw.deadline}): ${hw.task}");
-      }
-      return buffer.toString();
-    } catch (e) {
-      return "Ошибка доступа к базе.";
+  Future<void> _animateTyping(String fullText) async {
+    final words = fullText.split(' ');
+    String currentText = "";
+    
+    setState(() {
+      _messages.add({
+        'isUser': false,
+        'text': '',
+        'time': DateTime.now().toIso8601String(),
+      });
+    });
+
+    for (int i = 0; i < words.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 30));
+      currentText += (i == 0 ? "" : " ") + words[i];
+      if (!mounted) return;
+      setState(() {
+        _messages.last['text'] = currentText;
+      });
+      _scrollToBottom();
     }
+    _saveHistory();
+  }
+
+  Future<String> _buildDiaryContext() async {
+    StringBuffer sb = StringBuffer();
+    sb.writeln("ТЕКУЩЕЕ РАСПИСАНИЕ НА НЕДЕЛЮ:");
+    weekSchedule.forEach((dayIndex, lessons) {
+      sb.writeln("${weekdaysFull[dayIndex]}:");
+      for (var l in lessons) {
+        sb.writeln("- ${l.num}. ${l.subject} (${l.time})");
+      }
+    });
+
+    sb.writeln("\nАКТУАЛЬНЫЕ ДОМАШНИЕ ЗАДАНИЯ:");
+    try {
+      final hws = await FirestoreService.getHomework();
+      for (var h in hws) {
+        sb.writeln("- ПРЕДМЕТ: ${h.subject}, ЗАДАНИЕ: ${h.task}, СРОК: ${h.deadline}, СТАТУС: ${h.done ? 'Выполнено' : 'НЕ выполнено'}");
+      }
+    } catch (e) {
+      sb.writeln("Ошибка загрузки списка домашних заданий.");
+    }
+    return sb.toString();
   }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 85,
-      );
+      final XFile? image = await _picker.pickImage(source: source, imageQuality: 50);
       if (image != null) {
         final bytes = await image.readAsBytes();
         setState(() {
           _selectedImageBase64 = base64Encode(bytes);
-          _imagePreviewFile = File(image.path);
         });
-        await HapticFeedback.mediumImpact();
       }
     } catch (e) {
       debugPrint("Pick Image Error: $e");
@@ -157,37 +175,36 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
       _messages.add(userMsg);
       _controller.clear();
       _selectedImageBase64 = null;
-      _imagePreviewFile = null;
       _isTyping = true;
     });
+    
     _saveHistory();
     _scrollToBottom();
     await HapticFeedback.lightImpact();
 
     try {
-      final contextText = await _getHomeworkContext();
+      // PREPARE CONTEXT FROM DIARY
+      final diaryContext = await _buildDiaryContext();
+      
       final responseText = await AIService.getAIResponse(
-        text.isEmpty ? "Проанализируй фото." : text,
-        homeworkContext: contextText,
+        text.isEmpty ? "Проанализируй фото задачи." : text,
+        homeworkContext: diaryContext,
         base64Image: currentImg,
       );
       
       if (!mounted) return;
-      setState(() {
-        _isTyping = false;
-        _messages.add({
-          'isUser': false,
-          'text': responseText,
-          'time': DateTime.now().toIso8601String(),
-        });
-      });
-      _saveHistory();
-      _scrollToBottom();
+      setState(() => _isTyping = false);
+      await _animateTyping(responseText);
+      
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isTyping = false;
-        _messages.add({'isUser': false, 'text': 'Техническая заминка. Повторим?'});
+        _messages.add({
+          'isUser': false, 
+          'text': 'Произошла заминка... Давай попробуем снова! 🔄', 
+          'time': DateTime.now().toIso8601String()
+        });
       });
     }
   }
@@ -196,7 +213,6 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
   Widget build(BuildContext context) {
     final palette = AppTheme.colorsOf(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final isDark = ThemeController.isDark;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
@@ -204,7 +220,7 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
       decoration: BoxDecoration(
         color: palette.bg.withValues(alpha: 0.98),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 40)],
+        boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 40)],
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -245,11 +261,11 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
       child: Row(
         children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('NVIDIA Nemotron VL', style: TextStyle(fontFamily: AppTheme.fontSerif, fontSize: 24, fontWeight: FontWeight.normal, color: palette.onBg)),
+            Text('Gemma 3 27B', style: TextStyle(fontFamily: AppTheme.fontSerif, fontSize: 24, fontWeight: FontWeight.normal, color: palette.onBg)),
             Row(children: [
               Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle)),
               const SizedBox(width: 8),
-              Text('Умный ассистент', style: TextStyle(fontSize: 10, color: palette.onSurface3, letterSpacing: 0.5)),
+              Text('Твой дневник под контролем', style: TextStyle(fontSize: 10, color: palette.onSurface3, letterSpacing: 0.5)),
             ]),
           ]),
           const Spacer(),
@@ -258,14 +274,14 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  backgroundColor: palette.bg.withValues(alpha: 1.0), // SOLID OPAQUE BACKGROUND
+                  backgroundColor: palette.bg.withValues(alpha: 1.0),
                   surfaceTintColor: Colors.transparent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  title: Text('Очистить чат?', style: TextStyle(fontFamily: AppTheme.fontSerif, color: palette.onBg)),
-                  content: Text('Вся история переписки будет стерта безвозвратно.', style: TextStyle(color: palette.onSurface2)),
+                  title: Text('Очистить?', style: TextStyle(fontFamily: AppTheme.fontSerif, color: palette.onBg)),
+                  content: Text('Вся переписка будет удалена.', style: TextStyle(color: palette.onSurface2)),
                   actions: [
                     TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: TextStyle(color: palette.onSurface3))),
-                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Очистить', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold))),
+                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Удалить', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold))),
                   ],
                 ),
               );
@@ -299,7 +315,7 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
           if (text.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
               decoration: BoxDecoration(
                 color: isUser ? AppTheme.primary : palette.surface2.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.only(
@@ -309,7 +325,16 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
                   bottomRight: Radius.circular(isUser ? 4 : 20),
                 ),
               ),
-              child: Text(text, style: TextStyle(color: isUser ? Colors.white : palette.onBg, fontSize: 16, height: 1.5)),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: isUser ? Colors.white : palette.onBg,
+                  fontSize: 16,
+                  height: 1.5,
+                  letterSpacing: 0.1,
+                  fontFamily: isUser ? null : AppTheme.fontSerif, 
+                ),
+              ),
             ),
         ],
       ),
@@ -317,7 +342,11 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
   }
 
   Widget _buildTypingIndicator(AppPalette palette) {
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: palette.surface2.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(16)), child: Text('• • •', style: TextStyle(color: AppTheme.primary, fontSize: 10)));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(color: palette.surface2.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(16)),
+      child: Text('Gemma думает...', style: TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+    );
   }
 
   Widget _buildInputArea(AppPalette palette, double bottomInset) {
@@ -333,7 +362,7 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
               decoration: BoxDecoration(color: palette.surface2.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(28), border: Border.all(color: palette.cardBorder.withValues(alpha: 0.2))),
               child: Row(children: [
                 IconButton(onPressed: () => _pickImage(ImageSource.gallery), icon: Icon(Icons.add_photo_alternate_outlined, color: palette.onSurface3, size: 24)),
-                Expanded(child: TextField(controller: _controller, maxLines: null, style: TextStyle(color: palette.onBg), decoration: InputDecoration(hintText: 'Ваш вопрос...', hintStyle: TextStyle(color: palette.onSurface3.withValues(alpha: 0.5)), border: InputBorder.none))),
+                Expanded(child: TextField(controller: _controller, maxLines: null, style: TextStyle(color: palette.onBg), decoration: InputDecoration(hintText: 'Задай вопрос по ДЗ...', hintStyle: TextStyle(color: palette.onSurface3.withValues(alpha: 0.5)), border: InputBorder.none))),
               ]),
             ),
           ),
