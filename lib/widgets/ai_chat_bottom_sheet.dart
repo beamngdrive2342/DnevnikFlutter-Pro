@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_controller.dart';
 import '../data/ai_service.dart';
+import '../data/firestore_service.dart';
+import '../data/schedule_data.dart';
 
 class AIChatBottomSheet extends StatefulWidget {
   const AIChatBottomSheet({super.key});
@@ -18,17 +22,21 @@ class AIChatBottomSheet extends StatefulWidget {
 class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  static const String _storageKey = 'ai_chat_history';
+  final ImagePicker _picker = ImagePicker();
+  static const String _storageKey = 'ai_chat_history_v3';
   
   List<Map<String, dynamic>> _messages = [
     {
       'isUser': false,
-      'text': 'Привет! Я твой ИИ-помощник. Чем могу помочь с учёбой сегодня?',
+      'text': 'Здравствуй! Я ассистент на базе Gemma 3. Чем могу помочь сегодня? ✨',
       'time': DateTime.now().toIso8601String(),
     },
   ];
+
   bool _isTyping = false;
   bool _isLoadingHistory = true;
+  String? _selectedImageBase64;
+  File? _imagePreviewFile;
 
   @override
   void initState() {
@@ -58,7 +66,7 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
         setState(() => _isLoadingHistory = false);
       }
     } catch (e) {
-      debugPrint("Error loading chat history: $e");
+      debugPrint("Load History Error: $e");
       setState(() => _isLoadingHistory = false);
     }
   }
@@ -68,7 +76,7 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_storageKey, jsonEncode(_messages));
     } catch (e) {
-      debugPrint("Error saving chat history: $e");
+      debugPrint("Save History Error: $e");
     }
   }
 
@@ -79,7 +87,7 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
       _messages = [
         {
           'isUser': false,
-          'text': 'Привет! Я твой ИИ-помощник. Чем могу помочь с учёбой сегодня?',
+          'text': 'История очищена. Жду вопросов! 📩',
           'time': DateTime.now().toIso8601String(),
         },
       ];
@@ -87,30 +95,69 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
   }
 
   void _scrollToBottom({bool immediate = false}) {
-    Future.delayed(Duration(milliseconds: immediate ? 50 : 150), () {
+    Future.delayed(Duration(milliseconds: immediate ? 50 : 200), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: immediate ? 10 : 300),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutQuart,
         );
       }
     });
   }
 
+  Future<String> _getHomeworkContext() async {
+    try {
+      final list = await FirestoreService.getHomework();
+      if (list.isEmpty) return "Заданий пока нет.";
+      final buffer = StringBuffer("БАЗА ДАННЫХ ДНЕВНИКА:\n");
+      for (final hw in list) {
+        buffer.writeln("- ${hw.subject} (${hw.deadline}): ${hw.task}");
+      }
+      return buffer.toString();
+    } catch (e) {
+      return "Ошибка доступа к базе.";
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImageBase64 = base64Encode(bytes);
+          _imagePreviewFile = File(image.path);
+        });
+        await HapticFeedback.mediumImpact();
+      }
+    } catch (e) {
+      debugPrint("Pick Image Error: $e");
+    }
+  }
+
   void _handleSend() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _selectedImageBase64 == null) return;
 
     final userMsg = {
       'isUser': true,
       'text': text,
+      'image': _selectedImageBase64,
       'time': DateTime.now().toIso8601String(),
     };
+    final currentImg = _selectedImageBase64;
 
     setState(() {
       _messages.add(userMsg);
       _controller.clear();
+      _selectedImageBase64 = null;
+      _imagePreviewFile = null;
       _isTyping = true;
     });
     _saveHistory();
@@ -118,18 +165,21 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
     await HapticFeedback.lightImpact();
 
     try {
-      final responseText = await AIService.getAIResponse(text);
-      if (!mounted) return;
+      final contextText = await _getHomeworkContext();
+      final responseText = await AIService.getAIResponse(
+        text.isEmpty ? "Проанализируй фото." : text,
+        homeworkContext: contextText,
+        base64Image: currentImg,
+      );
       
-      final aiMsg = {
-        'isUser': false,
-        'text': responseText,
-        'time': DateTime.now().toIso8601String(),
-      };
-
+      if (!mounted) return;
       setState(() {
         _isTyping = false;
-        _messages.add(aiMsg);
+        _messages.add({
+          'isUser': false,
+          'text': responseText,
+          'time': DateTime.now().toIso8601String(),
+        });
       });
       _saveHistory();
       _scrollToBottom();
@@ -137,163 +187,51 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
       if (!mounted) return;
       setState(() {
         _isTyping = false;
-        _messages.add({
-          'isUser': false,
-          'text': 'Произошла ошибка. Попробуй еще раз!',
-          'time': DateTime.now().toIso8601String(),
-        });
+        _messages.add({'isUser': false, 'text': 'Техническая заминка. Повторим?'});
       });
-      _scrollToBottom();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = ThemeController.isDark;
     final palette = AppTheme.colorsOf(context);
-
-    // Dynamic height based on keyboard
-    final bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isDark = ThemeController.isDark;
 
     return Container(
-      height: MediaQuery.of(context).size.height * (isKeyboardOpen ? 0.95 : 0.85),
+      height: MediaQuery.of(context).size.height * 0.9,
+      margin: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
-        color: palette.bg.withValues(alpha: 0.93),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
-        border: Border.all(
-          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
-        ),
+        color: palette.bg.withValues(alpha: 0.98),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 40)],
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Column(
             children: [
-              // Handle
               const SizedBox(height: 12),
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: palette.onBg.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(2.5),
-                ),
-              ),
-              const SizedBox(height: 12),
+              Container(width: 36, height: 4, decoration: BoxDecoration(color: palette.onBg.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2))),
               
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primary.withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            spreadRadius: -2,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.auto_awesome_rounded,
-                        color: AppTheme.primary,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Помощник',
-                          style: TextStyle(
-                            fontFamily: AppTheme.fontSerif,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: palette.onBg,
-                          ),
-                        ),
-                        Text(
-                          _isTyping ? 'Печатает...' : 'В сети',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: _isTyping ? AppTheme.primary : Colors.green,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    // Clear History Button
-                    IconButton(
-                      onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: palette.cardBg,
-                            title: const Text('Очистить чат?'),
-                            content: const Text('Вся история переписки будет удалена навсегда.'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: Text('Отмена', style: TextStyle(color: palette.onSurface3)),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Очистить', style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) {
-                          _clearHistory();
-                          HapticFeedback.mediumImpact();
-                        }
-                      },
-                      icon: Icon(Icons.delete_sweep_rounded, color: palette.onSurface3, size: 22),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close_rounded, color: palette.onSurface2),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Divider(height: 1, color: palette.cardBorder),
+              _buildHeader(palette),
               
-              // Chat List
               Expanded(
-                child: _isLoadingHistory 
-                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        return _buildMessageBubble(_messages[index]);
-                      },
-                    ),
-              ),
-
-              if (_isTyping)
-                Padding(
-                  padding: const EdgeInsets.only(left: 20, bottom: 12),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildTypingIndicator(),
+                child: SelectionArea(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) => _buildMessageBubble(_messages[index], palette),
                   ),
                 ),
+              ),
 
-              // Input
-              _buildInputArea(),
+              if (_isTyping) Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(left: 20, bottom: 8), child: _buildTypingIndicator(palette))),
+
+              _buildInputArea(palette, bottomInset),
             ],
           ),
         ),
@@ -301,318 +239,108 @@ class _AIChatBottomSheetState extends State<AIChatBottomSheet> {
     );
   }
 
-  Widget _buildMessageBubble(Map<String, dynamic> msg) {
+  Widget _buildHeader(AppPalette palette) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('NVIDIA Nemotron VL', style: TextStyle(fontFamily: AppTheme.fontSerif, fontSize: 24, fontWeight: FontWeight.normal, color: palette.onBg)),
+            Row(children: [
+              Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Text('Умный ассистент', style: TextStyle(fontSize: 10, color: palette.onSurface3, letterSpacing: 0.5)),
+            ]),
+          ]),
+          const Spacer(),
+          IconButton(
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: palette.bg.withValues(alpha: 1.0), // SOLID OPAQUE BACKGROUND
+                  surfaceTintColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  title: Text('Очистить чат?', style: TextStyle(fontFamily: AppTheme.fontSerif, color: palette.onBg)),
+                  content: Text('Вся история переписки будет стерта безвозвратно.', style: TextStyle(color: palette.onSurface2)),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: TextStyle(color: palette.onSurface3))),
+                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Очистить', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold))),
+                  ],
+                ),
+              );
+              if (confirm == true) _clearHistory();
+            },
+            icon: Icon(Icons.delete_outline_rounded, color: palette.onSurface3, size: 24),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(Map<String, dynamic> msg, AppPalette palette) {
     final bool isUser = msg['isUser'] ?? false;
-    final palette = AppTheme.colorsOf(context);
     final String text = msg['text'] ?? '';
-    final String timeStr = msg['time'] ?? '';
+    final String? imageBase64 = msg['image'];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (!isUser) ...[
-                _buildAvatar(),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: GestureDetector(
-                  onLongPress: () {
-                    Clipboard.setData(ClipboardData(text: text));
-                    HapticFeedback.vibrate();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Текст скопирован'),
-                        duration: Duration(seconds: 1),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                    decoration: BoxDecoration(
-                      gradient: isUser
-                          ? const LinearGradient(
-                              colors: [AppTheme.primary, AppTheme.primaryDim],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
-                          : LinearGradient(
-                              colors: [
-                                palette.surface2.withValues(alpha: 0.95),
-                                palette.surface3.withValues(alpha: 0.8),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(24),
-                        topRight: const Radius.circular(24),
-                        bottomLeft: Radius.circular(isUser ? 24 : 6),
-                        bottomRight: Radius.circular(isUser ? 6 : 24),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 12,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      text,
-                      style: TextStyle(
-                        color: isUser ? Colors.white : palette.onBg,
-                        fontSize: 15.5,
-                        height: 1.45,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
+          if (imageBase64 != null)
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.memory(base64Decode(imageBase64), width: MediaQuery.of(context).size.width * 0.65, fit: BoxFit.cover),
+              ),
+            ),
+          if (text.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+              decoration: BoxDecoration(
+                color: isUser ? AppTheme.primary : palette.surface2.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isUser ? 20 : 4),
+                  bottomRight: Radius.circular(isUser ? 4 : 20),
                 ),
               ),
-              if (isUser) ...[
-                const SizedBox(width: 8),
-                _buildUserAvatar(),
-              ],
-            ],
-          ),
-          const SizedBox(height: 5),
-          Padding(
-            padding: EdgeInsets.only(
-              left: isUser ? 0 : 44,
-              right: isUser ? 44 : 0,
+              child: Text(text, style: TextStyle(color: isUser ? Colors.white : palette.onBg, fontSize: 16, height: 1.5)),
             ),
-            child: Text(
-              _formatTimeString(timeStr),
-              style: TextStyle(
-                fontSize: 10,
-                color: palette.onSurface3.withValues(alpha: 0.6),
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildAvatar() {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.15),
-        shape: BoxShape.circle,
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary, size: 16),
-    );
+  Widget _buildTypingIndicator(AppPalette palette) {
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: palette.surface2.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(16)), child: Text('• • •', style: TextStyle(color: AppTheme.primary, fontSize: 10)));
   }
 
-  Widget _buildUserAvatar() {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: AppTheme.primaryDim.withValues(alpha: 0.2),
-        shape: BoxShape.circle,
-        border: Border.all(color: AppTheme.primaryDim.withValues(alpha: 0.3)),
-      ),
-      child: const Center(
-        child: Text('И',
-            style: TextStyle(
-                color: AppTheme.primaryDim,
-                fontSize: 14,
-                fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  Widget _buildTypingIndicator() {
-    final palette = AppTheme.colorsOf(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: palette.surface2.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(3, (i) => _buildTypingDot(i)),
-      ),
-    );
-  }
-
-  Widget _buildTypingDot(int index) {
-    return Container(
-      width: 5,
-      height: 5,
-      margin: const EdgeInsets.symmetric(horizontal: 2.5),
-      decoration: const BoxDecoration(
-        color: AppTheme.primary,
-        shape: BoxShape.circle,
-      ),
-    ).animateTyping(index);
-  }
-
-  Widget _buildInputArea() {
-    final palette = AppTheme.colorsOf(context);
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        14,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.6),
-        border: Border(top: BorderSide(color: palette.cardBorder.withValues(alpha: 0.5))),
-      ),
+  Widget _buildInputArea(AppPalette palette, double bottomInset) {
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutQuart,
+      padding: EdgeInsets.fromLTRB(20, 8, 20, bottomInset + 32),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              decoration: BoxDecoration(
-                color: palette.surface2.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: palette.cardBorder),
-              ),
-              child: TextField(
-                controller: _controller,
-                style: TextStyle(color: palette.onBg, fontSize: 16),
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  hintText: 'Спроси что-нибудь...',
-                  hintStyle: TextStyle(
-                    color: palette.onSurface3.withValues(alpha: 0.5),
-                    fontSize: 16,
-                  ),
-                  border: InputBorder.none,
-                ),
-                onSubmitted: (_) => _handleSend(),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(color: palette.surface2.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(28), border: Border.all(color: palette.cardBorder.withValues(alpha: 0.2))),
+              child: Row(children: [
+                IconButton(onPressed: () => _pickImage(ImageSource.gallery), icon: Icon(Icons.add_photo_alternate_outlined, color: palette.onSurface3, size: 24)),
+                Expanded(child: TextField(controller: _controller, maxLines: null, style: TextStyle(color: palette.onBg), decoration: InputDecoration(hintText: 'Ваш вопрос...', hintStyle: TextStyle(color: palette.onSurface3.withValues(alpha: 0.5)), border: InputBorder.none))),
+              ]),
             ),
           ),
           const SizedBox(width: 12),
-          GestureDetector(
-            onTap: _handleSend,
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, AppTheme.primaryDim],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
-            ),
-          ),
+          GestureDetector(onTap: _handleSend, child: Container(width: 48, height: 48, decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle), child: const Icon(Icons.north_rounded, color: Colors.white, size: 24))),
         ],
       ),
-    );
-  }
-
-  String _formatTimeString(String isoString) {
-    try {
-      final time = DateTime.parse(isoString);
-      return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return '';
-    }
-  }
-}
-
-extension TypingAnimation on Widget {
-  Widget animateTyping(int index) {
-    return _TypingDotAnimation(index: index, child: this);
-  }
-}
-
-class _TypingDotAnimation extends StatefulWidget {
-  final int index;
-  final Widget child;
-  const _TypingDotAnimation({required this.index, required this.child});
-
-  @override
-  State<_TypingDotAnimation> createState() => _TypingDotAnimationState();
-}
-
-class _TypingDotAnimationState extends State<_TypingDotAnimation>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _animation = Tween<double>(begin: 0, end: -8).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(
-          widget.index * 0.2,
-          0.6 + widget.index * 0.2,
-          curve: Curves.easeInOut,
-        ),
-      ),
-    );
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _controller.reverse();
-      } else if (status == AnimationStatus.dismissed) {
-        _controller.forward();
-      }
-    });
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _animation.value),
-          child: child,
-        );
-      },
-      child: widget.child,
     );
   }
 }
