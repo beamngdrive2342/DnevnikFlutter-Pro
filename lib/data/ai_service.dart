@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+
 import 'package:http/http.dart' as http;
 
 class AIService {
@@ -11,7 +10,7 @@ class AIService {
 
   static final http.Client _client = http.Client();
 
-  /// Gets the AI-generated response using the Google Gemini/Gemma REST API.
+  /// Gets the AI-generated response using the Google AI REST API.
   static Future<String> getAIResponse(
     String prompt, {
     String? homeworkContext,
@@ -23,15 +22,18 @@ class AIService {
     }
 
     try {
-      // FREE PROMPT - NO RULES, JUST CONTEXTflutter run --release
       final String systemPrompt = """
 Ты — умный и полезный ассистент по учёбе в электронном дневнике школьника.
 Отвечай на вопросы пользователя в свободной форме. Будь максимально полезным и вежливым.
+Не упоминай название модели, бренда или внутреннюю реализацию.
+Не напоминай в каждом ответе про расписание, уроки, темы и домашние задания.
+Используй данные дневника только когда это действительно помогает ответу или когда пользователь сам спрашивает об этом.
+Если вопрос не связан с дневником, отвечай естественно и без навязчивых ссылок на дневник.
 
 ДАННЫЕ ИЗ ТВОЕГО ДНЕВНИКА:
 $homeworkContext
 
-Используй эти данные, чтобы помогать с домашними заданиями, объяснять темы и отвечать на вопросы о расписании.
+Если пользователь прислал изображение, сначала проанализируй его и опирайся на него в ответе.
 """;
 
       final List<Map<String, dynamic>> parts = [
