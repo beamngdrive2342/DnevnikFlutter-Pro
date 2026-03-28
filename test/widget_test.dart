@@ -7,6 +7,6 @@ void main() {
     await tester.pumpWidget(const DnevnikApp());
     await tester.pump();
 
-    expect(find.byType(RoleGate), findsOneWidget);
+    expect(find.byType(AuthGate), findsOneWidget);
   });
 }
