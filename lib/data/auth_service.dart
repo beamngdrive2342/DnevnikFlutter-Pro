@@ -36,7 +36,6 @@ class AuthService {
     required String adminPassword,
     required String className,
     required String schoolName,
-    required String classPassword,
     required List<String> subjects,
     required List<String> lessonTimes,
     required Map<int, List<Map<String, String>>> schedule,
@@ -50,8 +49,6 @@ class AuthService {
         code: code,
         adminEmail: adminEmail.trim().toLowerCase(),
         adminHash: hashPassword(adminPassword),
-        classHash: hashPassword(classPassword),
-        classPasswordPlain: classPassword,
         className: className,
         schoolName: schoolName,
         subjects: subjects,
@@ -101,7 +98,7 @@ class AuthService {
 
   // ── Join class (student) ────────────────────────────────────────────
 
-  static Future<String?> joinClass(String code, String password) async {
+  static Future<String?> joinClass(String code) async {
     try {
       final upperCode = code.trim().toUpperCase();
       final codeRes = await _client
@@ -119,11 +116,6 @@ class AuthService {
       if (classRes.statusCode != 200) return null;
 
       final classDoc = jsonDecode(classRes.body) as Map<String, dynamic>;
-      final storedHash =
-          classDoc['fields']?['classPasswordHash']?['stringValue'];
-      if (storedHash == null || hashPassword(password) != storedHash) {
-        return null;
-      }
 
       ClassSchedule.loadFromFirestoreDoc(classDoc);
       await _saveSession(classId, 'student', null);
@@ -217,8 +209,6 @@ class AuthService {
       final fields = (doc['fields'] ?? {}) as Map<String, dynamic>;
       return {
         'code': fields['code']?['stringValue'] ?? '',
-        'classPasswordHash': fields['classPasswordHash']?['stringValue'] ?? '',
-        'classPasswordPlain': fields['classPasswordPlain']?['stringValue'] ?? '',
         'className': fields['className']?['stringValue'] ?? '',
         'schoolName': fields['schoolName']?['stringValue'] ?? '',
         'adminEmail': fields['adminEmail']?['stringValue'] ?? '',
@@ -333,8 +323,6 @@ class AuthService {
     required String code,
     required String adminEmail,
     required String adminHash,
-    required String classHash,
-    required String classPasswordPlain,
     required String className,
     required String schoolName,
     required List<String> subjects,
@@ -347,8 +335,6 @@ class AuthService {
         'code': {'stringValue': code},
         'adminEmail': {'stringValue': adminEmail},
         'adminPasswordHash': {'stringValue': adminHash},
-        'classPasswordHash': {'stringValue': classHash},
-        'classPasswordPlain': {'stringValue': classPasswordPlain},
         'className': {'stringValue': className},
         'schoolName': {'stringValue': schoolName},
         'subjects': {
