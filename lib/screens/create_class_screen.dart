@@ -25,8 +25,6 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
   // Step 2 — Class info
   final _classNameC = TextEditingController();
   final _schoolNameC = TextEditingController();
-  final _classPassC = TextEditingController();
-  final _classPassConfirmC = TextEditingController();
 
   // Step 3 — Subjects
   late List<String> _availableSubjects;
@@ -65,8 +63,6 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     _adminPassConfirmC.dispose();
     _classNameC.dispose();
     _schoolNameC.dispose();
-    _classPassC.dispose();
-    _classPassConfirmC.dispose();
     _customSubjectC.dispose();
     super.dispose();
   }
@@ -115,14 +111,6 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
         }
         if (_schoolNameC.text.trim().isEmpty) {
           setState(() => _error = 'Введите название школы');
-          return false;
-        }
-        if (_classPassC.text.length < 4) {
-          setState(() => _error = 'Пароль класса минимум 4 символа');
-          return false;
-        }
-        if (_classPassC.text != _classPassConfirmC.text) {
-          setState(() => _error = 'Пароли не совпадают');
           return false;
         }
         return true;
@@ -181,7 +169,6 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
       adminPassword: _adminPassC.text,
       className: _classNameC.text.trim(),
       schoolName: _schoolNameC.text.trim(),
-      classPassword: _classPassC.text,
       subjects: _selectedSubjects.toList(),
       lessonTimes: customTimes.isNotEmpty ? customTimes : List<String>.from(defaultLessonTimes),
       schedule: schedule,
@@ -281,15 +268,11 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
   Widget _step2ClassInfo() {
     return _stepScaffold(
       title: 'Информация о классе',
-      subtitle: 'Название класса и пароль для учеников',
+      subtitle: 'Название класса и школы',
       children: [
         _buildField(_classNameC, 'Название класса (напр. 10А)'),
         const SizedBox(height: 14),
         _buildField(_schoolNameC, 'Школа (напр. Школа №42)'),
-        const SizedBox(height: 14),
-        _buildField(_classPassC, 'Пароль класса для учеников', obscure: true),
-        const SizedBox(height: 14),
-        _buildField(_classPassConfirmC, 'Повтор пароля класса', obscure: true),
       ],
       onNext: _next,
     );
@@ -737,10 +720,6 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
               style: TextStyle(
                   fontSize: 12, color: palette.onSurface3)),
           const SizedBox(height: 16),
-          Text(
-            'Пароль класса: ${_classPassC.text}',
-            style: TextStyle(fontSize: 13, color: palette.onSurface2),
-          ),
           const SizedBox(height: 16),
 
           // Back to schedule hint
