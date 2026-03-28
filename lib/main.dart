@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -15,6 +14,8 @@ import 'screens/diary_screen.dart';
 import 'screens/admin_panel_screen.dart';
 import 'data/schedule_data.dart';
 import 'data/firestore_service.dart';
+import 'data/auth_service.dart';
+import 'screens/welcome_screen.dart' as screens_welcome;
 import 'utils/image_data.dart';
 import 'widgets/fast_page_scroll_physics.dart';
 import 'widgets/ai_chat_bottom_sheet.dart';
@@ -27,8 +28,6 @@ Future<void> main() async {
 
 Future<void> _bootstrapRuntime() async {
   await ThemeController.initialize();
-  // Give the first navigation/render path time to stabilize before touching
-  // vendor-specific display mode APIs.
   await Future<void>.delayed(const Duration(seconds: 5));
   unawaited(_configureDisplayMode());
 }
@@ -72,7 +71,7 @@ class DnevnikApp extends StatelessWidget {
               supportedLocales: const [
                 Locale('ru', 'RU'),
               ],
-              home: const RoleGate(),
+              home: const AuthGate(),
             );
           },
         );
@@ -81,248 +80,68 @@ class DnevnikApp extends StatelessWidget {
   }
 }
 
-// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
-// ROLE GATE вЂ” simple PIN-code role selection on first launch
-// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
-class RoleGate extends StatefulWidget {
-  const RoleGate({super.key});
+// ═══════════════════════════════════════════════════════════
+// AUTH GATE — check saved session
+// ═══════════════════════════════════════════════════════════
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
   @override
-  State<RoleGate> createState() => _RoleGateState();
+  State<AuthGate> createState() => _AuthGateState();
 }
 
-class _RoleGateState extends State<RoleGate> {
-  bool _isLoading = true;
-  String? _role; // 'admin' or 'student'
+class _AuthGateState extends State<AuthGate> {
   AppPalette get palette => AppTheme.colorsOf(context);
 
-  // Admin PIN вЂ” can be changed by admin later
-  static const String _adminPin = '1234';
-
   @override
   void initState() {
     super.initState();
-    _loadRole();
-    _scheduleStartupWarmup();
+    _checkSession();
   }
 
-  void _scheduleStartupWarmup() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(FirestoreService.getHomework());
-    });
-  }
+  Future<void> _checkSession() async {
+    final classId = await AuthService.getSavedClassId();
+    final role = await AuthService.getSavedRole();
 
-  Future<void> _loadRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    final role = prefs.getString('dnevnik_role');
+    if (classId != null && role != null) {
+      FirestoreService.setClassId(classId);
+      final loaded = await AuthService.loadClassData(classId);
+      if (!mounted) return;
+      if (loaded) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => MainScreen(role: role, classId: classId),
+          ),
+        );
+        return;
+      }
+      await AuthService.logout();
+    }
+
     if (!mounted) return;
-    setState(() {
-      _role = role;
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _setRole(String role) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('dnevnik_role', role);
-    if (!mounted) return;
-    setState(() => _role = role);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const screens_welcome.WelcomeScreen(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: palette.bg,
-        body: const Center(
-            child: CircularProgressIndicator(color: AppTheme.primary)),
-      );
-    }
-    if (_role != null) {
-      return MainScreen(role: _role!);
-    }
-    return _buildRoleSelector();
-  }
-
-  Widget _buildRoleSelector() {
     return Scaffold(
       backgroundColor: palette.bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.school_rounded,
-                  size: 64, color: AppTheme.primary),
-              const SizedBox(height: 24),
-              Text('Школьный дневник',
-                  style: TextStyle(
-                    fontFamily: AppTheme.fontSerif,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
-                    color: palette.onBg,
-                  )),
-              const SizedBox(height: 8),
-              Text('Выберите роль для входа',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: palette.onSurface2,
-                  )),
-              const SizedBox(height: 48),
-              // Student button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.person_rounded, size: 22),
-                  label: const Text('Войти как ученик'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: palette.surface3,
-                    foregroundColor: AppTheme.primaryDim,
-                  ),
-                  onPressed: () => _setRole('student'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Admin button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  icon:
-                      const Icon(Icons.admin_panel_settings_rounded, size: 22),
-                  label: const Text('Войти как админ'),
-                  onPressed: () => _showAdminPinDialog(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  Future<void> _showAdminPinDialog() async {
-    final isAuthorized = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => const _AdminPinDialog(expectedPin: _adminPin),
-    );
-
-    if (isAuthorized == true) {
-      await _setRole('admin');
-    }
-  }
-}
-
-class _AdminPinDialog extends StatefulWidget {
-  final String expectedPin;
-
-  const _AdminPinDialog({required this.expectedPin});
-
-  @override
-  State<_AdminPinDialog> createState() => _AdminPinDialogState();
-}
-
-class _AdminPinDialogState extends State<_AdminPinDialog> {
-  late final TextEditingController _pinController;
-  String? _errorText;
-
-  @override
-  void initState() {
-    super.initState();
-    _pinController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _pinController.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (_pinController.text == widget.expectedPin) {
-      Navigator.of(context).pop(true);
-      return;
-    }
-
-    setState(() {
-      _errorText = 'Неверный PIN';
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = AppTheme.colorsOf(context);
-    final dialogSurface = palette.surface2.withValues(alpha: 1);
-    final fieldSurface = palette.surface3.withValues(alpha: 1);
-
-    return AlertDialog(
-      backgroundColor: dialogSurface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        'Введите PIN администратора',
-        style: TextStyle(color: palette.onBg, fontSize: 18),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _pinController,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            autofocus: true,
-            maxLength: 4,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onSubmitted: (_) => _submit(),
-            style: TextStyle(
-              color: palette.onBg,
-              fontSize: 24,
-              letterSpacing: 8,
-            ),
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              counterText: '',
-              errorText: _errorText,
-              filled: true,
-              fillColor: fieldSurface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: palette.cardBorder),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: palette.cardBorder),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.primary),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(
-            'Отмена',
-            style: TextStyle(color: palette.onSurface2),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: _submit,
-          child: const Text('Войти'),
-        ),
-      ],
+      body: const Center(
+          child: CircularProgressIndicator(color: AppTheme.primary)),
     );
   }
 }
 
-// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+// ═══════════════════════════════════════════════════════════
 // MAIN SCREEN
-// в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+// ═══════════════════════════════════════════════════════════
 class MainScreen extends StatefulWidget {
   final String role;
-  const MainScreen({super.key, required this.role});
+  final String classId;
+  const MainScreen({super.key, required this.role, required this.classId});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -386,6 +205,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    FirestoreService.setClassId(widget.classId);
     _diaryScreen = DiaryScreen(key: _diaryKey);
     _rootPageController = PageController(initialPage: _currentIndex);
   }
@@ -1021,7 +841,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget? _buildGlassyNavBar() {
-    if (!isAdmin) return null; // BottomNavigationBar requires >= 2 items.
+    if (!isAdmin) return null;
 
     final items = <BottomNavigationBarItem>[
       const BottomNavigationBarItem(
