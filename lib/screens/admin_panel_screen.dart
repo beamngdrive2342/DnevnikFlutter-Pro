@@ -700,8 +700,6 @@ class _ClassSettingsTab extends StatefulWidget {
 class _ClassSettingsTabState extends State<_ClassSettingsTab> {
   bool _loadingInfo = true;
   String _classCode = '';
-  String _classPass = '';
-  bool _showPassword = false;
   bool _showCode = false;
 
   // Schedule editor
@@ -745,7 +743,6 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
     if (!mounted) return;
     setState(() {
       _classCode = info?['code'] ?? '';
-      _classPass = info?['classPasswordPlain'] ?? '••••'; // Show plain text password
       _loadingInfo = false;
       _scheduleReady = true;
     });
@@ -967,16 +964,6 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
                 const SnackBar(content: Text('Код скопирован')),
               );
             },
-          ),
-          const SizedBox(height: 12),
-
-          // Class password
-          _secretRow(
-            icon: Icons.lock_rounded,
-            label: 'Пароль класса',
-            value: _classPass,
-            shown: _showPassword,
-            onToggle: () => setState(() => _showPassword = !_showPassword),
           ),
         ],
       ),
