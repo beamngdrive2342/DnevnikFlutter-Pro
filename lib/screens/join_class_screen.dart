@@ -14,7 +14,6 @@ class JoinClassScreen extends StatefulWidget {
 
 class _JoinClassScreenState extends State<JoinClassScreen> {
   final _codeC = TextEditingController();
-  final _passC = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -23,15 +22,13 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
   @override
   void dispose() {
     _codeC.dispose();
-    _passC.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final code = _codeC.text.trim();
-    final pass = _passC.text;
-    if (code.isEmpty || pass.isEmpty) {
-      setState(() => _error = 'Заполните все поля');
+    if (code.isEmpty) {
+      setState(() => _error = 'Введите код класса');
       return;
     }
     if (code.length < 6) {
@@ -44,14 +41,14 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
       _error = null;
     });
 
-    final classId = await AuthService.joinClass(code, pass);
+    final classId = await AuthService.joinClass(code);
 
     if (!mounted) return;
 
     if (classId == null) {
       setState(() {
         _loading = false;
-        _error = 'Неверный код или пароль';
+        _error = 'Неверный код класса';
       });
       return;
     }
@@ -112,7 +109,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
               const SizedBox(height: 8),
               Center(
                 child: Text(
-                  'Введите код и пароль от администратора',
+                  'Введите код от администратора',
                   style: TextStyle(fontSize: 13, color: palette.onSurface2),
                   textAlign: TextAlign.center,
                 ),
@@ -143,39 +140,6 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
                   hintStyle: TextStyle(
                       color: palette.onSurface3.withValues(alpha: 0.6),
                       letterSpacing: 6),
-                  filled: true,
-                  fillColor: fieldBg,
-                  border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
-                    borderSide: BorderSide(color: palette.cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
-                    borderSide: BorderSide(color: palette.cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
-                    borderSide: const BorderSide(color: AppTheme.primary),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Password field
-              _label('Пароль класса'),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _passC,
-                obscureText: true,
-                onSubmitted: (_) => _submit(),
-                style: TextStyle(color: palette.onBg, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Введите пароль',
-                  hintStyle: TextStyle(
-                      color: palette.onSurface3.withValues(alpha: 0.6)),
                   filled: true,
                   fillColor: fieldBg,
                   border: OutlineInputBorder(
