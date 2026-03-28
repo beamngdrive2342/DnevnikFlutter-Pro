@@ -9,7 +9,16 @@ import '../utils/image_data.dart';
 class FirestoreService {
   static const String projectId = "domashka-381cb";
   static const String databaseId = "(default)";
-  static const String collectionId = "homework";
+
+  static String? _classId;
+  static String? get classId => _classId;
+
+  static void setClassId(String classId) {
+    _classId = classId;
+    _cachedHomework = null;
+    _cacheExpiresAt = null;
+    _pendingHomeworkRequest = null;
+  }
 
   static final http.Client _client = http.Client();
   static const Duration _requestTimeout = Duration(seconds: 12);
@@ -29,8 +38,15 @@ class FirestoreService {
   static Future<List<HomeworkItem>>? _pendingHomeworkRequest;
   static bool _hostedImageMigrationTriggered = false;
 
-  static String get baseUrl =>
-      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents/$collectionId";
+  static String get _firestoreRoot =>
+      "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents";
+
+  static String get baseUrl {
+    if (_classId != null) {
+      return "$_firestoreRoot/classes/$_classId/homework";
+    }
+    return "$_firestoreRoot/homework";
+  }
 
   static Future<List<HomeworkItem>> getHomework(
       {bool forceRefresh = false}) async {
