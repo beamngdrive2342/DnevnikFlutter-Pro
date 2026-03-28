@@ -456,13 +456,36 @@ class DiaryScreenState extends State<DiaryScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(lesson.subject,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: palette.onBg,
-                                  height: 1.2,
-                                )),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(lesson.subject,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: palette.onBg,
+                                        height: 1.2,
+                                      )),
+                                ),
+                                if (hasAnyHw)
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    margin: const EdgeInsets.only(left: 8, top: 2),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppTheme.primaryDim,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.primaryDim.withValues(alpha: 0.5),
+                                          blurRadius: 4,
+                                          spreadRadius: 1,
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
                             const SizedBox(height: 3),
                             Text(lesson.time,
                                 style: TextStyle(
@@ -479,51 +502,79 @@ class DiaryScreenState extends State<DiaryScreen> {
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: AppTheme.primaryDim.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        border: Border.all(color: palette.cardBorder),
+                        border: Border.all(color: AppTheme.primaryDim.withValues(alpha: 0.2)),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('ЗАДАНО',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.0,
-                                color: AppTheme.primaryDim,
-                              )),
-                          const SizedBox(height: 5),
-                          if (lesson.hw.isNotEmpty)
-                            Text(lesson.hw,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: palette.onSurface,
-                                  height: 1.5,
-                                )),
-                          for (var ch in customHw)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                  top: lesson.hw.isNotEmpty ? 6 : 0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('• ',
-                                      style: TextStyle(
-                                          color: AppTheme.primaryDim,
-                                          fontSize: 13)),
-                                  Expanded(
-                                      child: Text(ch.task,
+                      clipBehavior: Clip.antiAlias,
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              width: 4,
+                              color: AppTheme.primaryDim,
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.assignment_rounded, 
+                                          size: 12, 
+                                          color: AppTheme.primaryDim
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text('ЗАДАНО',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 1.0,
+                                              color: AppTheme.primaryDim,
+                                            )),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (lesson.hw.isNotEmpty)
+                                      Text(lesson.hw,
                                           style: TextStyle(
-                                              fontSize: 13,
-                                              color: palette.onSurface,
-                                              height: 1.5))),
-                                ],
+                                            fontSize: 13,
+                                            color: palette.onSurface,
+                                            height: 1.5,
+                                            fontWeight: FontWeight.w500,
+                                          )),
+                                    for (var ch in customHw)
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                            top: (lesson.hw.isNotEmpty || customHw.indexOf(ch) > 0) ? 6 : 0),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('• ',
+                                                style: TextStyle(
+                                                    color: AppTheme.primaryDim,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13)),
+                                            Expanded(
+                                                child: Text(ch.task,
+                                                    style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: palette.onSurface,
+                                                        height: 1.5,
+                                                        fontWeight: FontWeight.w500))),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
