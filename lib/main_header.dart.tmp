@@ -1,0 +1,137 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
+import 'screens/diary_screen.dart';
+import 'screens/admin_panel_screen.dart';
+import 'data/schedule_data.dart';
+import 'data/firestore_service.dart';
+import 'data/auth_service.dart';
+import 'screens/welcome_screen.dart' as screens_welcome;
+import 'utils/image_data.dart';
+import 'widgets/fast_page_scroll_physics.dart';
+import 'widgets/ai_chat_bottom_sheet.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const DnevnikApp());
+  unawaited(_bootstrapRuntime());
+}
+
+Future<void> _bootstrapRuntime() async {
+  await ThemeController.initialize();
+  // Give the first navigation/render path time to stabilize before touching
+  // vendor-specific display mode APIs.
+  await Future<void>.delayed(const Duration(seconds: 5));
+  unawaited(_configureDisplayMode());
+}
+
+Future<void> _configureDisplayMode() async {
+  if (!Platform.isAndroid) {
+    return;
+  }
+  try {
+    await FlutterDisplayMode.setHighRefreshRate();
+  } catch (e) {
+    debugPrint('Display mode setup skipped: $e');
+  }
+}
+
+class DnevnikApp extends StatelessWidget {
+  const DnevnikApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeController.hydrated,
+      builder: (context, hydrated, _) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeController.notifier,
+          builder: (context, themeMode, child) {
+            return MaterialApp(
+              title: 'Дневник',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              themeAnimationDuration: const Duration(milliseconds: 300),
+              themeAnimationCurve: Curves.easeInOut,
+              locale: const Locale('ru', 'RU'),
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('ru', 'RU'),
+              ],
+              home: const AuthGate(),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// AUTH GATE
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  AppPalette get palette => AppTheme.colorsOf(context);
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final classId = await AuthService.getSavedClassId();
+    final role = await AuthService.getSavedRole();
+
+    if (classId != null && role != null) {
+      FirestoreService.setClassId(classId);
+      final loaded = await AuthService.loadClassData(classId);
+      if (!mounted) return;
+      if (loaded) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => MainScreen(role: role, classId: classId),
+          ),
+        );
+        return;
+      }
+      await AuthService.logout();
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const screens_welcome.WelcomeScreen(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: palette.bg,
+      body: const Center(
+          child: CircularProgressIndicator(color: AppTheme.primary)),
+    );
+  }
+}
