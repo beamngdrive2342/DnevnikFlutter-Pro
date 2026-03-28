@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../data/auth_service.dart';
 import 'package:gal/gal.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
@@ -18,7 +18,10 @@ class DiaryScreen extends StatefulWidget {
   State<DiaryScreen> createState() => DiaryScreenState();
 }
 
-class DiaryScreenState extends State<DiaryScreen> {
+class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   static const Duration _imageDownloadTimeout = Duration(seconds: 15);
   AppPalette get palette => AppTheme.colorsOf(context);
 
@@ -90,6 +93,7 @@ class DiaryScreenState extends State<DiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       children: [
         _buildTopBar(context),
@@ -184,12 +188,11 @@ class DiaryScreenState extends State<DiaryScreen> {
                 ),
               );
               if (confirm == true) {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('dnevnik_role');
+                await AuthService.logout();
                 if (!context.mounted) return;
-                // Restart the app at RoleGate
+                // Restart the app at AuthGate
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const _RoleGateRedirect()),
+                  MaterialPageRoute(builder: (_) => const AuthGate()),
                   (route) => false,
                 );
               }
@@ -1392,11 +1395,4 @@ class _TopNotificationState extends State<_TopNotification>
   }
 }
 
-// Redirect widget used for logout — navigates back to RoleGate
-class _RoleGateRedirect extends StatelessWidget {
-  const _RoleGateRedirect();
-  @override
-  Widget build(BuildContext context) {
-    return const RoleGate();
-  }
-}
+
