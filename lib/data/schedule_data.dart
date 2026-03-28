@@ -134,7 +134,7 @@ Color getSubjectColor(String subject) {
   return subjectColors[subject] ?? Colors.grey;
 }
 
-const List<String> allSubjects = [
+const List<String> defaultSubjects = [
   "Алгебра",
   "Геометрия",
   "Русский язык",
@@ -156,8 +156,10 @@ const List<String> allSubjects = [
   "ВУД РМГ"
 ];
 
+List<String> get allSubjects => ClassSchedule.subjects;
+
 // Times for 8 possible lessons
-final List<String> lessonTimes = [
+const List<String> defaultLessonTimes = [
   '09:00 - 09:45',
   '09:50 - 10:35',
   '10:45 - 11:30',
@@ -168,10 +170,12 @@ final List<String> lessonTimes = [
   '15:30 - 16:15',
 ];
 
-String _getTime(int index) => index < lessonTimes.length ? lessonTimes[index] : '';
+List<String> get lessonTimes => ClassSchedule.lessonTimes;
+
+String _getTime(int index) => index < defaultLessonTimes.length ? defaultLessonTimes[index] : '';
 
 // 0 - Monday
-final Map<int, List<Lesson>> weekSchedule = {
+final Map<int, List<Lesson>> _defaultWeekSchedule = {
   0: [
     Lesson(id: 'mon_1', num: 1, subject: 'РоВ', room: 'Каб. 1', time: _getTime(0), hw: ''),
     Lesson(id: 'mon_2', num: 2, subject: 'Обществознание', room: 'Каб. 2', time: _getTime(1), hw: ''),
@@ -220,7 +224,129 @@ final Map<int, List<Lesson>> weekSchedule = {
   ],
 };
 
+Map<int, List<Lesson>> get weekSchedule => ClassSchedule.weekSchedule;
+
 const List<String> weekdaysShort = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const List<String> weekdaysFull = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
 const List<String> weekDaysNames = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
 const List<String> monthsShort = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+const List<String> _dayPrefixes = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+class ClassSchedule {
+  static String className = '';
+  static String schoolName = '';
+  static String classCode = '';
+  static String classId = '';
+
+  static Map<int, List<Lesson>> _schedule = {};
+  static List<String> _subjects = [];
+  static List<String> _lessonTimes = [];
+  static bool _loaded = false;
+
+  static Map<int, List<Lesson>> get weekSchedule =>
+      _loaded ? _schedule : _defaultWeekSchedule;
+
+  static List<String> get subjects =>
+      _loaded ? _subjects : defaultSubjects;
+
+  static List<String> get lessonTimes =>
+      _loaded ? _lessonTimes : defaultLessonTimes;
+
+  static bool get isLoaded => _loaded;
+
+  static void load({
+    required String classId,
+    required String className,
+    required String schoolName,
+    required String classCode,
+    required Map<int, List<Lesson>> schedule,
+    required List<String> subjects,
+    required List<String> lessonTimes,
+  }) {
+    ClassSchedule.classId = classId;
+    ClassSchedule.className = className;
+    ClassSchedule.schoolName = schoolName;
+    ClassSchedule.classCode = classCode;
+    _schedule = schedule;
+    _subjects = subjects;
+    _lessonTimes = lessonTimes;
+    _loaded = true;
+  }
+
+  static void reset() {
+    className = '';
+    schoolName = '';
+    classCode = '';
+    classId = '';
+    _schedule = {};
+    _subjects = [];
+    _lessonTimes = [];
+    _loaded = false;
+  }
+
+  static void loadFromFirestoreDoc(Map<String, dynamic> doc) {
+    final fields = (doc['fields'] ?? {}) as Map<String, dynamic>;
+
+    final id = fields['classId']?['stringValue'] ?? '';
+    final name = fields['className']?['stringValue'] ?? '';
+    final school = fields['schoolName']?['stringValue'] ?? '';
+    final code = fields['code']?['stringValue'] ?? '';
+
+    final subArr =
+        (fields['subjects']?['arrayValue']?['values'] as List?) ?? [];
+    final subs = subArr
+        .map((v) => (v as Map)['stringValue'] as String? ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final timesArr =
+        (fields['lessonTimes']?['arrayValue']?['values'] as List?) ?? [];
+    final times = timesArr
+        .map((v) => (v as Map)['stringValue'] as String? ?? '')
+        .where((t) => t.isNotEmpty)
+        .toList();
+
+    final schedMap = (fields['schedule']?['mapValue']?['fields']
+            as Map<String, dynamic>?) ??
+        {};
+    final schedule = <int, List<Lesson>>{};
+
+    for (final entry in schedMap.entries) {
+      final dayIdx = int.tryParse(entry.key);
+      if (dayIdx == null) continue;
+
+      final arr =
+          (entry.value['arrayValue']?['values'] as List?) ?? [];
+      final lessons = <Lesson>[];
+      for (var i = 0; i < arr.length; i++) {
+        final lf =
+            (arr[i]['mapValue']?['fields'] ?? {}) as Map<String, dynamic>;
+        final subject = lf['subject']?['stringValue'] ?? '';
+        final room = lf['room']?['stringValue'] ?? '';
+        if (subject.isEmpty) continue;
+
+        final prefix =
+            dayIdx < _dayPrefixes.length ? _dayPrefixes[dayIdx] : 'd$dayIdx';
+        lessons.add(Lesson(
+          id: '${prefix}_${i + 1}',
+          num: i + 1,
+          subject: subject,
+          room: room,
+          time: i < times.length ? times[i] : '',
+        ));
+      }
+      schedule[dayIdx] = lessons;
+    }
+
+    load(
+      classId: id,
+      className: name,
+      schoolName: school,
+      classCode: code,
+      schedule: schedule,
+      subjects: subs,
+      lessonTimes: times,
+    );
+  }
+}
