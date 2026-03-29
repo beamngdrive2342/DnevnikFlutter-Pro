@@ -18,7 +18,8 @@ class DiaryScreen extends StatefulWidget {
   State<DiaryScreen> createState() => DiaryScreenState();
 }
 
-class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientMixin {
+class DiaryScreenState extends State<DiaryScreen>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -121,6 +122,13 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
 
   // ═══════════════════════════════════ TOP BAR
   Widget _buildTopBar(BuildContext context) {
+    final className = ClassSchedule.className.trim().isNotEmpty
+        ? ClassSchedule.className.trim()
+        : '\u041A\u043B\u0430\u0441\u0441';
+    final schoolName = ClassSchedule.schoolName.trim().isNotEmpty
+        ? ClassSchedule.schoolName.trim()
+        : '\u0428\u043A\u043E\u043B\u0430';
+
     return Container(
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -139,26 +147,29 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Школьный Дневник',
-                  style: TextStyle(
-                    fontFamily: AppTheme.fontSerif,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: palette.onBg,
-                  )),
-              const Text('10А',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.4,
-                  )),
+              Text(
+                className,
+                style: TextStyle(
+                  fontFamily: AppTheme.fontSerif,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: palette.onBg,
+                ),
+              ),
+              Text(
+                schoolName,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.4,
+                ),
+              ),
             ],
           ),
           const Spacer(),
           const ThemeSwitchButton(),
           const SizedBox(width: 12),
-          // Logout / Profile button
           GestureDetector(
             onTap: () async {
               final confirm = await showDialog<bool>(
@@ -166,23 +177,33 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                 builder: (ctx) => AlertDialog(
                   backgroundColor: palette.surface2.withValues(alpha: 1),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                  title: Text('Выйти из аккаунта?',
-                      style: TextStyle(color: palette.onBg, fontSize: 18)),
-                  content: Text('Вы вернётесь к выбору роли',
-                      style: TextStyle(color: palette.onSurface2)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  title: Text(
+                    '\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430?',
+                    style: TextStyle(color: palette.onBg, fontSize: 18),
+                  ),
+                  content: Text(
+                    '\u0412\u044B \u0432\u0435\u0440\u043D\u0451\u0442\u0435\u0441\u044C \u043A \u0432\u044B\u0431\u043E\u0440\u0443 \u0440\u043E\u043B\u0438',
+                    style: TextStyle(color: palette.onSurface2),
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: Text('Отмена',
-                          style: TextStyle(color: palette.onSurface2)),
+                      child: Text(
+                        '\u041E\u0442\u043C\u0435\u043D\u0430',
+                        style: TextStyle(color: palette.onSurface2),
+                      ),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary),
+                        backgroundColor: AppTheme.primary,
+                      ),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Выйти',
-                          style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        '\u0412\u044B\u0439\u0442\u0438',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -190,7 +211,6 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
               if (confirm == true) {
                 await AuthService.logout();
                 if (!context.mounted) return;
-                // Restart the app at AuthGate
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const AuthGate()),
                   (route) => false,
@@ -208,11 +228,11 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                 child: Container(
                   color: AppTheme.primary,
                   child: const Center(
-                    child: Text('И',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14)),
+                    child: Icon(
+                      Icons.home_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
@@ -223,7 +243,6 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
     );
   }
 
-  // ═══════════════════════════════════ CALENDAR STRIP
   Widget _buildCalendarStrip() {
     return SizedBox(
       height: 82,
@@ -474,13 +493,15 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                                   Container(
                                     width: 6,
                                     height: 6,
-                                    margin: const EdgeInsets.only(left: 8, top: 2),
+                                    margin:
+                                        const EdgeInsets.only(left: 8, top: 2),
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: AppTheme.primaryDim,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppTheme.primaryDim.withValues(alpha: 0.5),
+                                          color: AppTheme.primaryDim
+                                              .withValues(alpha: 0.5),
                                           blurRadius: 4,
                                           spreadRadius: 1,
                                         )
@@ -508,7 +529,8 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                       decoration: BoxDecoration(
                         color: AppTheme.primaryDim.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        border: Border.all(color: AppTheme.primaryDim.withValues(alpha: 0.2)),
+                        border: Border.all(
+                            color: AppTheme.primaryDim.withValues(alpha: 0.2)),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: IntrinsicHeight(
@@ -527,10 +549,9 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                                   children: [
                                     Row(
                                       children: [
-                                        const Icon(Icons.assignment_rounded, 
-                                          size: 12, 
-                                          color: AppTheme.primaryDim
-                                        ),
+                                        const Icon(Icons.assignment_rounded,
+                                            size: 12,
+                                            color: AppTheme.primaryDim),
                                         const SizedBox(width: 6),
                                         const Text('ЗАДАНО',
                                             style: TextStyle(
@@ -553,9 +574,13 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                                     for (var ch in customHw)
                                       Padding(
                                         padding: EdgeInsets.only(
-                                            top: (lesson.hw.isNotEmpty || customHw.indexOf(ch) > 0) ? 6 : 0),
+                                            top: (lesson.hw.isNotEmpty ||
+                                                    customHw.indexOf(ch) > 0)
+                                                ? 6
+                                                : 0),
                                         child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             const Text('• ',
                                                 style: TextStyle(
@@ -566,9 +591,11 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                                                 child: Text(ch.task,
                                                     style: TextStyle(
                                                         fontSize: 13,
-                                                        color: palette.onSurface,
+                                                        color:
+                                                            palette.onSurface,
                                                         height: 1.5,
-                                                        fontWeight: FontWeight.w500))),
+                                                        fontWeight:
+                                                            FontWeight.w500))),
                                           ],
                                         ),
                                       ),
@@ -771,7 +798,8 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                                                   _saveImageToGallery(
                                                 context,
                                                 fullUrl,
-                                              ), /*
+                                              ),
+                                              /*
                                                 try {
                                                   final hasAccess =
                                                       await Gal.hasAccess();
@@ -856,7 +884,8 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                                                   }
                                                 }
                                               },
-                                              */ icon: const Icon(
+                                              */
+                                              icon: const Icon(
                                                   Icons.download_rounded,
                                                   size: 16),
                                               label: const Text(
@@ -1004,8 +1033,8 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
                                     hw.task,
                                     backgroundColor:
                                         palette.surface.withValues(alpha: 0.55),
-                                    borderColor:
-                                        AppTheme.primary.withValues(alpha: 0.18),
+                                    borderColor: AppTheme.primary
+                                        .withValues(alpha: 0.18),
                                   ),
                                   if (images.isNotEmpty) ...[
                                     const SizedBox(height: 14),
@@ -1082,10 +1111,10 @@ class DiaryScreenState extends State<DiaryScreen> with AutomaticKeepAliveClientM
     if (hw.imageUrls != null && hw.imageUrls!.isNotEmpty) {
       return List.generate(hw.imageUrls!.length, (i) {
         final display = hw.imageUrls![i];
-        final full = (hw.fullResolutionUrls != null &&
-                hw.fullResolutionUrls!.length > i)
-            ? hw.fullResolutionUrls![i]
-            : display;
+        final full =
+            (hw.fullResolutionUrls != null && hw.fullResolutionUrls!.length > i)
+                ? hw.fullResolutionUrls![i]
+                : display;
         return <String, String>{'display': display, 'full': full};
       });
     }
@@ -1394,5 +1423,3 @@ class _TopNotificationState extends State<_TopNotification>
     );
   }
 }
-
-
