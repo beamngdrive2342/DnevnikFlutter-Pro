@@ -87,18 +87,37 @@ $homeworkContext
     required String adminText,
   }) async {
     if (_apiKey.isEmpty) {
-      return {'subject': null, 'deadline': null};
+      return {'subject': null, 'deadline': null, 'task': null};
     }
 
     final todayText =
-        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+        '${today.year}-${today.month.toString().padLeft(2, "0")}-${today.day.toString().padLeft(2, "0")}';
+
+    final weekdays = [
+      'понедельник',
+      'вторник',
+      'среда',
+      'четверг',
+      'пятница',
+      'суббота',
+      'воскресенье'
+    ];
+    final weekdayName = weekdays[today.weekday - 1];
 
     final prompt = '''
-Сегодня $todayText. Расписание класса: $scheduleText
+Сегодня $todayText, день недели $weekdayName.
+Расписание класса по дням: $scheduleText
+
 Администратор сказал: "$adminText".
-Определи предмет и дату ближайшего подходящего урока.
-Верни ТОЛЬКО JSON без пояснений: {"subject": "Алгебра", "deadline": "2026-04-04"}
-Если не удалось определить — {"subject": null, "deadline": null}
+
+Твои задачи:
+1. Определи предмет из расписания
+2. Определи дату ближайшего подходящего урока этого предмета опираясь на расписание и сегодняшнюю дату. "Следующий урок" — ближайший урок этого предмета после сегодня. "Пятничная алгебра" — алгебра в ближайшую пятницу. "На 23 число" — текущий месяц если число ещё не прошло, иначе следующий месяц.
+3. Из текста администратора извлеки ТОЛЬКО что нужно сделать (номера задач, параграфы, упражнения и т.д.). Убери все слова про добавление, предмет и дату. Если что делать не указано — оставь пустую строку.
+
+Верни ТОЛЬКО JSON без пояснений:
+{"subject": "Алгебра", "deadline": "2026-04-04", "task": "Решить номера 45, 46, 47"}
+Если не удалось определить — соответствующее поле null.
 ''';
 
     try {
@@ -123,23 +142,24 @@ $homeworkContext
           .timeout(const Duration(seconds: 45));
 
       if (response.statusCode != 200) {
-        return {'subject': null, 'deadline': null};
+        return {'subject': null, 'deadline': null, 'task': null};
       }
 
       final data = jsonDecode(utf8.decode(response.bodyBytes));
       final text =
           data['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
       if (text == null || text.trim().isEmpty) {
-        return {'subject': null, 'deadline': null};
+        return {'subject': null, 'deadline': null, 'task': null};
       }
 
       final parsed = _extractQuickHomeworkJson(text);
       return {
         'subject': parsed['subject'] as String?,
         'deadline': parsed['deadline'] as String?,
+        'task': parsed['task'] as String?,
       };
     } catch (_) {
-      return {'subject': null, 'deadline': null};
+      return {'subject': null, 'deadline': null, 'task': null};
     }
   }
 
@@ -158,6 +178,6 @@ $homeworkContext
       }
     } catch (_) {}
 
-    return <String, dynamic>{'subject': null, 'deadline': null};
+    return <String, dynamic>{'subject': null, 'deadline': null, 'task': null};
   }
 }
