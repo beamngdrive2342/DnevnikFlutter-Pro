@@ -15,9 +15,11 @@ import 'screens/admin_panel_screen.dart';
 import 'data/schedule_data.dart';
 import 'data/firestore_service.dart';
 import 'data/auth_service.dart';
+import 'data/ai_service.dart';
 import 'screens/welcome_screen.dart' as screens_welcome;
 import 'utils/image_data.dart';
 import 'widgets/ai_chat_bottom_sheet.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -254,20 +256,126 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  DateTime _defaultHomeworkDeadline() {
+    var date = DateTime.now().add(const Duration(days: 1));
+    while (date.weekday == 6 || date.weekday == 7) {
+      date = date.add(const Duration(days: 1));
+    }
+    return date;
+  }
+
+  Future<bool> _ensureCurrentClassScheduleLoaded() async {
+    final classId = FirestoreService.classId;
+    if (classId == null || classId.isEmpty) {
+      return false;
+    }
+    return AuthService.loadClassData(classId);
+  }
+
+  String _buildScheduleSummaryForAI() {
+    final buffer = StringBuffer();
+    for (var dayIndex = 0; dayIndex < 6; dayIndex++) {
+      final dayName = weekdaysFull[dayIndex];
+      final lessons = weekSchedule[dayIndex] ?? const <Lesson>[];
+      if (lessons.isEmpty) {
+        buffer.writeln('$dayName: нет уроков.');
+        continue;
+      }
+
+      final subjects = lessons
+          .map((lesson) => '${lesson.subject} (${lesson.time})')
+          .join(', ');
+      buffer.writeln('$dayName: $subjects.');
+    }
+    return buffer.toString().trim();
+  }
+
+  DateTime? _parseAiDeadline(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value.trim());
+    if (match == null) {
+      return null;
+    }
+
+    final year = int.tryParse(match.group(1)!);
+    final month = int.tryParse(match.group(2)!);
+    final day = int.tryParse(match.group(3)!);
+    if (year == null || month == null || day == null) {
+      return null;
+    }
+
+    try {
+      return DateTime(year, month, day);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, String?>> _recognizeQuickHomework(String adminText) async {
+    final loaded = await _ensureCurrentClassScheduleLoaded();
+    if (!loaded) {
+      return {'subject': null, 'deadline': null};
+    }
+
+    return AIService.recognizeQuickHomework(
+      today: DateTime.now(),
+      scheduleText: _buildScheduleSummaryForAI(),
+      adminText: adminText,
+    );
+  }
+
   Future<void> _showAddHomeworkModal() async {
     final messenger = ScaffoldMessenger.of(context);
     String? selectedSubject;
     final taskController = TextEditingController();
+    final quickCommandController = TextEditingController();
     final pickedImagePaths = <String>[];
+    final speechToText = stt.SpeechToText();
 
-    DateTime initDate = DateTime.now().add(const Duration(days: 1));
-    while (initDate.weekday == 6 || initDate.weekday == 7) {
-      initDate = initDate.add(const Duration(days: 1));
-    }
-    DateTime selectedDeadline = initDate;
+    DateTime selectedDeadline = _defaultHomeworkDeadline();
     bool isUploading = false;
+    bool isQuickMode = false;
+    bool isListening = false;
+    bool isRecognizingQuick = false;
+    String? quickRecognitionMessage;
     final modalSurface = palette.surface2.withValues(alpha: 1);
     final fieldSurface = palette.surface3.withValues(alpha: 1);
+    final quickBorder = AppTheme.primary.withValues(alpha: 0.26);
+    final quickFill = AppTheme.primary.withValues(
+      alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.09,
+    );
+
+    String normalizeSubjectKey(String value) {
+      return value
+          .trim()
+          .toLowerCase()
+          .replaceAll('\u0451', '\u0435')
+          .replaceAll(RegExp(r'\s+'), ' ');
+    }
+
+    String? matchRecognizedSubject(String? value) {
+      if (value == null || value.trim().isEmpty) {
+        return null;
+      }
+
+      final normalizedValue = normalizeSubjectKey(value);
+      for (final subject in allSubjects) {
+        if (normalizeSubjectKey(subject) == normalizedValue) {
+          return subject;
+        }
+      }
+      for (final subject in allSubjects) {
+        final normalizedSubject = normalizeSubjectKey(subject);
+        if (normalizedSubject.contains(normalizedValue) ||
+            normalizedValue.contains(normalizedSubject)) {
+          return subject;
+        }
+      }
+      return null;
+    }
 
     Future<void> pickImages(
       BuildContext sheetContext,
@@ -281,13 +389,149 @@ class _MainScreenState extends State<MainScreen> {
       if (images.isEmpty) {
         return;
       }
-      if (!sheetContext.mounted) return;
+      if (!sheetContext.mounted) {
+        return;
+      }
       setModalState(() {
         for (final image in images) {
           if (!pickedImagePaths.contains(image.path)) {
             pickedImagePaths.add(image.path);
           }
         }
+      });
+    }
+
+    Future<void> captureBoardPhoto(
+      BuildContext sheetContext,
+      StateSetter setModalState,
+    ) async {
+      final image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: _pickedImageQuality,
+        maxWidth: _pickedImageMaxSide,
+        maxHeight: _pickedImageMaxSide,
+      );
+      if (image == null) {
+        return;
+      }
+      if (!sheetContext.mounted) return;
+      setModalState(() {
+        pickedImagePaths
+          ..clear()
+          ..add(image.path);
+      });
+    }
+
+    Future<void> toggleSpeechInput(
+      BuildContext sheetContext,
+      StateSetter setModalState,
+    ) async {
+      if (isListening) {
+        await speechToText.stop();
+        if (!sheetContext.mounted) return;
+        setModalState(() {
+          isListening = false;
+        });
+        return;
+      }
+
+      final available = await speechToText.initialize(
+        onStatus: (status) {
+          if (!sheetContext.mounted) return;
+          if (status == 'done' || status == 'notListening') {
+            setModalState(() {
+              isListening = false;
+            });
+          }
+        },
+        onError: (_) {
+          if (!sheetContext.mounted) return;
+          setModalState(() {
+            isListening = false;
+          });
+        },
+      );
+
+      if (!available) {
+        if (sheetContext.mounted) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Голосовой ввод сейчас недоступен на этом устройстве.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!sheetContext.mounted) return;
+      setModalState(() {
+        isListening = true;
+      });
+
+      await speechToText.listen(
+        localeId: 'ru_RU',
+        listenOptions: stt.SpeechListenOptions(partialResults: true),
+        onResult: (result) {
+          quickCommandController.value = quickCommandController.value.copyWith(
+            text: result.recognizedWords,
+            selection:
+                TextSelection.collapsed(offset: result.recognizedWords.length),
+            composing: TextRange.empty,
+          );
+
+          if (result.finalResult && sheetContext.mounted) {
+            setModalState(() {
+              isListening = false;
+            });
+          }
+        },
+      );
+    }
+
+    Future<void> recognizeQuickHomework(
+      BuildContext sheetContext,
+      StateSetter setModalState,
+    ) async {
+      final quickText = quickCommandController.text.trim();
+      if (quickText.isEmpty) {
+        setModalState(() {
+          quickRecognitionMessage =
+              'Введите или продиктуйте текст для быстрого добавления.';
+        });
+        return;
+      }
+
+      if (isListening) {
+        await speechToText.stop();
+      }
+
+      setModalState(() {
+        isListening = false;
+        isRecognizingQuick = true;
+        quickRecognitionMessage = null;
+      });
+
+      final result = await _recognizeQuickHomework(quickText);
+      if (!sheetContext.mounted) return;
+
+      final recognizedSubject = matchRecognizedSubject(result['subject']);
+      final recognizedDeadline = _parseAiDeadline(result['deadline']);
+
+      setModalState(() {
+        isRecognizingQuick = false;
+        selectedSubject = recognizedSubject;
+        if (recognizedDeadline != null) {
+          selectedDeadline = recognizedDeadline;
+        }
+        if (taskController.text.trim().isEmpty) {
+          taskController.text = quickText;
+        }
+        quickRecognitionMessage =
+            (recognizedSubject != null && recognizedDeadline != null)
+                ? 'Поля заполнены автоматически. Проверьте и сохраните.'
+                : 'Не всё удалось определить. Завершите заполнение вручную.';
       });
     }
 
@@ -303,6 +547,17 @@ class _MainScreenState extends State<MainScreen> {
             void safeSetModalState(VoidCallback fn) {
               if (!ctx.mounted) return;
               setModalState(fn);
+            }
+
+            Future<void> toggleQuickMode() async {
+              if (isListening) {
+                await speechToText.stop();
+              }
+              safeSetModalState(() {
+                isListening = false;
+                isQuickMode = !isQuickMode;
+                quickRecognitionMessage = null;
+              });
             }
 
             return PopScope(
@@ -329,34 +584,323 @@ class _MainScreenState extends State<MainScreen> {
                         children: [
                           // Header
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Добавить задание',
-                                  style: TextStyle(
-                                    fontFamily: AppTheme.fontSerif,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w500,
-                                    color: palette.onBg,
-                                  )),
-                              Material(
-                                color: palette.surface2,
-                                borderRadius: BorderRadius.circular(100),
-                                child: InkWell(
-                                  onTap: isUploading
-                                      ? null
-                                      : () => Navigator.of(ctx).pop(),
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: SizedBox(
-                                    width: 36,
-                                    height: 36,
-                                    child: Icon(Icons.close_rounded,
-                                        color: palette.onSurface2, size: 20),
-                                  ),
+                              Expanded(
+                                child: Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text('Добавить задание',
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.fontSerif,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w500,
+                                          color: palette.onBg,
+                                        )),
+                                    Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: isUploading
+                                            ? null
+                                            : () =>
+                                                unawaited(toggleQuickMode()),
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        child: AnimatedContainer(
+                                          duration:
+                                              const Duration(milliseconds: 180),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isQuickMode
+                                                ? quickFill
+                                                : fieldSurface,
+                                            borderRadius:
+                                                BorderRadius.circular(999),
+                                            border: Border.all(
+                                              color: isQuickMode
+                                                  ? quickBorder
+                                                  : palette.cardBorder,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.auto_awesome_rounded,
+                                                size: 18,
+                                                color: AppTheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                isQuickMode
+                                                    ? '\u041e\u0431\u044b\u0447\u043d\u044b\u0439 \u0440\u0435\u0436\u0438\u043c'
+                                                    : '\u26a1 \u0411\u044b\u0441\u0442\u0440\u043e\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435',
+                                                style: TextStyle(
+                                                  color: palette.onBg,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Material(
+                                      color: palette.surface2,
+                                      borderRadius: BorderRadius.circular(100),
+                                      child: InkWell(
+                                        onTap: isUploading
+                                            ? null
+                                            : () => Navigator.of(ctx).pop(),
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                        child: SizedBox(
+                                          width: 36,
+                                          height: 36,
+                                          child: Icon(Icons.close_rounded,
+                                              color: palette.onSurface2,
+                                              size: 20),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
+                          if (isQuickMode) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: quickFill,
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusMd),
+                                border: Border.all(color: quickBorder),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '\u0411\u044b\u0441\u0442\u0440\u043e \u043e\u043f\u0438\u0448\u0438\u0442\u0435, \u0447\u0442\u043e \u043d\u0443\u0436\u043d\u043e \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c',
+                                    style: TextStyle(
+                                      color: palette.onBg,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '\u0418\u0418 \u0431\u0435\u0440\u0451\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0432\u0430\u0448 \u0442\u0435\u043a\u0441\u0442 \u0438 \u0440\u0430\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u043a\u043b\u0430\u0441\u0441\u0430. \u0424\u043e\u0442\u043e \u0441 \u0434\u043e\u0441\u043a\u0438 \u043f\u0440\u043e\u0441\u0442\u043e \u043f\u0440\u0438\u043a\u0440\u0435\u043f\u0438\u0442\u0441\u044f \u043a \u0437\u0430\u0434\u0430\u043d\u0438\u044e.',
+                                    style: TextStyle(
+                                      color: palette.onSurface2,
+                                      fontSize: 13,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 52,
+                                    child: ElevatedButton.icon(
+                                      onPressed:
+                                          isUploading || isRecognizingQuick
+                                              ? null
+                                              : () async {
+                                                  await captureBoardPhoto(
+                                                    ctx,
+                                                    setModalState,
+                                                  );
+                                                },
+                                      icon: const Icon(
+                                        Icons.photo_camera_rounded,
+                                      ),
+                                      label: const Text(
+                                        '\u0421\u0444\u043e\u0442\u043e\u0433\u0440\u0430\u0444\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u043e\u0441\u043a\u0443',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primary,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        textStyle: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppTheme.radiusMd,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TextField(
+                                    controller: quickCommandController,
+                                    minLines: 2,
+                                    maxLines: 4,
+                                    style: TextStyle(
+                                      color: palette.onBg,
+                                      fontSize: 14,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          '\u0421\u043a\u0430\u0436\u0438\u0442\u0435 \u0447\u0442\u043e \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c',
+                                      hintText:
+                                          '\u041d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: \u0434\u043e\u0431\u0430\u0432\u044c \u043d\u0430 \u043f\u044f\u0442\u043d\u0438\u0447\u043d\u0443\u044e \u0430\u043b\u0433\u0435\u0431\u0440\u0443',
+                                      labelStyle:
+                                          TextStyle(color: palette.onSurface2),
+                                      hintStyle: TextStyle(
+                                        color: palette.onSurface3
+                                            .withValues(alpha: 0.8),
+                                      ),
+                                      filled: true,
+                                      fillColor: fieldSurface,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 14,
+                                      ),
+                                      suffixIcon: IconButton(
+                                        onPressed:
+                                            isUploading || isRecognizingQuick
+                                                ? null
+                                                : () async {
+                                                    await toggleSpeechInput(
+                                                      ctx,
+                                                      setModalState,
+                                                    );
+                                                  },
+                                        icon: Icon(
+                                          isListening
+                                              ? Icons.stop_circle_rounded
+                                              : Icons.mic_rounded,
+                                          color: isListening
+                                              ? AppTheme.primary
+                                              : palette.onSurface2,
+                                        ),
+                                        tooltip: isListening
+                                            ? '\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c'
+                                            : '\u0413\u043e\u043b\u043e\u0441\u043e\u0432\u043e\u0439 \u0432\u0432\u043e\u0434',
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppTheme.radiusSm,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: palette.cardBorder,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppTheme.radiusSm,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: palette.cardBorder,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppTheme.radiusSm,
+                                        ),
+                                        borderSide: const BorderSide(
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 48,
+                                    child: ElevatedButton.icon(
+                                      onPressed:
+                                          isUploading || isRecognizingQuick
+                                              ? null
+                                              : () async {
+                                                  await recognizeQuickHomework(
+                                                    ctx,
+                                                    setModalState,
+                                                  );
+                                                },
+                                      icon: isRecognizingQuick
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.auto_awesome_rounded,
+                                            ),
+                                      label: Text(
+                                        isRecognizingQuick
+                                            ? '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0451\u043c...'
+                                            : '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0442\u044c',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primaryDim,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        textStyle: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppTheme.radiusMd,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (quickRecognitionMessage != null) ...[
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: modalSurface,
+                                        borderRadius: BorderRadius.circular(
+                                          AppTheme.radiusSm,
+                                        ),
+                                        border: Border.all(
+                                          color: palette.cardBorder,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        quickRecognitionMessage!,
+                                        style: TextStyle(
+                                          color: palette.onBg,
+                                          fontSize: 13,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              '\u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043f\u0435\u0440\u0435\u0434 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435\u043c',
+                              style: TextStyle(
+                                color: palette.onSurface2,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
 
                           // Subject
                           _formLabel('Предмет'),
@@ -796,7 +1340,9 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
+    await speechToText.stop();
     taskController.dispose();
+    quickCommandController.dispose();
   }
 
   void _showAIChatModal() {
