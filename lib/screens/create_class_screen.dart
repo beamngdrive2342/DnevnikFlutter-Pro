@@ -70,8 +70,8 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
   void _goTo(int step) {
     _pageController.animateToPage(
       step,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeInOutCubicEmphasized,
     );
     setState(() {
       _step = step;
@@ -156,7 +156,8 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
           }
         }
       }
-      customTimes.add(found ?? (i < defaultLessonTimes.length ? defaultLessonTimes[i] : ''));
+      customTimes.add(found ??
+          (i < defaultLessonTimes.length ? defaultLessonTimes[i] : ''));
     }
 
     setState(() {
@@ -170,7 +171,9 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
       className: _classNameC.text.trim(),
       schoolName: _schoolNameC.text.trim(),
       subjects: _selectedSubjects.toList(),
-      lessonTimes: customTimes.isNotEmpty ? customTimes : List<String>.from(defaultLessonTimes),
+      lessonTimes: customTimes.isNotEmpty
+          ? customTimes
+          : List<String>.from(defaultLessonTimes),
       schedule: schedule,
     );
 
@@ -303,18 +306,15 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     borderSide: BorderSide(color: palette.cardBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     borderSide: BorderSide(color: palette.cardBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     borderSide: const BorderSide(color: AppTheme.primary),
                   ),
                 ),
@@ -397,8 +397,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                   )),
               const SizedBox(height: 4),
               Text('Добавляйте уроки для каждого дня',
-                  style: TextStyle(
-                      fontSize: 13, color: palette.onSurface2)),
+                  style: TextStyle(fontSize: 13, color: palette.onSurface2)),
             ],
           ),
         ),
@@ -413,7 +412,8 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                   labelColor: AppTheme.primary,
                   unselectedLabelColor: palette.onSurface3,
                   indicatorColor: AppTheme.primary,
-                  labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  labelStyle: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600),
                   tabs: _dayLabels.map((d) => Tab(text: d)).toList(),
                 ),
                 Expanded(
@@ -431,8 +431,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(_error!,
-                style:
-                    const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
@@ -501,13 +500,11 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                           ? lesson['subject']
                           : (subjects.isNotEmpty ? subjects.first : null),
                       isExpanded: true,
-                      dropdownColor:
-                          palette.surface2.withValues(alpha: 1),
-                      style: TextStyle(
-                          color: palette.onBg, fontSize: 13),
+                      dropdownColor: palette.surface2.withValues(alpha: 1),
+                      style: TextStyle(color: palette.onBg, fontSize: 13),
                       items: subjects
-                          .map((s) => DropdownMenuItem(
-                              value: s, child: Text(s)))
+                          .map(
+                              (s) => DropdownMenuItem(value: s, child: Text(s)))
                           .toList(),
                       onChanged: (v) {
                         if (v != null) {
@@ -521,7 +518,8 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                 GestureDetector(
                   onTap: () => _pickTimeForLesson(dayIdx, i),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                     decoration: BoxDecoration(
                       color: timeStr.isNotEmpty
                           ? AppTheme.primary.withValues(alpha: 0.08)
@@ -676,8 +674,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
               )),
           const SizedBox(height: 8),
           Text('Передайте этот код ученикам',
-              style: TextStyle(
-                  fontSize: 14, color: palette.onSurface2)),
+              style: TextStyle(fontSize: 14, color: palette.onSurface2)),
           const SizedBox(height: 32),
 
           // Code display
@@ -689,13 +686,12 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
               );
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 32, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
               decoration: BoxDecoration(
                 color: palette.cardBg,
-                borderRadius:
-                    BorderRadius.circular(AppTheme.radiusLg),
-                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                border:
+                    Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -709,16 +705,14 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                         color: palette.onBg,
                       )),
                   const SizedBox(width: 16),
-                  Icon(Icons.copy_rounded,
-                      color: palette.onSurface2, size: 20),
+                  Icon(Icons.copy_rounded, color: palette.onSurface2, size: 20),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 12),
           Text('Нажмите чтобы скопировать',
-              style: TextStyle(
-                  fontSize: 12, color: palette.onSurface3)),
+              style: TextStyle(fontSize: 12, color: palette.onSurface3)),
           const SizedBox(height: 16),
           const SizedBox(height: 16),
 
@@ -741,8 +735,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                 final classId = _createdClassId ?? ClassSchedule.classId;
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        MainScreen(role: 'admin', classId: classId),
+                    builder: (_) => MainScreen(role: 'admin', classId: classId),
                   ),
                   (route) => false,
                 );
@@ -764,6 +757,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     required VoidCallback onNext,
     bool scrollable = false,
   }) {
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -788,8 +782,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
           const SizedBox(height: 12),
           Center(
             child: Text(_error!,
-                style:
-                    const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
           ),
         ],
         const SizedBox(height: 32),
@@ -805,15 +798,21 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     );
 
     if (scrollable) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: body,
+      return SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(32, 0, 32, 24 + bottomInset),
+          child: body,
+        ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: body,
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(32, 0, 32, 24 + bottomInset),
+        child: body,
+      ),
     );
   }
 
