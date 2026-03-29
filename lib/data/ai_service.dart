@@ -80,4 +80,84 @@ $homeworkContext
       return "Ошибка связи: $e";
     }
   }
+
+  static Future<Map<String, String?>> recognizeQuickHomework({
+    required DateTime today,
+    required String scheduleText,
+    required String adminText,
+  }) async {
+    if (_apiKey.isEmpty) {
+      return {'subject': null, 'deadline': null};
+    }
+
+    final todayText =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final prompt = '''
+Сегодня $todayText. Расписание класса: $scheduleText
+Администратор сказал: "$adminText".
+Определи предмет и дату ближайшего подходящего урока.
+Верни ТОЛЬКО JSON без пояснений: {"subject": "Алгебра", "deadline": "2026-04-04"}
+Если не удалось определить — {"subject": null, "deadline": null}
+''';
+
+    try {
+      final response = await _client
+          .post(
+            Uri.parse("$_apiUrl?key=$_apiKey"),
+            headers: {'Content-Type': 'application/json; charset=utf-8'},
+            body: jsonEncode({
+              "contents": [
+                {
+                  "parts": [
+                    {"text": prompt}
+                  ]
+                }
+              ],
+              "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": 256,
+              }
+            }),
+          )
+          .timeout(const Duration(seconds: 45));
+
+      if (response.statusCode != 200) {
+        return {'subject': null, 'deadline': null};
+      }
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      final text =
+          data['candidates']?[0]?['content']?['parts']?[0]?['text'] as String?;
+      if (text == null || text.trim().isEmpty) {
+        return {'subject': null, 'deadline': null};
+      }
+
+      final parsed = _extractQuickHomeworkJson(text);
+      return {
+        'subject': parsed['subject'] as String?,
+        'deadline': parsed['deadline'] as String?,
+      };
+    } catch (_) {
+      return {'subject': null, 'deadline': null};
+    }
+  }
+
+  static Map<String, dynamic> _extractQuickHomeworkJson(String raw) {
+    final trimmed = raw.trim();
+    final fenced = RegExp(r'```(?:json)?\s*(\{.*?\})\s*```', dotAll: true)
+        .firstMatch(trimmed);
+    final candidate = fenced?.group(1) ??
+        RegExp(r'\{.*\}', dotAll: true).firstMatch(trimmed)?.group(0) ??
+        trimmed;
+
+    try {
+      final decoded = jsonDecode(candidate);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {}
+
+    return <String, dynamic>{'subject': null, 'deadline': null};
+  }
 }
