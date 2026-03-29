@@ -162,8 +162,7 @@ class AuthService {
       final doc = results.first['document'] as Map<String, dynamic>?;
       if (doc == null) return null;
 
-      final storedHash =
-          doc['fields']?['adminPasswordHash']?['stringValue'];
+      final storedHash = doc['fields']?['adminPasswordHash']?['stringValue'];
       if (storedHash == null || hashPassword(password) != storedHash) {
         return null;
       }
@@ -238,8 +237,7 @@ class AuthService {
           },
           'lessonTimes': {
             'arrayValue': {
-              'values':
-                  lessonTimes.map((t) => {'stringValue': t}).toList(),
+              'values': lessonTimes.map((t) => {'stringValue': t}).toList(),
             }
           },
           'schedule': {
@@ -248,7 +246,7 @@ class AuthService {
         }
       };
 
-      final mask =
+      const mask =
           'updateMask.fieldPaths=subjects&updateMask.fieldPaths=lessonTimes&updateMask.fieldPaths=schedule';
       final res = await _client
           .patch(
@@ -261,6 +259,61 @@ class AuthService {
       return res.statusCode == 200;
     } catch (e) {
       debugPrint('updateClassSchedule error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteClass({
+    required String classId,
+    required String adminPassword,
+  }) async {
+    try {
+      final classRes = await _client
+          .get(Uri.parse('$_base/classes/$classId'))
+          .timeout(_timeout);
+      if (classRes.statusCode != 200) {
+        return false;
+      }
+
+      final doc = jsonDecode(classRes.body) as Map<String, dynamic>;
+      final fields = (doc['fields'] ?? {}) as Map<String, dynamic>;
+      final storedHash = fields['adminPasswordHash']?['stringValue'] as String?;
+      final classCode = fields['code']?['stringValue'] as String? ?? '';
+
+      if (storedHash == null || hashPassword(adminPassword) != storedHash) {
+        return false;
+      }
+
+      final homeworkDeleted = await _deleteHomeworkSubcollection(classId);
+      if (!homeworkDeleted) {
+        return false;
+      }
+
+      if (classCode.isNotEmpty) {
+        final codeRes = await _client
+            .delete(Uri.parse('$_base/class_codes/$classCode'))
+            .timeout(_timeout);
+        if (codeRes.statusCode != 200 && codeRes.statusCode != 404) {
+          debugPrint(
+            'deleteClass code index failed: ${codeRes.statusCode} ${codeRes.body}',
+          );
+          return false;
+        }
+      }
+
+      final deleteClassRes = await _client
+          .delete(Uri.parse('$_base/classes/$classId'))
+          .timeout(_timeout);
+      if (deleteClassRes.statusCode != 200) {
+        debugPrint(
+          'deleteClass class doc failed: ${deleteClassRes.statusCode} ${deleteClassRes.body}',
+        );
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('deleteClass error: $e');
       return false;
     }
   }
@@ -293,6 +346,52 @@ class AuthService {
     await prefs.remove('dnevnik_role');
     await prefs.remove('dnevnik_admin_email');
     ClassSchedule.reset();
+  }
+
+  static Future<bool> _deleteHomeworkSubcollection(String classId) async {
+    String? pageToken;
+
+    do {
+      final uri = Uri.parse(
+        pageToken == null || pageToken.isEmpty
+            ? '$_base/classes/$classId/homework'
+            : '$_base/classes/$classId/homework?pageToken=$pageToken',
+      );
+
+      final listRes = await _client.get(uri).timeout(_timeout);
+      if (listRes.statusCode != 200) {
+        debugPrint(
+          'deleteClass homework list failed: ${listRes.statusCode} ${listRes.body}',
+        );
+        return false;
+      }
+
+      final data = jsonDecode(listRes.body) as Map<String, dynamic>;
+      final documents =
+          (data['documents'] as List<dynamic>? ?? const <dynamic>[]);
+
+      for (final rawDocument in documents) {
+        final document = rawDocument as Map<String, dynamic>;
+        final name = document['name'] as String?;
+        if (name == null || name.isEmpty) {
+          continue;
+        }
+
+        final deleteRes = await _client
+            .delete(Uri.parse('https://firestore.googleapis.com/v1/$name'))
+            .timeout(_timeout);
+        if (deleteRes.statusCode != 200 && deleteRes.statusCode != 404) {
+          debugPrint(
+            'deleteClass homework delete failed: ${deleteRes.statusCode} ${deleteRes.body}',
+          );
+          return false;
+        }
+      }
+
+      pageToken = data['nextPageToken'] as String?;
+    } while (pageToken != null && pageToken.isNotEmpty);
+
+    return true;
   }
 
   // ── Firestore doc builders ──────────────────────────────────────────
@@ -344,8 +443,7 @@ class AuthService {
         },
         'lessonTimes': {
           'arrayValue': {
-            'values':
-                lessonTimes.map((t) => {'stringValue': t}).toList(),
+            'values': lessonTimes.map((t) => {'stringValue': t}).toList(),
           }
         },
         'schedule': {
