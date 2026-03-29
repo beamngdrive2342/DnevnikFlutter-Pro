@@ -8,6 +8,7 @@ import '../data/schedule_data.dart';
 import '../theme/app_theme.dart';
 import '../utils/image_data.dart';
 import '../widgets/network_photo.dart';
+import 'welcome_screen.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   final VoidCallback onHomeworkChanged;
@@ -168,7 +169,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen>
               );
               if (!context.mounted) return;
 
-              final newImages = prepared.whereType<String>().toList(growable: false);
+              final newImages =
+                  prepared.whereType<String>().toList(growable: false);
               final totalChars = editableImages.fold<int>(
                     0,
                     (sum, item) => sum + item.length,
@@ -261,7 +263,8 @@ class AdminPanelScreenState extends State<AdminPanelScreen>
                         Wrap(
                           spacing: 10,
                           runSpacing: 10,
-                          children: List.generate(editableImages.length, (index) {
+                          children:
+                              List.generate(editableImages.length, (index) {
                             final image = editableImages[index];
                             return Stack(
                               children: [
@@ -363,8 +366,9 @@ class AdminPanelScreenState extends State<AdminPanelScreen>
                               task: newText,
                               deadline: hw.deadline,
                               imageUrl: null,
-                              imageUrls:
-                                  editableImages.isEmpty ? null : editableImages,
+                              imageUrls: editableImages.isEmpty
+                                  ? null
+                                  : editableImages,
                               fullResolutionUrls: null,
                               done: hw.done,
                               fromSchedule: hw.fromSchedule,
@@ -783,7 +787,8 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
           }
         }
       }
-      times.add(found ?? (i < defaultLessonTimes.length ? defaultLessonTimes[i] : ''));
+      times.add(found ??
+          (i < defaultLessonTimes.length ? defaultLessonTimes[i] : ''));
     }
 
     final success = await AuthService.updateClassSchedule(
@@ -804,9 +809,8 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(success
-            ? 'Расписание сохранено'
-            : 'Ошибка сохранения расписания'),
+        content: Text(
+            success ? 'Расписание сохранено' : 'Ошибка сохранения расписания'),
       ),
     );
   }
@@ -888,6 +892,11 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
         _sectionTitle('Расписание'),
         const SizedBox(height: 8),
         if (_scheduleReady) _buildScheduleEditor(),
+        const SizedBox(height: 24),
+        _sectionTitle(
+            '\u041E\u043F\u0430\u0441\u043D\u0430\u044F \u0437\u043E\u043D\u0430'),
+        const SizedBox(height: 8),
+        _buildDangerZoneCard(),
       ],
     );
   }
@@ -1018,8 +1027,7 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
         ),
         if (onCopy != null)
           IconButton(
-            icon: Icon(Icons.copy_rounded,
-                size: 18, color: palette.onSurface2),
+            icon: Icon(Icons.copy_rounded, size: 18, color: palette.onSurface2),
             visualDensity: VisualDensity.compact,
             onPressed: onCopy,
           ),
@@ -1079,9 +1087,8 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.save_rounded, size: 18),
-            label: Text(_savingSchedule
-                ? 'Сохранение...'
-                : 'Сохранить расписание'),
+            label: Text(
+                _savingSchedule ? 'Сохранение...' : 'Сохранить расписание'),
           ),
         ),
       ],
@@ -1095,6 +1102,232 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
       lessons: lessons,
       subjects: subjects,
       onPickTime: _pickTimeForLesson,
+    );
+  }
+
+  Widget _buildDangerZoneCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: palette.cardBg,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u043a\u043b\u0430\u0441\u0441\u0430',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: palette.onBg,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0430\u0432\u0441\u0435\u0433\u0434\u0430 \u0443\u0434\u0430\u043b\u0438\u0442 \u043a\u043b\u0430\u0441\u0441, \u043a\u043e\u0434 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u044f \u0438 \u0432\u0441\u0435 \u0434\u043e\u043c\u0430\u0448\u043d\u0438\u0435 \u0437\u0430\u0434\u0430\u043d\u0438\u044f. \u0414\u043b\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043d\u0443\u0436\u0435\u043d \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0430.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: palette.onSurface2,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _confirmDeleteClass,
+              icon: const Icon(Icons.delete_forever_rounded),
+              label: const Text(
+                  '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u043b\u0430\u0441\u0441'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.redAccent,
+                side: BorderSide(
+                  color: Colors.redAccent.withValues(alpha: 0.35),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteClass() async {
+    final passwordController = TextEditingController();
+    var isDeleting = false;
+    String? errorText;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> handleDelete() async {
+              final password = passwordController.text;
+              if (password.isEmpty) {
+                setDialogState(() {
+                  errorText =
+                      '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0430';
+                });
+                return;
+              }
+
+              setDialogState(() {
+                isDeleting = true;
+                errorText = null;
+              });
+
+              final classId = widget.classId;
+              if (classId == null || classId.isEmpty) {
+                setDialogState(() {
+                  isDeleting = false;
+                  errorText =
+                      '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u044c \u043a\u043b\u0430\u0441\u0441';
+                });
+                return;
+              }
+
+              final deleted = await AuthService.deleteClass(
+                classId: classId,
+                adminPassword: password,
+              );
+
+              if (!context.mounted) {
+                return;
+              }
+
+              if (!deleted) {
+                setDialogState(() {
+                  isDeleting = false;
+                  errorText =
+                      '\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c \u0438\u043b\u0438 \u043e\u0448\u0438\u0431\u043a\u0430 \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u044f';
+                });
+                return;
+              }
+
+              Navigator.of(dialogContext).pop(true);
+            }
+
+            return AlertDialog(
+              backgroundColor: palette.surface2.withValues(alpha: 1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u043b\u0430\u0441\u0441',
+                style: TextStyle(color: palette.onBg, fontSize: 18),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0430, \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0432\u0441\u0435\u0433\u0434\u0430 \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u043b\u0430\u0441\u0441 \u0438 \u0432\u0441\u0435 \u0434\u0430\u043d\u043d\u044b\u0435.',
+                    style: TextStyle(
+                      color: palette.onSurface2,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    enabled: !isDeleting,
+                    style: TextStyle(color: palette.onBg, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText:
+                          '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0430',
+                      labelStyle: TextStyle(color: palette.onSurface2),
+                      filled: true,
+                      fillColor: palette.surface3.withValues(alpha: 1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        borderSide: BorderSide(color: palette.cardBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        borderSide: BorderSide(color: palette.cardBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        borderSide: const BorderSide(color: AppTheme.primary),
+                      ),
+                    ),
+                    onSubmitted: (_) => handleDelete(),
+                  ),
+                  if (errorText != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      errorText!,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(false),
+                  child: Text(
+                    '\u041e\u0442\u043c\u0435\u043d\u0430',
+                    style: TextStyle(color: palette.onSurface2),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isDeleting ? null : handleDelete,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          '\u0423\u0434\u0430\u043b\u0438\u0442\u044c'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    passwordController.dispose();
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    await AuthService.logout();
+    FirestoreService.clearClassId();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text(
+              '\u041a\u043b\u0430\u0441\u0441 \u0443\u0434\u0430\u043b\u0435\u043d')),
+    );
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      (route) => false,
     );
   }
 }
@@ -1175,8 +1408,8 @@ class _DayEditorState extends State<_DayEditor>
                       dropdownColor: palette.surface2.withValues(alpha: 1),
                       style: TextStyle(color: palette.onBg, fontSize: 13),
                       items: subjects
-                          .map((s) =>
-                              DropdownMenuItem(value: s, child: Text(s)))
+                          .map(
+                              (s) => DropdownMenuItem(value: s, child: Text(s)))
                           .toList(),
                       onChanged: (v) {
                         if (v != null) {
@@ -1254,8 +1487,8 @@ class _DayEditorState extends State<_DayEditor>
                     }));
               },
               icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Добавить урок',
-                  style: TextStyle(fontSize: 12)),
+              label:
+                  const Text('Добавить урок', style: TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(
                 foregroundColor: AppTheme.primary,
                 padding: EdgeInsets.zero,
