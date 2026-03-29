@@ -17,7 +17,6 @@ import 'data/firestore_service.dart';
 import 'data/auth_service.dart';
 import 'screens/welcome_screen.dart' as screens_welcome;
 import 'utils/image_data.dart';
-import 'widgets/fast_page_scroll_physics.dart';
 import 'widgets/ai_chat_bottom_sheet.dart';
 
 Future<void> main() async {
@@ -680,8 +679,8 @@ class _MainScreenState extends State<MainScreen> {
                                           }
                                         }
 
-                                        final totalImageChars = embeddedImages
-                                            .fold<int>(
+                                        final totalImageChars =
+                                            embeddedImages.fold<int>(
                                                 0,
                                                 (sum, item) =>
                                                     sum + item.length);
@@ -959,9 +958,7 @@ class _MainScreenState extends State<MainScreen> {
             child: RepaintBoundary(
               child: PageView.builder(
                 controller: _rootPageController,
-                physics: isAdmin
-                    ? const FastPageScrollPhysics()
-                    : const NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 allowImplicitScrolling: true,
                 onPageChanged: (index) {
                   if (_currentIndex == index) {
