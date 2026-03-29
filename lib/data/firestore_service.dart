@@ -20,6 +20,13 @@ class FirestoreService {
     _pendingHomeworkRequest = null;
   }
 
+  static void clearClassId() {
+    _classId = null;
+    _cachedHomework = null;
+    _cacheExpiresAt = null;
+    _pendingHomeworkRequest = null;
+  }
+
   static final http.Client _client = http.Client();
   static const Duration _requestTimeout = Duration(seconds: 12);
   static const Duration _cacheTtl = Duration(seconds: 20);
