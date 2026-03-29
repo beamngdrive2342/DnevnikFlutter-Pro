@@ -525,9 +525,14 @@ class _MainScreenState extends State<MainScreen> {
         if (recognizedDeadline != null) {
           selectedDeadline = recognizedDeadline;
         }
-        if (taskController.text.trim().isEmpty) {
+
+        final recognizedTask = result['task']?.toString().trim();
+        if (recognizedTask != null && recognizedTask.isNotEmpty) {
+          taskController.text = recognizedTask;
+        } else if (taskController.text.trim().isEmpty) {
           taskController.text = quickText;
         }
+
         quickRecognitionMessage =
             (recognizedSubject != null && recognizedDeadline != null)
                 ? 'Поля заполнены автоматически. Проверьте и сохраните.'
