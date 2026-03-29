@@ -815,6 +815,23 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
     );
   }
 
+  void _addLessonForDay(int dayIdx, List<String> subjects) {
+    if (subjects.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      final lessons = _scheduleEditor[dayIdx] ??= <Map<String, String>>[];
+      if (lessons.length >= 10) {
+        return;
+      }
+      lessons.add({
+        'subject': subjects.first,
+        'time': '',
+      });
+    });
+  }
+
   Future<void> _pickTimeForLesson(int dayIdx, int lessonIdx) async {
     final lessons = _scheduleEditor[dayIdx]!;
     final current = lessons[lessonIdx]['time'] ?? '';
@@ -893,9 +910,6 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
         const SizedBox(height: 8),
         if (_scheduleReady) _buildScheduleEditor(),
         const SizedBox(height: 24),
-        _sectionTitle(
-            '\u041E\u043F\u0430\u0441\u043D\u0430\u044F \u0437\u043E\u043D\u0430'),
-        const SizedBox(height: 8),
         _buildDangerZoneCard(),
       ],
     );
@@ -1102,6 +1116,7 @@ class _ClassSettingsTabState extends State<_ClassSettingsTab> {
       lessons: lessons,
       subjects: subjects,
       onPickTime: _pickTimeForLesson,
+      onAddLesson: () => _addLessonForDay(dayIdx, subjects),
     );
   }
 
@@ -1337,12 +1352,14 @@ class _DayEditor extends StatefulWidget {
   final List<Map<String, dynamic>> lessons;
   final List<String> subjects;
   final Future<void> Function(int, int) onPickTime;
+  final VoidCallback onAddLesson;
 
   const _DayEditor({
     required this.dayIdx,
     required this.lessons,
     required this.subjects,
     required this.onPickTime,
+    required this.onAddLesson,
   });
 
   @override
@@ -1481,10 +1498,10 @@ class _DayEditorState extends State<_DayEditor>
             padding: const EdgeInsets.only(top: 4),
             child: TextButton.icon(
               onPressed: () {
-                setState(() => lessons.add({
-                      'subject': subjects.first,
-                      'time': '',
-                    }));
+                widget.onAddLesson();
+                if (mounted) {
+                  setState(() {});
+                }
               },
               icon: const Icon(Icons.add_rounded, size: 16),
               label:
