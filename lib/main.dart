@@ -408,9 +408,9 @@ class _MainScreenState extends State<MainScreen> {
       }
       if (!sheetContext.mounted) return;
       setModalState(() {
-        pickedImagePaths
-          ..clear()
-          ..add(image.path);
+        if (!pickedImagePaths.contains(image.path)) {
+          pickedImagePaths.add(image.path);
+        }
       });
     }
     Future<void> recognizeQuickHomework(
@@ -562,6 +562,59 @@ class _MainScreenState extends State<MainScreen> {
                                 ),
                               ),
                             ),
+                            if (pickedImagePaths.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 100,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: pickedImagePaths.length,
+                                  itemBuilder: (ctx, idx) {
+                                    final path = pickedImagePaths[idx];
+                                    return Container(
+                                      width: 100,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      child: Stack(
+                                        children: [
+                                          Positioned.fill(
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                              child: Image.file(
+                                                File(path),
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 2,
+                                            right: 2,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                safeSetModalState(() {
+                                                  pickedImagePaths.removeAt(idx);
+                                                });
+                                              },
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.black54,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                padding: const EdgeInsets.all(4),
+                                                child: const Icon(
+                                                  Icons.close_rounded,
+                                                  color: Colors.white,
+                                                  size: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             
                             // Text field
