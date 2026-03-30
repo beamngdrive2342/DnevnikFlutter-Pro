@@ -165,6 +165,9 @@ class _MainScreenState extends State<MainScreen> {
   void Function(String)? _currentSpeechStatusListener;
 
   Future<void> _initSpeech() async {
+    if (_isSpeechInitialized) {
+      return;
+    }
     _isSpeechInitialized = await _speechToText.initialize(
       onStatus: (status) => _currentSpeechStatusListener?.call(status),
       onError: (err) => _currentSpeechStatusListener?.call('error'),
@@ -471,6 +474,8 @@ class _MainScreenState extends State<MainScreen> {
       });
 
       try {
+        // Ensure the previous session is fully closed before starting a new one.
+        await _speechToText.cancel();
         await _speechToText.listen(
           localeId: 'ru_RU',
           listenOptions: stt.SpeechListenOptions(
@@ -1235,9 +1240,7 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
     _currentSpeechStatusListener = null;
-    if (_speechToText.isListening) {
-      await _speechToText.stop();
-    }
+    await _speechToText.cancel();
     taskController.dispose();
     quickCommandController.dispose();
   }
