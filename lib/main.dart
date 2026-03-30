@@ -337,16 +337,12 @@ class _MainScreenState extends State<MainScreen> {
 
     DateTime selectedDeadline = _defaultHomeworkDeadline();
     bool isUploading = false;
-    bool isQuickMode = false;
+    bool isQuickMode = true;
     bool isListening = false;
     bool isRecognizingQuick = false;
     String? quickRecognitionMessage;
     final modalSurface = palette.surface2.withValues(alpha: 1);
     final fieldSurface = palette.surface3.withValues(alpha: 1);
-    final quickBorder = AppTheme.primary.withValues(alpha: 0.26);
-    final quickFill = AppTheme.primary.withValues(
-      alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.09,
-    );
 
     String normalizeSubjectKey(String value) {
       return value
@@ -521,6 +517,7 @@ class _MainScreenState extends State<MainScreen> {
 
       setModalState(() {
         isRecognizingQuick = false;
+        isQuickMode = false;
         selectedSubject = recognizedSubject;
         if (recognizedDeadline != null) {
           selectedDeadline = recognizedDeadline;
@@ -554,17 +551,6 @@ class _MainScreenState extends State<MainScreen> {
               setModalState(fn);
             }
 
-            Future<void> toggleQuickMode() async {
-              if (isListening) {
-                await speechToText.stop();
-              }
-              safeSetModalState(() {
-                isListening = false;
-                isQuickMode = !isQuickMode;
-                quickRecognitionMessage = null;
-              });
-            }
-
             return PopScope(
               canPop: !isUploading,
               child: Container(
@@ -592,10 +578,9 @@ class _MainScreenState extends State<MainScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Text('Добавить задание',
                                         style: TextStyle(
@@ -604,58 +589,6 @@ class _MainScreenState extends State<MainScreen> {
                                           fontWeight: FontWeight.w500,
                                           color: palette.onBg,
                                         )),
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: isUploading
-                                            ? null
-                                            : () =>
-                                                unawaited(toggleQuickMode()),
-                                        borderRadius:
-                                            BorderRadius.circular(999),
-                                        child: AnimatedContainer(
-                                          duration:
-                                              const Duration(milliseconds: 180),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 10,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: isQuickMode
-                                                ? quickFill
-                                                : fieldSurface,
-                                            borderRadius:
-                                                BorderRadius.circular(999),
-                                            border: Border.all(
-                                              color: isQuickMode
-                                                  ? quickBorder
-                                                  : palette.cardBorder,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.auto_awesome_rounded,
-                                                size: 18,
-                                                color: AppTheme.primary,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                isQuickMode
-                                                    ? '\u041e\u0431\u044b\u0447\u043d\u044b\u0439 \u0440\u0435\u0436\u0438\u043c'
-                                                    : '\u26a1 \u0411\u044b\u0441\u0442\u0440\u043e\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435',
-                                                style: TextStyle(
-                                                  color: palette.onBg,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
                                     Material(
                                       color: palette.surface2,
                                       borderRadius: BorderRadius.circular(100),
@@ -681,233 +614,171 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                           const SizedBox(height: 20),
                           if (isQuickMode) ...[
-                            Container(
+                            // Big camera button
+                            SizedBox(
                               width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: quickFill,
-                                borderRadius:
-                                    BorderRadius.circular(AppTheme.radiusMd),
-                                border: Border.all(color: quickBorder),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '\u0411\u044b\u0441\u0442\u0440\u043e \u043e\u043f\u0438\u0448\u0438\u0442\u0435, \u0447\u0442\u043e \u043d\u0443\u0436\u043d\u043e \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c',
-                                    style: TextStyle(
-                                      color: palette.onBg,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                              height: 64, // Big accented button
+                              child: ElevatedButton.icon(
+                                onPressed: isUploading || isRecognizingQuick
+                                    ? null
+                                    : () async {
+                                        await captureBoardPhoto(ctx, setModalState);
+                                      },
+                                icon: const Icon(Icons.photo_camera_rounded, size: 28),
+                                label: const Text(
+                                  '\u0421\u0444\u043e\u0442\u043e\u0433\u0440\u0430\u0444\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u043e\u0441\u043a\u0443',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primary,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '\u0418\u0418 \u0431\u0435\u0440\u0451\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0432\u0430\u0448 \u0442\u0435\u043a\u0441\u0442 \u0438 \u0440\u0430\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u0435 \u043a\u043b\u0430\u0441\u0441\u0430. \u0424\u043e\u0442\u043e \u0441 \u0434\u043e\u0441\u043a\u0438 \u043f\u0440\u043e\u0441\u0442\u043e \u043f\u0440\u0438\u043a\u0440\u0435\u043f\u0438\u0442\u0441\u044f \u043a \u0437\u0430\u0434\u0430\u043d\u0438\u044e.',
-                                    style: TextStyle(
-                                      color: palette.onSurface2,
-                                      fontSize: 13,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 52,
-                                    child: ElevatedButton.icon(
-                                      onPressed:
-                                          isUploading || isRecognizingQuick
-                                              ? null
-                                              : () async {
-                                                  await captureBoardPhoto(
-                                                    ctx,
-                                                    setModalState,
-                                                  );
-                                                },
-                                      icon: const Icon(
-                                        Icons.photo_camera_rounded,
-                                      ),
-                                      label: const Text(
-                                        '\u0421\u0444\u043e\u0442\u043e\u0433\u0440\u0430\u0444\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u043e\u0441\u043a\u0443',
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primary,
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        textStyle: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            AppTheme.radiusMd,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  TextField(
-                                    controller: quickCommandController,
-                                    minLines: 2,
-                                    maxLines: 4,
-                                    style: TextStyle(
-                                      color: palette.onBg,
-                                      fontSize: 14,
-                                    ),
-                                    decoration: InputDecoration(
-                                      labelText:
-                                          '\u0421\u043a\u0430\u0436\u0438\u0442\u0435 \u0447\u0442\u043e \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c',
-                                      hintText:
-                                          '\u041d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: \u0434\u043e\u0431\u0430\u0432\u044c \u043d\u0430 \u043f\u044f\u0442\u043d\u0438\u0447\u043d\u0443\u044e \u0430\u043b\u0433\u0435\u0431\u0440\u0443',
-                                      labelStyle:
-                                          TextStyle(color: palette.onSurface2),
-                                      hintStyle: TextStyle(
-                                        color: palette.onSurface3
-                                            .withValues(alpha: 0.8),
-                                      ),
-                                      filled: true,
-                                      fillColor: fieldSurface,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 14,
-                                      ),
-                                      suffixIcon: IconButton(
-                                        onPressed:
-                                            isUploading || isRecognizingQuick
-                                                ? null
-                                                : () async {
-                                                    await toggleSpeechInput(
-                                                      ctx,
-                                                      setModalState,
-                                                    );
-                                                  },
-                                        icon: Icon(
-                                          isListening
-                                              ? Icons.stop_circle_rounded
-                                              : Icons.mic_rounded,
-                                          color: isListening
-                                              ? AppTheme.primary
-                                              : palette.onSurface2,
-                                        ),
-                                        tooltip: isListening
-                                            ? '\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0438\u0441\u044c'
-                                            : '\u0413\u043e\u043b\u043e\u0441\u043e\u0432\u043e\u0439 \u0432\u0432\u043e\u0434',
-                                      ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          AppTheme.radiusSm,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: palette.cardBorder,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          AppTheme.radiusSm,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: palette.cardBorder,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          AppTheme.radiusSm,
-                                        ),
-                                        borderSide: const BorderSide(
-                                          color: AppTheme.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 48,
-                                    child: ElevatedButton.icon(
-                                      onPressed:
-                                          isUploading || isRecognizingQuick
-                                              ? null
-                                              : () async {
-                                                  await recognizeQuickHomework(
-                                                    ctx,
-                                                    setModalState,
-                                                  );
-                                                },
-                                      icon: isRecognizingQuick
-                                          ? const SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          : const Icon(
-                                              Icons.auto_awesome_rounded,
-                                            ),
-                                      label: Text(
-                                        isRecognizingQuick
-                                            ? '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0451\u043c...'
-                                            : '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0442\u044c',
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primaryDim,
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        textStyle: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            AppTheme.radiusMd,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (quickRecognitionMessage != null) ...[
-                                    const SizedBox(height: 14),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: modalSurface,
-                                        borderRadius: BorderRadius.circular(
-                                          AppTheme.radiusSm,
-                                        ),
-                                        border: Border.all(
-                                          color: palette.cardBorder,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        quickRecognitionMessage!,
-                                        style: TextStyle(
-                                          color: palette.onBg,
-                                          fontSize: 13,
-                                          height: 1.35,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 18),
-                            Text(
-                              '\u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043f\u0435\u0440\u0435\u0434 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435\u043c',
-                              style: TextStyle(
-                                color: palette.onSurface2,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                            const SizedBox(height: 16),
+                            
+                            // Text field
+                            TextField(
+                              controller: quickCommandController,
+                              minLines: 2,
+                              maxLines: 4,
+                              style: TextStyle(color: palette.onBg, fontSize: 15),
+                              decoration: InputDecoration(
+                                hintText: '\u0423\u0442\u043e\u0447\u043d\u0438\u0442\u0435 \u0437\u0430\u0434\u0430\u043d\u0438\u0435', // "Уточните задание"
+                                hintStyle: TextStyle(
+                                  color: palette.onSurface3.withValues(alpha: 0.8),
+                                ),
+                                filled: true,
+                                fillColor: fieldSurface,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
+                                suffixIcon: Padding(
+                                  padding: const EdgeInsets.all(6.0),
+                                  child: Material(
+                                    color: isListening ? AppTheme.primary : palette.surface3,
+                                    shape: const CircleBorder(),
+                                    child: IconButton(
+                                      onPressed: isUploading || isRecognizingQuick
+                                          ? null
+                                          : () async {
+                                              await toggleSpeechInput(ctx, setModalState);
+                                            },
+                                      icon: Icon(
+                                        isListening
+                                            ? Icons.stop_circle_rounded
+                                            : Icons.mic_rounded,
+                                        color: isListening ? Colors.white : palette.onSurface2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusLg), // softer corners
+                                  borderSide: BorderSide(color: palette.cardBorder),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                                  borderSide: BorderSide(color: palette.cardBorder),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                                  borderSide: const BorderSide(color: AppTheme.primary),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
+                            
+                            // "Распознать" button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52, // Wide button
+                              child: ElevatedButton.icon(
+                                onPressed: isUploading || isRecognizingQuick
+                                    ? null
+                                    : () async {
+                                        await recognizeQuickHomework(ctx, setModalState);
+                                      },
+                                icon: isRecognizingQuick
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.auto_awesome_rounded),
+                                label: Text(
+                                  isRecognizingQuick
+                                      ? '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0451\u043c...'
+                                      : '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0442\u044c',
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryDim, // brown color
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // "Добавить вручную" link
+                            Center(
+                              child: TextButton(
+                                onPressed: () {
+                                  safeSetModalState(() {
+                                    isQuickMode = false;
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432\u0440\u0443\u0447\u043d\u0443\u044e', // "Добавить вручную"
+                                  style: TextStyle(
+                                    color: palette.onSurface3,
+                                    fontSize: 13,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
 
-                          // Subject
+                          if (!isQuickMode) ...[
+                            if (quickRecognitionMessage != null) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                margin: const EdgeInsets.only(bottom: 20),
+                                decoration: BoxDecoration(
+                                  color: modalSurface,
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                  border: Border.all(color: palette.cardBorder),
+                                ),
+                                child: Text(
+                                  quickRecognitionMessage!,
+                                  style: TextStyle(
+                                    color: palette.onBg,
+                                    fontSize: 13,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            // Subject
                           _formLabel('Предмет'),
                           const SizedBox(height: 6),
                           Container(
@@ -1333,6 +1204,7 @@ class _MainScreenState extends State<MainScreen> {
                                   : const Text('Сохранить задание'),
                             ),
                           ),
+                          ],
                           const SizedBox(height: 16),
                         ],
                       ),
