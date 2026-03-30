@@ -19,7 +19,6 @@ import 'data/ai_service.dart';
 import 'screens/welcome_screen.dart' as screens_welcome;
 import 'utils/image_data.dart';
 import 'widgets/ai_chat_bottom_sheet.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -340,11 +339,6 @@ class _MainScreenState extends State<MainScreen> {
     String? quickRecognitionMessage;
     final modalSurface = palette.surface2.withValues(alpha: 1);
     final fieldSurface = palette.surface3.withValues(alpha: 1);
-    bool isListeningTask = false;
-    bool isListeningQuick = false;
-    final speechInstance = stt.SpeechToText();
-    String _textBeforeListening = '';
-    String _quickTextBeforeListening = '';
 
     String normalizeSubjectKey(String value) {
       return value
@@ -464,160 +458,6 @@ class _MainScreenState extends State<MainScreen> {
                 ? 'Поля заполнены автоматически. Проверьте и сохраните.'
                 : 'Не всё удалось определить. Завершите заполнение вручную.';
       });
-    }
-
-    Future<void> toggleTaskSpeech(
-      BuildContext sheetContext,
-      StateSetter setModalState,
-    ) async {
-      if (isListeningTask) {
-        await speechInstance.stop();
-        if (sheetContext.mounted) {
-          setModalState(() => isListeningTask = false);
-        }
-        return;
-      }
-
-      final initialized = await speechInstance.initialize(
-        onStatus: (status) {
-          if (status == 'done' || status == 'notListening') {
-            if (sheetContext.mounted) {
-              setModalState(() => isListeningTask = false);
-            }
-          }
-        },
-        onError: (err) {
-          debugPrint('Speech error: $err');
-          if (sheetContext.mounted) {
-            setModalState(() => isListeningTask = false);
-          }
-        },
-      );
-
-      if (!initialized) {
-        if (sheetContext.mounted) {
-          ScaffoldMessenger.of(sheetContext).showSnackBar(
-            const SnackBar(
-              content: Text('Голосовой ввод недоступен на этом устройстве.'),
-            ),
-          );
-        }
-        return;
-      }
-
-      // Save the current text so we can append to it
-      _textBeforeListening = taskController.text;
-
-      if (sheetContext.mounted) {
-        setModalState(() => isListeningTask = true);
-      }
-
-      try {
-        await speechInstance.listen(
-          localeId: 'ru_RU',
-          listenOptions: stt.SpeechListenOptions(
-            partialResults: true,
-            cancelOnError: true,
-            listenMode: stt.ListenMode.dictation,
-          ),
-          onResult: (result) {
-            final newText = result.recognizedWords;
-            final separator = _textBeforeListening.isNotEmpty ? ' ' : '';
-            final combined = '$_textBeforeListening$separator$newText';
-            taskController.value = taskController.value.copyWith(
-              text: combined,
-              selection: TextSelection.collapsed(offset: combined.length),
-              composing: TextRange.empty,
-            );
-            if (result.finalResult && sheetContext.mounted) {
-              // Save the final combined text as new base for next session
-              _textBeforeListening = combined;
-              setModalState(() => isListeningTask = false);
-            }
-          },
-        );
-      } catch (e) {
-        debugPrint('Speech listen error: $e');
-        if (sheetContext.mounted) {
-          setModalState(() => isListeningTask = false);
-        }
-      }
-    }
-
-    Future<void> toggleQuickSpeech(
-      BuildContext sheetContext,
-      StateSetter setModalState,
-    ) async {
-      if (isListeningQuick) {
-        await speechInstance.stop();
-        if (sheetContext.mounted) {
-          setModalState(() => isListeningQuick = false);
-        }
-        return;
-      }
-
-      final initialized = await speechInstance.initialize(
-        onStatus: (status) {
-          if (status == 'done' || status == 'notListening') {
-            if (sheetContext.mounted) {
-              setModalState(() => isListeningQuick = false);
-            }
-          }
-        },
-        onError: (err) {
-          debugPrint('Speech error: $err');
-          if (sheetContext.mounted) {
-            setModalState(() => isListeningQuick = false);
-          }
-        },
-      );
-
-      if (!initialized) {
-        if (sheetContext.mounted) {
-          ScaffoldMessenger.of(sheetContext).showSnackBar(
-            const SnackBar(
-              content: Text('Голосовой ввод недоступен на этом устройстве.'),
-            ),
-          );
-        }
-        return;
-      }
-
-      _quickTextBeforeListening = quickCommandController.text;
-
-      if (sheetContext.mounted) {
-        setModalState(() => isListeningQuick = true);
-      }
-
-      try {
-        await speechInstance.listen(
-          localeId: 'ru_RU',
-          listenOptions: stt.SpeechListenOptions(
-            partialResults: true,
-            cancelOnError: true,
-            listenMode: stt.ListenMode.dictation,
-          ),
-          onResult: (result) {
-            final newText = result.recognizedWords;
-            final separator = _quickTextBeforeListening.isNotEmpty ? ' ' : '';
-            final combined = '$_quickTextBeforeListening$separator$newText';
-            quickCommandController.value = quickCommandController.value.copyWith(
-              text: combined,
-              selection: TextSelection.collapsed(offset: combined.length),
-              composing: TextRange.empty,
-            );
-            if (result.finalResult && sheetContext.mounted) {
-              _quickTextBeforeListening = combined;
-              setModalState(() => isListeningQuick = false);
-            }
-          },
-        );
-      } catch (e) {
-        debugPrint('Speech listen error: $e');
-        if (sheetContext.mounted) {
-          setModalState(() => isListeningQuick = false);
-        }
-      }
     }
 
     await showModalBottomSheet<void>(
@@ -740,17 +580,6 @@ class _MainScreenState extends State<MainScreen> {
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 16,
-                                ),
-                                suffixIcon: IconButton(
-                                  onPressed: () => toggleQuickSpeech(ctx, setModalState),
-                                  icon: Icon(
-                                    isListeningQuick
-                                        ? Icons.mic_rounded
-                                        : Icons.mic_none_rounded,
-                                    color: isListeningQuick
-                                        ? Colors.red
-                                        : palette.onSurface3,
-                                  ),
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(AppTheme.radiusLg),
@@ -903,30 +732,6 @@ class _MainScreenState extends State<MainScreen> {
                               fillColor: fieldSurface,
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 12),
-                              suffixIcon: Padding(
-                                padding: const EdgeInsets.only(right: 4),
-                                child: IconButton(
-                                  onPressed: isUploading
-                                      ? null
-                                      : () => toggleTaskSpeech(ctx, setModalState),
-                                  icon: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 200),
-                                    child: isListeningTask
-                                        ? Icon(
-                                            Icons.mic_rounded,
-                                            key: const ValueKey('mic_on'),
-                                            color: Colors.red.shade400,
-                                            size: 24,
-                                          )
-                                        : Icon(
-                                            Icons.mic_none_rounded,
-                                            key: const ValueKey('mic_off'),
-                                            color: palette.onSurface3,
-                                            size: 24,
-                                          ),
-                                  ),
-                                ),
-                              ),
                               border: OutlineInputBorder(
                                 borderRadius:
                                     BorderRadius.circular(AppTheme.radiusSm),
@@ -1315,11 +1120,6 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
-
-    if (speechInstance.isListening) {
-      await speechInstance.stop();
-    }
-    await speechInstance.cancel();
     taskController.dispose();
     quickCommandController.dispose();
   }
@@ -1918,4 +1718,5 @@ class _TopNotificationState extends State<_TopNotification>
     );
   }
 }
+
 
