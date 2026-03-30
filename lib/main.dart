@@ -160,20 +160,6 @@ class _MainScreenState extends State<MainScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   late final PageController _rootPageController;
 
-  final stt.SpeechToText _speechToText = stt.SpeechToText();
-  bool _isSpeechInitialized = false;
-  void Function(String)? _currentSpeechStatusListener;
-
-  Future<void> _initSpeech() async {
-    if (_isSpeechInitialized) {
-      return;
-    }
-    _isSpeechInitialized = await _speechToText.initialize(
-      onStatus: (status) => _currentSpeechStatusListener?.call(status),
-      onError: (err) => _currentSpeechStatusListener?.call('error'),
-    );
-  }
-
   bool get isAdmin => widget.role == 'admin';
   AppPalette get palette => AppTheme.colorsOf(context);
 
@@ -347,15 +333,18 @@ class _MainScreenState extends State<MainScreen> {
     final taskController = TextEditingController();
     final quickCommandController = TextEditingController();
     final pickedImagePaths = <String>[];
-
     DateTime selectedDeadline = _defaultHomeworkDeadline();
     bool isUploading = false;
     bool isQuickMode = true;
-    bool isListening = false;
     bool isRecognizingQuick = false;
     String? quickRecognitionMessage;
     final modalSurface = palette.surface2.withValues(alpha: 1);
     final fieldSurface = palette.surface3.withValues(alpha: 1);
+    bool isListeningTask = false;
+    bool isListeningQuick = false;
+    final speechInstance = stt.SpeechToText();
+    String _textBeforeListening = '';
+    String _quickTextBeforeListening = '';
 
     String normalizeSubjectKey(String value) {
       return value
@@ -430,84 +419,6 @@ class _MainScreenState extends State<MainScreen> {
           ..add(image.path);
       });
     }
-
-    Future<void> toggleSpeechInput(
-      BuildContext sheetContext,
-      StateSetter setModalState,
-    ) async {
-      if (isListening) {
-        await _speechToText.stop();
-        if (!sheetContext.mounted) return;
-        setModalState(() {
-          isListening = false;
-        });
-        return;
-      }
-
-      _currentSpeechStatusListener = (status) {
-        if (!sheetContext.mounted) return;
-        if (status == 'done' || status == 'notListening' || status == 'error') {
-          setModalState(() {
-            isListening = false;
-          });
-        }
-      };
-
-      await _initSpeech();
-
-      if (!_isSpeechInitialized) {
-        if (sheetContext.mounted) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Голосовой ввод сейчас недоступен на этом устройстве.',
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
-      if (!sheetContext.mounted) return;
-      setModalState(() {
-        isListening = true;
-      });
-
-      try {
-        // Ensure the previous session is fully closed before starting a new one.
-        await _speechToText.cancel();
-        await _speechToText.listen(
-          localeId: 'ru_RU',
-          listenOptions: stt.SpeechListenOptions(
-            partialResults: true,
-            cancelOnError: true,
-            listenMode: stt.ListenMode.dictation,
-          ),
-          onResult: (result) {
-            quickCommandController.value = quickCommandController.value.copyWith(
-              text: result.recognizedWords,
-              selection:
-                  TextSelection.collapsed(offset: result.recognizedWords.length),
-              composing: TextRange.empty,
-            );
-
-            if (result.finalResult && sheetContext.mounted) {
-              setModalState(() {
-                isListening = false;
-              });
-            }
-          },
-        );
-      } catch (e) {
-        debugPrint('SpeechToText listen error: $e');
-        if (sheetContext.mounted) {
-          setModalState(() {
-            isListening = false;
-          });
-        }
-      }
-    }
-
     Future<void> recognizeQuickHomework(
       BuildContext sheetContext,
       StateSetter setModalState,
@@ -521,12 +432,8 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
 
-      if (isListening) {
-        await _speechToText.stop();
-      }
-
       setModalState(() {
-        isListening = false;
+
         isRecognizingQuick = true;
         quickRecognitionMessage = null;
       });
@@ -557,6 +464,160 @@ class _MainScreenState extends State<MainScreen> {
                 ? 'Поля заполнены автоматически. Проверьте и сохраните.'
                 : 'Не всё удалось определить. Завершите заполнение вручную.';
       });
+    }
+
+    Future<void> toggleTaskSpeech(
+      BuildContext sheetContext,
+      StateSetter setModalState,
+    ) async {
+      if (isListeningTask) {
+        await speechInstance.stop();
+        if (sheetContext.mounted) {
+          setModalState(() => isListeningTask = false);
+        }
+        return;
+      }
+
+      final initialized = await speechInstance.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            if (sheetContext.mounted) {
+              setModalState(() => isListeningTask = false);
+            }
+          }
+        },
+        onError: (err) {
+          debugPrint('Speech error: $err');
+          if (sheetContext.mounted) {
+            setModalState(() => isListeningTask = false);
+          }
+        },
+      );
+
+      if (!initialized) {
+        if (sheetContext.mounted) {
+          ScaffoldMessenger.of(sheetContext).showSnackBar(
+            const SnackBar(
+              content: Text('Голосовой ввод недоступен на этом устройстве.'),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Save the current text so we can append to it
+      _textBeforeListening = taskController.text;
+
+      if (sheetContext.mounted) {
+        setModalState(() => isListeningTask = true);
+      }
+
+      try {
+        await speechInstance.listen(
+          localeId: 'ru_RU',
+          listenOptions: stt.SpeechListenOptions(
+            partialResults: true,
+            cancelOnError: true,
+            listenMode: stt.ListenMode.dictation,
+          ),
+          onResult: (result) {
+            final newText = result.recognizedWords;
+            final separator = _textBeforeListening.isNotEmpty ? ' ' : '';
+            final combined = '$_textBeforeListening$separator$newText';
+            taskController.value = taskController.value.copyWith(
+              text: combined,
+              selection: TextSelection.collapsed(offset: combined.length),
+              composing: TextRange.empty,
+            );
+            if (result.finalResult && sheetContext.mounted) {
+              // Save the final combined text as new base for next session
+              _textBeforeListening = combined;
+              setModalState(() => isListeningTask = false);
+            }
+          },
+        );
+      } catch (e) {
+        debugPrint('Speech listen error: $e');
+        if (sheetContext.mounted) {
+          setModalState(() => isListeningTask = false);
+        }
+      }
+    }
+
+    Future<void> toggleQuickSpeech(
+      BuildContext sheetContext,
+      StateSetter setModalState,
+    ) async {
+      if (isListeningQuick) {
+        await speechInstance.stop();
+        if (sheetContext.mounted) {
+          setModalState(() => isListeningQuick = false);
+        }
+        return;
+      }
+
+      final initialized = await speechInstance.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            if (sheetContext.mounted) {
+              setModalState(() => isListeningQuick = false);
+            }
+          }
+        },
+        onError: (err) {
+          debugPrint('Speech error: $err');
+          if (sheetContext.mounted) {
+            setModalState(() => isListeningQuick = false);
+          }
+        },
+      );
+
+      if (!initialized) {
+        if (sheetContext.mounted) {
+          ScaffoldMessenger.of(sheetContext).showSnackBar(
+            const SnackBar(
+              content: Text('Голосовой ввод недоступен на этом устройстве.'),
+            ),
+          );
+        }
+        return;
+      }
+
+      _quickTextBeforeListening = quickCommandController.text;
+
+      if (sheetContext.mounted) {
+        setModalState(() => isListeningQuick = true);
+      }
+
+      try {
+        await speechInstance.listen(
+          localeId: 'ru_RU',
+          listenOptions: stt.SpeechListenOptions(
+            partialResults: true,
+            cancelOnError: true,
+            listenMode: stt.ListenMode.dictation,
+          ),
+          onResult: (result) {
+            final newText = result.recognizedWords;
+            final separator = _quickTextBeforeListening.isNotEmpty ? ' ' : '';
+            final combined = '$_quickTextBeforeListening$separator$newText';
+            quickCommandController.value = quickCommandController.value.copyWith(
+              text: combined,
+              selection: TextSelection.collapsed(offset: combined.length),
+              composing: TextRange.empty,
+            );
+            if (result.finalResult && sheetContext.mounted) {
+              _quickTextBeforeListening = combined;
+              setModalState(() => isListeningQuick = false);
+            }
+          },
+        );
+      } catch (e) {
+        debugPrint('Speech listen error: $e');
+        if (sheetContext.mounted) {
+          setModalState(() => isListeningQuick = false);
+        }
+      }
     }
 
     await showModalBottomSheet<void>(
@@ -680,28 +741,19 @@ class _MainScreenState extends State<MainScreen> {
                                   horizontal: 16,
                                   vertical: 16,
                                 ),
-                                suffixIcon: Padding(
-                                  padding: const EdgeInsets.all(6.0),
-                                  child: Material(
-                                    color: isListening ? AppTheme.primary : palette.surface3,
-                                    shape: const CircleBorder(),
-                                    child: IconButton(
-                                      onPressed: isUploading || isRecognizingQuick
-                                          ? null
-                                          : () async {
-                                              await toggleSpeechInput(ctx, setModalState);
-                                            },
-                                      icon: Icon(
-                                        isListening
-                                            ? Icons.stop_circle_rounded
-                                            : Icons.mic_rounded,
-                                        color: isListening ? Colors.white : palette.onSurface2,
-                                      ),
-                                    ),
+                                suffixIcon: IconButton(
+                                  onPressed: () => toggleQuickSpeech(ctx, setModalState),
+                                  icon: Icon(
+                                    isListeningQuick
+                                        ? Icons.mic_rounded
+                                        : Icons.mic_none_rounded,
+                                    color: isListeningQuick
+                                        ? Colors.red
+                                        : palette.onSurface3,
                                   ),
                                 ),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(AppTheme.radiusLg), // softer corners
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
                                   borderSide: BorderSide(color: palette.cardBorder),
                                 ),
                                 enabledBorder: OutlineInputBorder(
@@ -851,6 +903,30 @@ class _MainScreenState extends State<MainScreen> {
                               fillColor: fieldSurface,
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 12),
+                              suffixIcon: Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: IconButton(
+                                  onPressed: isUploading
+                                      ? null
+                                      : () => toggleTaskSpeech(ctx, setModalState),
+                                  icon: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    child: isListeningTask
+                                        ? Icon(
+                                            Icons.mic_rounded,
+                                            key: const ValueKey('mic_on'),
+                                            color: Colors.red.shade400,
+                                            size: 24,
+                                          )
+                                        : Icon(
+                                            Icons.mic_none_rounded,
+                                            key: const ValueKey('mic_off'),
+                                            color: palette.onSurface3,
+                                            size: 24,
+                                          ),
+                                  ),
+                                ),
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius:
                                     BorderRadius.circular(AppTheme.radiusSm),
@@ -1239,8 +1315,11 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
-    _currentSpeechStatusListener = null;
-    await _speechToText.cancel();
+
+    if (speechInstance.isListening) {
+      await speechInstance.stop();
+    }
+    await speechInstance.cancel();
     taskController.dispose();
     quickCommandController.dispose();
   }
@@ -1839,3 +1918,4 @@ class _TopNotificationState extends State<_TopNotification>
     );
   }
 }
+
