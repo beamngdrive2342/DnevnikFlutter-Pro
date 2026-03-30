@@ -160,6 +160,17 @@ class _MainScreenState extends State<MainScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   late final PageController _rootPageController;
 
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
+  bool _isSpeechInitialized = false;
+  void Function(String)? _currentSpeechStatusListener;
+
+  Future<void> _initSpeech() async {
+    _isSpeechInitialized = await _speechToText.initialize(
+      onStatus: (status) => _currentSpeechStatusListener?.call(status),
+      onError: (err) => _currentSpeechStatusListener?.call('error'),
+    );
+  }
+
   bool get isAdmin => widget.role == 'admin';
   AppPalette get palette => AppTheme.colorsOf(context);
 
@@ -333,7 +344,6 @@ class _MainScreenState extends State<MainScreen> {
     final taskController = TextEditingController();
     final quickCommandController = TextEditingController();
     final pickedImagePaths = <String>[];
-    final speechToText = stt.SpeechToText();
 
     DateTime selectedDeadline = _defaultHomeworkDeadline();
     bool isUploading = false;
@@ -423,7 +433,7 @@ class _MainScreenState extends State<MainScreen> {
       StateSetter setModalState,
     ) async {
       if (isListening) {
-        await speechToText.stop();
+        await _speechToText.stop();
         if (!sheetContext.mounted) return;
         setModalState(() {
           isListening = false;
@@ -431,24 +441,18 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
 
-      final available = await speechToText.initialize(
-        onStatus: (status) {
-          if (!sheetContext.mounted) return;
-          if (status == 'done' || status == 'notListening') {
-            setModalState(() {
-              isListening = false;
-            });
-          }
-        },
-        onError: (_) {
-          if (!sheetContext.mounted) return;
+      _currentSpeechStatusListener = (status) {
+        if (!sheetContext.mounted) return;
+        if (status == 'done' || status == 'notListening' || status == 'error') {
           setModalState(() {
             isListening = false;
           });
-        },
-      );
+        }
+      };
 
-      if (!available) {
+      await _initSpeech();
+
+      if (!_isSpeechInitialized) {
         if (sheetContext.mounted) {
           messenger.showSnackBar(
             const SnackBar(
@@ -466,24 +470,37 @@ class _MainScreenState extends State<MainScreen> {
         isListening = true;
       });
 
-      await speechToText.listen(
-        localeId: 'ru_RU',
-        listenOptions: stt.SpeechListenOptions(partialResults: true),
-        onResult: (result) {
-          quickCommandController.value = quickCommandController.value.copyWith(
-            text: result.recognizedWords,
-            selection:
-                TextSelection.collapsed(offset: result.recognizedWords.length),
-            composing: TextRange.empty,
-          );
+      try {
+        await _speechToText.listen(
+          localeId: 'ru_RU',
+          listenOptions: stt.SpeechListenOptions(
+            partialResults: true,
+            cancelOnError: true,
+            listenMode: stt.ListenMode.dictation,
+          ),
+          onResult: (result) {
+            quickCommandController.value = quickCommandController.value.copyWith(
+              text: result.recognizedWords,
+              selection:
+                  TextSelection.collapsed(offset: result.recognizedWords.length),
+              composing: TextRange.empty,
+            );
 
-          if (result.finalResult && sheetContext.mounted) {
-            setModalState(() {
-              isListening = false;
-            });
-          }
-        },
-      );
+            if (result.finalResult && sheetContext.mounted) {
+              setModalState(() {
+                isListening = false;
+              });
+            }
+          },
+        );
+      } catch (e) {
+        debugPrint('SpeechToText listen error: $e');
+        if (sheetContext.mounted) {
+          setModalState(() {
+            isListening = false;
+          });
+        }
+      }
     }
 
     Future<void> recognizeQuickHomework(
@@ -500,7 +517,7 @@ class _MainScreenState extends State<MainScreen> {
       }
 
       if (isListening) {
-        await speechToText.stop();
+        await _speechToText.stop();
       }
 
       setModalState(() {
@@ -626,7 +643,7 @@ class _MainScreenState extends State<MainScreen> {
                                       },
                                 icon: const Icon(Icons.photo_camera_rounded, size: 28),
                                 label: const Text(
-                                  '\u0421\u0444\u043e\u0442\u043e\u0433\u0440\u0430\u0444\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u043e\u0441\u043a\u0443',
+                                  'Сфотографировать задание',
                                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                 ),
                                 style: ElevatedButton.styleFrom(
@@ -1217,7 +1234,10 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
-    await speechToText.stop();
+    _currentSpeechStatusListener = null;
+    if (_speechToText.isListening) {
+      await _speechToText.stop();
+    }
     taskController.dispose();
     quickCommandController.dispose();
   }
