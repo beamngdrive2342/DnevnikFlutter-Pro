@@ -313,10 +313,10 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Future<Map<String, String?>> _recognizeQuickHomework(String adminText) async {
+  Future<Map<String, dynamic>> _recognizeQuickHomework(String adminText) async {
     final loaded = await _ensureCurrentClassScheduleLoaded();
     if (!loaded) {
-      return {'subject': null, 'deadline': null};
+      return {'subject': null, 'deadline': null, 'task': null, 'fallback': true};
     }
 
     return AIService.recognizeQuickHomework(
@@ -537,6 +537,7 @@ class _MainScreenState extends State<MainScreen> {
 
       final recognizedSubject = matchRecognizedSubject(result['subject']);
       final recognizedDeadline = _parseAiDeadline(result['deadline']);
+      final bool fallback = result['fallback'] == true;
 
       bool canAutoSubmit = false;
       setModalState(() {
@@ -553,7 +554,9 @@ class _MainScreenState extends State<MainScreen> {
         }
 
         // Check if we have enough info for auto-submission
-        if (recognizedSubject != null && 
+        // We only auto-submit if fallback is false AND subject is valid for the date
+        if (!fallback && 
+            recognizedSubject != null && 
             recognizedDeadline != null && 
             taskController.text.trim().isNotEmpty &&
             _hasSubjectOnDate(recognizedSubject, recognizedDeadline)) {
