@@ -413,6 +413,107 @@ class _MainScreenState extends State<MainScreen> {
         }
       });
     }
+    Future<void> doSubmit({
+      required void Function(VoidCallback) safeSetModalState,
+      required BuildContext sheetContext,
+    }) async {
+      final taskText = taskController.text.trim();
+      if (selectedSubject == null || taskText.isEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Заполните предмет и задание')),
+        );
+        return;
+      }
+
+      if (!_hasSubjectOnDate(selectedSubject!, selectedDeadline)) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('В этот день этого предмета нет, выберите другой день или предмет.'),
+          ),
+        );
+        return;
+      }
+
+      try {
+        safeSetModalState(() => isUploading = true);
+
+        final embeddedImages = <String>[];
+        bool hasError = false;
+        final uploadResults = await Future.wait(
+          pickedImagePaths.map(_prepareEmbeddedImage),
+        );
+        for (final result in uploadResults) {
+          if (result != null) {
+            embeddedImages.add(result);
+          } else {
+            hasError = true;
+          }
+        }
+
+        final totalImageChars = embeddedImages.fold<int>(0, (sum, item) => sum + item.length);
+        if (totalImageChars > _maxEmbeddedImageChars) {
+          safeSetModalState(() => isUploading = false);
+          if (!context.mounted) return;
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Слишком большие фото. Уменьшите количество или выберите более лёгкие изображения.')),
+          );
+          return;
+        }
+
+        if (hasError) {
+          safeSetModalState(() => isUploading = false);
+          if (!context.mounted) return;
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Ошибка при подготовке фото. Попробуйте еще раз.')),
+          );
+          return;
+        }
+
+        final hw = HomeworkItem(
+          id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+          subject: selectedSubject!,
+          task: taskText,
+          deadline: '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
+          imageUrl: null,
+          imageUrls: embeddedImages.isNotEmpty ? embeddedImages : null,
+          fullResolutionUrls: null,
+          done: false,
+          fromSchedule: false,
+        );
+
+        final success = await FirestoreService.addHomework(hw);
+        if (!context.mounted) return;
+
+        if (!success) {
+          safeSetModalState(() => isUploading = false);
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Ошибка при сохранении в базу данных.')),
+          );
+          return;
+        }
+
+        await _diaryKey.currentState?.reloadHomework(forceRefresh: true);
+        await _adminKey.currentState?.reload(forceRefresh: true);
+        if (sheetContext.mounted) {
+          Navigator.of(sheetContext).pop();
+        }
+        unawaited(_cleanupTemporaryPickerFiles(pickedImagePaths));
+
+        if (!context.mounted) return;
+        _showTopNotification(
+          context,
+          'Задание на ${_formatDate(selectedDeadline)} успешно добавлено',
+        );
+      } catch (e, st) {
+        debugPrint('Save homework failed: $e\n$st');
+        safeSetModalState(() => isUploading = false);
+        if (!context.mounted) return;
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Произошла ошибка при сохранении задания. Попробуйте еще раз.')),
+        );
+      }
+    }
+
     Future<void> recognizeQuickHomework(
       BuildContext sheetContext,
       StateSetter setModalState,
@@ -427,7 +528,6 @@ class _MainScreenState extends State<MainScreen> {
       }
 
       setModalState(() {
-
         isRecognizingQuick = true;
         quickRecognitionMessage = null;
       });
@@ -438,9 +538,8 @@ class _MainScreenState extends State<MainScreen> {
       final recognizedSubject = matchRecognizedSubject(result['subject']);
       final recognizedDeadline = _parseAiDeadline(result['deadline']);
 
+      bool canAutoSubmit = false;
       setModalState(() {
-        isRecognizingQuick = false;
-        isQuickMode = false;
         selectedSubject = recognizedSubject;
         if (recognizedDeadline != null) {
           selectedDeadline = recognizedDeadline;
@@ -453,11 +552,41 @@ class _MainScreenState extends State<MainScreen> {
           taskController.text = quickText;
         }
 
-        quickRecognitionMessage =
-            (recognizedSubject != null && recognizedDeadline != null)
-                ? 'Поля заполнены автоматически. Проверьте и сохраните.'
-                : 'Не всё удалось определить. Завершите заполнение вручную.';
+        // Check if we have enough info for auto-submission
+        if (recognizedSubject != null && 
+            recognizedDeadline != null && 
+            taskController.text.trim().isNotEmpty &&
+            _hasSubjectOnDate(recognizedSubject, recognizedDeadline)) {
+          canAutoSubmit = true;
+        }
+
+        if (canAutoSubmit) {
+          // Keep isQuickMode = true and stay in "recognizing" state
+          // until doSubmit handles the submission and closes the modal.
+        } else {
+          isRecognizingQuick = false;
+          isQuickMode = false;
+          quickRecognitionMessage =
+              (recognizedSubject != null && recognizedDeadline != null)
+                  ? 'Поля заполнены автоматически. Проверьте и сохраните.'
+                  : 'Не всё удалось определить. Завершите заполнение вручную.';
+        }
       });
+
+      if (canAutoSubmit && sheetContext.mounted) {
+        try {
+          await doSubmit(
+            safeSetModalState: (fn) {
+              if (sheetContext.mounted) setModalState(fn);
+            },
+            sheetContext: sheetContext,
+          );
+        } finally {
+          if (sheetContext.mounted) {
+            setModalState(() => isRecognizingQuick = false);
+          }
+        }
+      }
     }
 
     await showModalBottomSheet<void>(
@@ -537,30 +666,63 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                           const SizedBox(height: 20),
                           if (isQuickMode) ...[
-                            // Big camera button
-                            SizedBox(
-                              width: double.infinity,
-                              height: 64, // Big accented button
-                              child: ElevatedButton.icon(
-                                onPressed: isUploading || isRecognizingQuick
-                                    ? null
-                                    : () async {
-                                        await captureBoardPhoto(ctx, setModalState);
-                                      },
-                                icon: const Icon(Icons.photo_camera_rounded, size: 28),
-                                label: const Text(
-                                  'Сфотографировать задание',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primary,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                            Row(
+                              children: [
+                                // Big camera button
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 64, // Big accented button
+                                    child: ElevatedButton.icon(
+                                      onPressed: isUploading || isRecognizingQuick
+                                          ? null
+                                          : () async {
+                                              await captureBoardPhoto(ctx, setModalState);
+                                            },
+                                      icon: const Icon(Icons.photo_camera_rounded, size: 24),
+                                      label: const FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'Сфотографировать',
+                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primary,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                // Gallery button
+                                SizedBox(
+                                  width: 58,
+                                  height: 64,
+                                  child: ElevatedButton(
+                                    onPressed: isUploading || isRecognizingQuick
+                                        ? null
+                                        : () async {
+                                            await pickImages(ctx, setModalState);
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: palette.surface2,
+                                      foregroundColor: palette.onSurface2,
+                                      elevation: 0,
+                                      padding: EdgeInsets.zero,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                                        side: BorderSide(color: palette.cardBorder),
+                                      ),
+                                    ),
+                                    child: const Icon(Icons.photo_library_rounded, size: 24),
+                                  ),
+                                ),
+                              ],
                             ),
                             if (pickedImagePaths.isNotEmpty) ...[
                               const SizedBox(height: 12),
@@ -672,8 +834,8 @@ class _MainScreenState extends State<MainScreen> {
                                     : const Icon(Icons.auto_awesome_rounded),
                                 label: Text(
                                   isRecognizingQuick
-                                      ? '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0451\u043c...'
-                                      : '\u0420\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0442\u044c',
+                                      ? '\u041f\u0443\u0431\u043b\u0438\u043a\u0443\u0435\u043c...' // "Публикуем..."
+                                      : '\u041e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u0442\u044c', // "Опубликовать"
                                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                                 ),
                                 style: ElevatedButton.styleFrom(
@@ -1013,143 +1175,10 @@ class _MainScreenState extends State<MainScreen> {
                               onPressed: isUploading
                                   ? null
                                   : () async {
-                                      if (selectedSubject == null ||
-                                          taskController.text.trim().isEmpty) {
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                              content: Text(
-                                                  'Заполните предмет и задание')),
-                                        );
-                                        return;
-                                      }
-
-                                      if (!_hasSubjectOnDate(
-                                        selectedSubject!,
-                                        selectedDeadline,
-                                      )) {
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'В этот день этого предмета нет, выберите другой день или предмет.',
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      try {
-                                        safeSetModalState(
-                                            () => isUploading = true);
-
-                                        final embeddedImages = <String>[];
-                                        bool hasError = false;
-                                        final uploadResults = await Future.wait(
-                                          pickedImagePaths
-                                              .map(_prepareEmbeddedImage),
-                                        );
-                                        for (final result in uploadResults) {
-                                          if (result != null) {
-                                            embeddedImages.add(result);
-                                          } else {
-                                            hasError = true;
-                                          }
-                                        }
-
-                                        final totalImageChars =
-                                            embeddedImages.fold<int>(
-                                                0,
-                                                (sum, item) =>
-                                                    sum + item.length);
-                                        if (totalImageChars >
-                                            _maxEmbeddedImageChars) {
-                                          safeSetModalState(
-                                              () => isUploading = false);
-                                          if (!context.mounted) return;
-                                          messenger.showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Слишком большие фото. Уменьшите количество или выберите более лёгкие изображения.',
-                                              ),
-                                            ),
-                                          );
-                                          return;
-                                        }
-
-                                        if (hasError) {
-                                          safeSetModalState(
-                                              () => isUploading = false);
-                                          if (!context.mounted) return;
-                                          messenger.showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Ошибка при подготовке фото. Попробуйте еще раз.')),
-                                          );
-                                          return;
-                                        }
-
-                                        final hw = HomeworkItem(
-                                          id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
-                                          subject: selectedSubject!,
-                                          task: taskController.text.trim(),
-                                          deadline:
-                                              '${selectedDeadline.year}-${selectedDeadline.month.toString().padLeft(2, '0')}-${selectedDeadline.day.toString().padLeft(2, '0')}',
-                                          imageUrl: null,
-                                          imageUrls: embeddedImages.isNotEmpty
-                                              ? embeddedImages
-                                              : null,
-                                          fullResolutionUrls: null,
-                                          done: false,
-                                          fromSchedule: false,
-                                        );
-
-                                        final success =
-                                            await FirestoreService.addHomework(
-                                                hw);
-
-                                        if (!context.mounted) return;
-
-                                        if (!success) {
-                                          safeSetModalState(
-                                              () => isUploading = false);
-                                          messenger.showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Ошибка при сохранении в базу данных.')),
-                                          );
-                                          return;
-                                        }
-
-                                        if (!context.mounted) return;
-                                        await _diaryKey.currentState
-                                            ?.reloadHomework(
-                                                forceRefresh: true);
-                                        await _adminKey.currentState
-                                            ?.reload(forceRefresh: true);
-                                        if (ctx.mounted) {
-                                          Navigator.of(ctx).pop();
-                                        }
-                                        unawaited(
-                                          _cleanupTemporaryPickerFiles(
-                                              pickedImagePaths),
-                                        );
-
-                                        if (!context.mounted) return;
-                                        _showTopNotification(
-                                          context,
-                                          'Задание на ${_formatDate(selectedDeadline)} успешно добавлено',
-                                        );
-                                      } catch (e, st) {
-                                        debugPrint(
-                                            'Save homework failed: $e\n$st');
-                                        safeSetModalState(
-                                            () => isUploading = false);
-                                        if (!context.mounted) return;
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                              content: Text(
-                                                  'Произошла ошибка при сохранении задания. Попробуйте еще раз.')),
-                                        );
-                                      }
+                                      await doSubmit(
+                                        safeSetModalState: safeSetModalState,
+                                        sheetContext: ctx,
+                                      );
                                     },
                               child: isUploading
                                   ? const SizedBox(
