@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,17 +22,25 @@ class HomeworkScreenState extends State<HomeworkScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    unawaited(_loadData());
   }
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     final doneJson = prefs.getString('dnevnik_done') ?? '{}';
-    final list = await FirestoreService.getHomework();
+    final persisted = await FirestoreService.getPersistedHomework();
 
+    if (!mounted) return;
     setState(() {
       _doneState = Map<String, bool>.from(jsonDecode(doneJson));
-      _customHomework = list;
+      _customHomework = persisted;
+    });
+
+    final fresh =
+        await FirestoreService.getHomework(forceRefresh: persisted.isEmpty);
+    if (!mounted) return;
+    setState(() {
+      _customHomework = fresh;
     });
   }
 
@@ -143,7 +152,8 @@ class HomeworkScreenState extends State<HomeworkScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.assignment_rounded, color: AppTheme.primary, size: 22),
+          const Icon(Icons.assignment_rounded,
+              color: AppTheme.primary, size: 22),
           const SizedBox(width: 10),
           const Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -175,7 +185,8 @@ class HomeworkScreenState extends State<HomeworkScreen> {
               child: const SizedBox(
                 width: 36,
                 height: 36,
-                child: Icon(Icons.tune_rounded, color: AppTheme.onSurface2, size: 20),
+                child: Icon(Icons.tune_rounded,
+                    color: AppTheme.onSurface2, size: 20),
               ),
             ),
           ),

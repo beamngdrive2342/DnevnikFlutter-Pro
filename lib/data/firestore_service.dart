@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'schedule_data.dart';
 import '../utils/image_data.dart';
 
@@ -44,6 +45,11 @@ class FirestoreService {
   static DateTime? _cacheExpiresAt;
   static Future<List<HomeworkItem>>? _pendingHomeworkRequest;
   static bool _hostedImageMigrationTriggered = false;
+  static HomeworkLoadSource _lastHomeworkLoadSource =
+      HomeworkLoadSource.network;
+
+  static HomeworkLoadSource get lastHomeworkLoadSource =>
+      _lastHomeworkLoadSource;
 
   static String get _firestoreRoot =>
       "https://firestore.googleapis.com/v1/projects/$projectId/databases/$databaseId/documents";
@@ -60,7 +66,15 @@ class FirestoreService {
     if (!forceRefresh) {
       final cached = _getFreshCache();
       if (cached != null) {
+        _lastHomeworkLoadSource = HomeworkLoadSource.memoryCache;
         return cached;
+      }
+      final persisted = await getPersistedHomework();
+      if (persisted.isNotEmpty) {
+        _updateCache(persisted);
+        _lastHomeworkLoadSource = HomeworkLoadSource.diskCache;
+        unawaited(_refreshHomeworkInBackground());
+        return persisted;
       }
       if (_pendingHomeworkRequest != null) {
         return List<HomeworkItem>.from(await _pendingHomeworkRequest!);
@@ -85,7 +99,19 @@ class FirestoreService {
         () => _client.get(Uri.parse(baseUrl)),
       );
       if (response == null) {
-        return _getFreshCache() ?? const [];
+        final cached = _getFreshCache();
+        if (cached != null) {
+          _lastHomeworkLoadSource = HomeworkLoadSource.memoryCache;
+          return cached;
+        }
+        final persisted = await getPersistedHomework();
+        if (persisted.isNotEmpty) {
+          _updateCache(persisted);
+          _lastHomeworkLoadSource = HomeworkLoadSource.diskCache;
+          return persisted;
+        }
+        _lastHomeworkLoadSource = HomeworkLoadSource.empty;
+        return const [];
       }
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -99,6 +125,8 @@ class FirestoreService {
             .where((item) => !_isExpiredHomework(item))
             .toList(growable: false);
         _updateCache(homework);
+        await _persistHomework(homework);
+        _lastHomeworkLoadSource = HomeworkLoadSource.network;
         _triggerHostedImageMigration(homework);
         if (expiredHomework.isNotEmpty) {
           unawaited(_purgeExpiredHomework(expiredHomework));
@@ -109,7 +137,19 @@ class FirestoreService {
     } catch (e) {
       debugPrint("Error fetching homework: $e");
     }
-    return _getFreshCache() ?? const [];
+    final cached = _getFreshCache();
+    if (cached != null) {
+      _lastHomeworkLoadSource = HomeworkLoadSource.memoryCache;
+      return cached;
+    }
+    final persisted = await getPersistedHomework();
+    if (persisted.isNotEmpty) {
+      _updateCache(persisted);
+      _lastHomeworkLoadSource = HomeworkLoadSource.diskCache;
+      return persisted;
+    }
+    _lastHomeworkLoadSource = HomeworkLoadSource.empty;
+    return const [];
   }
 
   static Future<bool> addHomework(HomeworkItem hw) async {
@@ -201,6 +241,60 @@ class FirestoreService {
   static void _updateCache(List<HomeworkItem> homework) {
     _cachedHomework = List<HomeworkItem>.unmodifiable(homework);
     _cacheExpiresAt = DateTime.now().add(_cacheTtl);
+  }
+
+  static Future<void> _refreshHomeworkInBackground() async {
+    if (_pendingHomeworkRequest != null) {
+      return;
+    }
+    final request = _fetchHomework();
+    _pendingHomeworkRequest = request;
+    try {
+      await request;
+    } finally {
+      if (identical(_pendingHomeworkRequest, request)) {
+        _pendingHomeworkRequest = null;
+      }
+    }
+  }
+
+  static String get _persistedHomeworkKey =>
+      'offline_homework_${_classId ?? 'default'}';
+
+  static Future<void> _persistHomework(List<HomeworkItem> homework) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final payload = homework
+          .map<Map<String, dynamic>>((item) => _toFirestore(item))
+          .toList(growable: false);
+      await prefs.setString(_persistedHomeworkKey, jsonEncode(payload));
+    } catch (e) {
+      debugPrint('Persist homework cache skipped: $e');
+    }
+  }
+
+  static Future<List<HomeworkItem>> getPersistedHomework() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_persistedHomeworkKey);
+      if (raw == null || raw.isEmpty) {
+        return const [];
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return const [];
+      }
+      return decoded
+          .whereType<Map>()
+          .map<Map<String, dynamic>>(
+            (item) => Map<String, dynamic>.from(item.cast<String, dynamic>()),
+          )
+          .map<HomeworkItem>(_fromFirestore)
+          .toList(growable: false);
+    } catch (e) {
+      debugPrint('Read persisted homework cache skipped: $e');
+      return const [];
+    }
   }
 
   static void _updateCachedItem(HomeworkItem hw) {
@@ -451,4 +545,11 @@ class FirestoreService {
       fromSchedule: parseBool('fromSchedule'),
     );
   }
+}
+
+enum HomeworkLoadSource {
+  network,
+  memoryCache,
+  diskCache,
+  empty,
 }
