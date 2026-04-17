@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../data/auth_service.dart';
 import 'package:gal/gal.dart';
-import '../main.dart';
+import 'auth_gate.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
@@ -547,13 +547,13 @@ class DiaryScreenState extends State<DiaryScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
+                                    const Row(
                                       children: [
-                                        const Icon(Icons.assignment_rounded,
+                                        Icon(Icons.assignment_rounded,
                                             size: 12,
                                             color: AppTheme.primaryDim),
-                                        const SizedBox(width: 6),
-                                        const Text('ЗАДАНО',
+                                        SizedBox(width: 6),
+                                        Text('ЗАДАНО',
                                             style: TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.w800,
