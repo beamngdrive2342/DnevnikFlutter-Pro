@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
-import '../main.dart';
+import 'main_screen.dart';
 import '../theme/app_theme.dart';
 import 'create_class_screen.dart';
 import 'join_class_screen.dart';
