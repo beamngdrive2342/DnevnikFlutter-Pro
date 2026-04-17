@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../data/auth_service.dart';
 import '../data/schedule_data.dart';
-import '../main.dart';
+import 'main_screen.dart';
 import '../theme/app_theme.dart';
 
 class CreateClassScreen extends StatefulWidget {
