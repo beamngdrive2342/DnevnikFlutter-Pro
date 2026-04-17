@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/auth_service.dart';
-import '../main.dart';
+import 'main_screen.dart';
 import '../theme/app_theme.dart';
 
 class JoinClassScreen extends StatefulWidget {
