@@ -227,6 +227,16 @@ class AIChatController extends ChangeNotifier {
         )
         .replaceAll(RegExp(r'\bGemma\b', caseSensitive: false), 'помощник')
         .replaceAll(RegExp(r'\bGEMMA\b', caseSensitive: false), 'помощник')
+        .replaceAll(
+          RegExp(r'\bGemini\s*3\.5\s*Flash\b', caseSensitive: false),
+          'помощник',
+        )
+        .replaceAll(
+          RegExp(r'\bGemini\s*3\.5\b', caseSensitive: false),
+          'помощник',
+        )
+        .replaceAll(RegExp(r'\bGemini\b', caseSensitive: false), 'помощник')
+        .replaceAll(RegExp(r'\bGEMINI\b', caseSensitive: false), 'помощник')
         .trim();
   }
 }
