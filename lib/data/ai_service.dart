@@ -6,7 +6,7 @@ class AIService {
   // GOOGLE AI STUDIO CONFIG
   static const String _apiKey = "AIzaSyBoHVkxPo_N31-zqcelSXpaBN_WDGUfV5E";
   static const String _apiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent";
 
   static final http.Client _client = http.Client();
 
@@ -189,7 +189,7 @@ $scheduleText
               ],
               "generationConfig": {
                 "temperature": 0.1,
-                "maxOutputTokens": 256,
+                "maxOutputTokens": 2048,
               }
             }),
           )
