@@ -16,6 +16,7 @@ class AIService {
     String? homeworkContext,
     String? base64Image,
     String? mimeType,
+    List<Map<String, dynamic>>? chatHistory,
   }) async {
     if (_apiKey.isEmpty) {
       return "API Key не найден!";
@@ -36,16 +37,63 @@ $homeworkContext
 Если пользователь прислал изображение, сначала проанализируй его и опирайся на него в ответе.
 """;
 
-      final List<Map<String, dynamic>> parts = [
-        {"text": "$systemPrompt\n\nВопрос: $prompt"}
-      ];
+      List<Map<String, dynamic>> contents = [];
 
-      if (base64Image != null && base64Image.isNotEmpty) {
-        parts.add({
-          "inline_data": {
-            "mime_type": mimeType ?? "image/jpeg",
-            "data": base64Image,
+      if (chatHistory != null && chatHistory.isNotEmpty) {
+        bool isFirstUserMessage = true;
+        for (final msg in chatHistory) {
+          final isUser = msg['isUser'] == true;
+          final text = msg['text'] as String? ?? '';
+          final image = msg['image'] as String?;
+
+          if (!isUser && contents.isEmpty) {
+            continue;
           }
+
+          List<Map<String, dynamic>> parts = [];
+          String messageText = text;
+
+          if (isUser && isFirstUserMessage) {
+            messageText = "$systemPrompt\n\n$messageText";
+            isFirstUserMessage = false;
+          }
+
+          if (messageText.isNotEmpty) {
+            parts.add({"text": messageText});
+          }
+
+          if (image != null && image.isNotEmpty) {
+            parts.add({
+              "inline_data": {
+                "mime_type": mimeType ?? "image/jpeg",
+                "data": image,
+              }
+            });
+          }
+
+          if (parts.isNotEmpty) {
+            contents.add({
+              "role": isUser ? "user" : "model",
+              "parts": parts,
+            });
+          }
+        }
+      } else {
+        final List<Map<String, dynamic>> parts = [
+          {"text": "$systemPrompt\n\nВопрос: $prompt"}
+        ];
+
+        if (base64Image != null && base64Image.isNotEmpty) {
+          parts.add({
+            "inline_data": {
+              "mime_type": mimeType ?? "image/jpeg",
+              "data": base64Image,
+            }
+          });
+        }
+        contents.add({
+          "role": "user",
+          "parts": parts,
         });
       }
 
@@ -54,9 +102,7 @@ $homeworkContext
             Uri.parse("$_apiUrl?key=$_apiKey"),
             headers: {'Content-Type': 'application/json; charset=utf-8'},
             body: jsonEncode({
-              "contents": [
-                {"parts": parts}
-              ],
+              "contents": contents,
               "generationConfig": {
                 "temperature":
                     0.5, // Increased temperature for more natural conversation
