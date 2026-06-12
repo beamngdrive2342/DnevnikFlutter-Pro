@@ -85,6 +85,7 @@ class AIChatController extends ChangeNotifier {
             : text,
         homeworkContext: diaryContext,
         base64Image: currentImage,
+        chatHistory: _messages,
       );
       await _animateAssistantResponse(responseText);
     } catch (e) {
@@ -173,6 +174,16 @@ class AIChatController extends ChangeNotifier {
 
   Future<String> _buildDiaryContext() async {
     final sb = StringBuffer();
+    
+    final now = DateTime.now();
+    final weekdaysStr = [
+      'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'
+    ];
+    final todayWeekday = weekdaysStr[now.weekday - 1];
+    
+    sb.writeln('ТЕКУЩАЯ ДАТА: $now');
+    sb.writeln('ТЕКУЩИЙ ДЕНЬ НЕДЕЛИ: $todayWeekday\n');
+
     sb.writeln('ТЕКУЩЕЕ РАСПИСАНИЕ НА НЕДЕЛЮ:');
     weekSchedule.forEach((dayIndex, lessons) {
       sb.writeln('${weekdaysFull[dayIndex]}:');
