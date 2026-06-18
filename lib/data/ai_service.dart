@@ -1,11 +1,10 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class AIService {
   // GOOGLE AI STUDIO CONFIG
-  static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  static const String _apiKey = "AIzaSyBoHVkxPo_N31-zqcelSXpaBN_WDGUfV5E";
   static const String _apiUrl =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent";
 

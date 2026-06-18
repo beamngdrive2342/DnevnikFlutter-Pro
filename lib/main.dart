@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
@@ -12,11 +11,6 @@ import 'screens/auth_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint('Failed to load .env file: $e');
-  }
   runApp(const DnevnikApp());
   unawaited(_bootstrapRuntime());
 }
