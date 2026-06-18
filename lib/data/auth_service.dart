@@ -123,7 +123,8 @@ class AuthService {
         return null;
       }
 
-      await _saveSession(classId, 'admin', adminEmail.trim().toLowerCase());
+      final refreshToken = jsonDecode(authRes.body)['refreshToken'];
+      await _saveSession(classId, 'admin', adminEmail.trim().toLowerCase(), refreshToken);
       return {'classId': classId, 'code': code};
     } catch (e) {
       debugPrint('createClass error: $e');
@@ -143,8 +144,11 @@ class AuthService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'returnSecureToken': true}),
       );
+      String? refreshToken;
       if (authRes.statusCode == 200) {
-        _idToken = jsonDecode(authRes.body)['idToken'];
+        final data = jsonDecode(authRes.body);
+        _idToken = data['idToken'];
+        refreshToken = data['refreshToken'];
       }
 
       final upperCode = code.trim().toUpperCase();
@@ -171,7 +175,7 @@ class AuthService {
       final classDoc = jsonDecode(classRes.body) as Map<String, dynamic>;
 
       ClassSchedule.loadFromFirestoreDoc(classDoc);
-      await _saveSession(classId, 'student', null);
+      await _saveSession(classId, 'student', null, refreshToken);
       return classId;
     } catch (e) {
       debugPrint('joinClass error: $e');
@@ -200,7 +204,9 @@ class AuthService {
         debugPrint('Firebase Auth Login failed: ${authRes.body}');
         return null;
       }
-      _idToken = jsonDecode(authRes.body)['idToken'];
+      final authData = jsonDecode(authRes.body);
+      _idToken = authData['idToken'];
+      final refreshToken = authData['refreshToken'];
 
       // 2. Ищем класс
       final queryBody = {
@@ -239,7 +245,7 @@ class AuthService {
       final classId = (doc['name'] as String).split('/').last;
       
       ClassSchedule.loadFromFirestoreDoc(doc);
-      await _saveSession(classId, 'admin', email.trim().toLowerCase());
+      await _saveSession(classId, 'admin', email.trim().toLowerCase(), refreshToken);
       return classId;
     } catch (e) {
       debugPrint('loginAdmin error: $e');
@@ -252,7 +258,10 @@ class AuthService {
   static Future<bool> loadClassData(String classId) async {
     try {
       final res = await _client
-          .get(Uri.parse('$_base/classes/$classId'))
+          .get(
+            Uri.parse('$_base/classes/$classId'),
+            headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+          )
           .timeout(_timeout);
       if (res.statusCode != 200) return false;
 
@@ -270,7 +279,10 @@ class AuthService {
   static Future<Map<String, dynamic>?> getClassInfo(String classId) async {
     try {
       final res = await _client
-          .get(Uri.parse('$_base/classes/$classId'))
+          .get(
+            Uri.parse('$_base/classes/$classId'),
+            headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+          )
           .timeout(_timeout);
       if (res.statusCode != 200) return null;
 
@@ -321,7 +333,10 @@ class AuthService {
       final res = await _client
           .patch(
             Uri.parse('$_base/classes/$classId?$mask'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              if (_idToken != null) 'Authorization': 'Bearer $_idToken'
+            },
             body: jsonEncode(body),
           )
           .timeout(_timeout);
@@ -339,7 +354,10 @@ class AuthService {
   }) async {
     try {
       final classRes = await _client
-          .get(Uri.parse('$_base/classes/$classId'))
+          .get(
+            Uri.parse('$_base/classes/$classId'),
+            headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+          )
           .timeout(_timeout);
       if (classRes.statusCode != 200) {
         return false;
@@ -361,7 +379,10 @@ class AuthService {
 
       if (classCode.isNotEmpty) {
         final codeRes = await _client
-            .delete(Uri.parse('$_base/class_codes/$classCode'))
+            .delete(
+              Uri.parse('$_base/class_codes/$classCode'),
+              headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+            )
             .timeout(_timeout);
         if (codeRes.statusCode != 200 && codeRes.statusCode != 404) {
           debugPrint(
@@ -372,7 +393,10 @@ class AuthService {
       }
 
       final deleteClassRes = await _client
-          .delete(Uri.parse('$_base/classes/$classId'))
+          .delete(
+            Uri.parse('$_base/classes/$classId'),
+            headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+          )
           .timeout(_timeout);
       if (deleteClassRes.statusCode != 200) {
         debugPrint(
@@ -391,12 +415,15 @@ class AuthService {
   // ── Session ─────────────────────────────────────────────────────────
 
   static Future<void> _saveSession(
-      String classId, String role, String? email) async {
+      String classId, String role, String? email, String? refreshToken) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('dnevnik_class_id', classId);
     await prefs.setString('dnevnik_role', role);
     if (email != null) {
       await prefs.setString('dnevnik_admin_email', email);
+    }
+    if (refreshToken != null) {
+      await prefs.setString('dnevnik_refresh_token', refreshToken);
     }
   }
 
@@ -415,7 +442,39 @@ class AuthService {
     await prefs.remove('dnevnik_class_id');
     await prefs.remove('dnevnik_role');
     await prefs.remove('dnevnik_admin_email');
+    await prefs.remove('dnevnik_refresh_token');
+    _idToken = null;
     ClassSchedule.reset();
+  }
+
+  static Future<bool> restoreSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refreshToken = prefs.getString('dnevnik_refresh_token');
+    if (refreshToken == null) return false;
+
+    try {
+      final res = await _client.post(
+        Uri.parse('https://securetoken.googleapis.com/v1/token?key=$firebaseWebApiKey'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'grant_type': 'refresh_token',
+          'refresh_token': refreshToken,
+        },
+      ).timeout(_timeout);
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        _idToken = data['id_token'];
+        final newRefreshToken = data['refresh_token'];
+        if (newRefreshToken != null) {
+          await prefs.setString('dnevnik_refresh_token', newRefreshToken);
+        }
+        return true;
+      }
+    } catch (e) {
+      debugPrint('restoreSession error: $e');
+    }
+    return false;
   }
 
   static Future<bool> _deleteHomeworkSubcollection(String classId) async {
@@ -428,7 +487,10 @@ class AuthService {
             : '$_base/classes/$classId/homework?pageToken=$pageToken',
       );
 
-      final listRes = await _client.get(uri).timeout(_timeout);
+      final listRes = await _client.get(
+        uri,
+        headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+      ).timeout(_timeout);
       if (listRes.statusCode != 200) {
         debugPrint(
           'deleteClass homework list failed: ${listRes.statusCode} ${listRes.body}',
@@ -448,7 +510,10 @@ class AuthService {
         }
 
         final deleteRes = await _client
-            .delete(Uri.parse('https://firestore.googleapis.com/v1/$name'))
+            .delete(
+              Uri.parse('https://firestore.googleapis.com/v1/$name'),
+              headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+            )
             .timeout(_timeout);
         if (deleteRes.statusCode != 200 && deleteRes.statusCode != 404) {
           debugPrint(
