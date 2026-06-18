@@ -1,0 +1,572 @@
+{
+  "C:\\src\\DnevnikFlutter\\android\\app\\build.gradle.kts": {
+    "mtime": 1781742961.7290082,
+    "ast_hash": "39243e7a0f98472822a1d8d446c01eb6",
+    "semantic_hash": "39243e7a0f98472822a1d8d446c01eb6"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\java\\io\\flutter\\plugins\\GeneratedPluginRegistrant.java": {
+    "mtime": 1781742964.4982514,
+    "ast_hash": "b65917cd8105bdd4a64cd077c6a30b3c",
+    "semantic_hash": "b65917cd8105bdd4a64cd077c6a30b3c"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\kotlin\\com\\dnevnik\\dnevnik_app\\MainActivity.kt": {
+    "mtime": 1774115416.316082,
+    "ast_hash": "767367a596d49bd5d445eb6c4342dd33",
+    "semantic_hash": "767367a596d49bd5d445eb6c4342dd33"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\build.gradle.kts": {
+    "mtime": 1781741897.976321,
+    "ast_hash": "803fe22651fbe96ed401eb0b66a492d1",
+    "semantic_hash": "803fe22651fbe96ed401eb0b66a492d1"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\gradlew": {
+    "mtime": 1774115791.9822264,
+    "ast_hash": "7f1cd7eb3f75a1dc85cd37753972a6e2",
+    "semantic_hash": "7f1cd7eb3f75a1dc85cd37753972a6e2"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\settings.gradle.kts": {
+    "mtime": 1781742961.7295182,
+    "ast_hash": "f276a44edd917afd836899357fdae60e",
+    "semantic_hash": "f276a44edd917afd836899357fdae60e"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Flutter\\ephemeral\\flutter_lldb_helper.py": {
+    "mtime": 1775070253.6255858,
+    "ast_hash": "98fc75412162af387e2e3461e4e58094",
+    "semantic_hash": "98fc75412162af387e2e3461e4e58094"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Flutter\\flutter_export_environment.sh": {
+    "mtime": 1775070253.6297889,
+    "ast_hash": "31086cd55f1276b5b769c91f93559d3d",
+    "semantic_hash": "31086cd55f1276b5b769c91f93559d3d"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\RunnerTests\\RunnerTests.swift": {
+    "mtime": 1774115416.5370083,
+    "ast_hash": "24e5d095048eb86c30423f4e04b6e57b",
+    "semantic_hash": "24e5d095048eb86c30423f4e04b6e57b"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\AppDelegate.swift": {
+    "mtime": 1774114678.9597013,
+    "ast_hash": "9e1de9c329a3fe4931876063de95132b",
+    "semantic_hash": "9e1de9c329a3fe4931876063de95132b"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Contents.json": {
+    "mtime": 1774114678.9597013,
+    "ast_hash": "31a08e429403e265cabfb31b3d65f049",
+    "semantic_hash": "31a08e429403e265cabfb31b3d65f049"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\Contents.json": {
+    "mtime": 1774114678.9614391,
+    "ast_hash": "b9e927ac17345f2d5f052fe68a3487f9",
+    "semantic_hash": "b9e927ac17345f2d5f052fe68a3487f9"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\GeneratedPluginRegistrant.h": {
+    "mtime": 1774115419.7300239,
+    "ast_hash": "decb9041b5e91a07e66f4664e5dac408",
+    "semantic_hash": "decb9041b5e91a07e66f4664e5dac408"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\GeneratedPluginRegistrant.m": {
+    "mtime": 1781742964.520422,
+    "ast_hash": "83a5d5ac868e5b336dc701a0347e38c3",
+    "semantic_hash": "83a5d5ac868e5b336dc701a0347e38c3"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Runner-Bridging-Header.h": {
+    "mtime": 1774114678.9659698,
+    "ast_hash": "7ad7b5cea096132de13ba526b2b9efbe",
+    "semantic_hash": "7ad7b5cea096132de13ba526b2b9efbe"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\SceneDelegate.swift": {
+    "mtime": 1774114678.9659698,
+    "ast_hash": "0c3e86af131f6a9e547c80b5ed058914",
+    "semantic_hash": "0c3e86af131f6a9e547c80b5ed058914"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\data\\ai_service.dart": {
+    "mtime": 1781744249.9817798,
+    "ast_hash": "7944088b4cd9db2861bd5136cf2bb296",
+    "semantic_hash": "7944088b4cd9db2861bd5136cf2bb296"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\data\\auth_service.dart": {
+    "mtime": 1781742961.7310622,
+    "ast_hash": "d087f016d8760777ee05ed6e2036f9e7",
+    "semantic_hash": "d087f016d8760777ee05ed6e2036f9e7"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\data\\firestore_service.dart": {
+    "mtime": 1781742961.731571,
+    "ast_hash": "07d9f0201a19541625dddf5397d783e2",
+    "semantic_hash": "07d9f0201a19541625dddf5397d783e2"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\data\\schedule_data.dart": {
+    "mtime": 1781744249.988892,
+    "ast_hash": "50e82df93c1aacc6d554b83c6aa988f6",
+    "semantic_hash": "50e82df93c1aacc6d554b83c6aa988f6"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\main.dart": {
+    "mtime": 1781744249.9915397,
+    "ast_hash": "914ff4a4a340ff2fde7ba7d294b84ed3",
+    "semantic_hash": "914ff4a4a340ff2fde7ba7d294b84ed3"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\add_homework_modal.dart": {
+    "mtime": 1781744249.9983518,
+    "ast_hash": "c74d13f657e95fd24a9ca66276875bbd",
+    "semantic_hash": "c74d13f657e95fd24a9ca66276875bbd"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\admin_panel_screen.dart": {
+    "mtime": 1781742961.7341356,
+    "ast_hash": "78867e03ee9a02493154f913afe6b514",
+    "semantic_hash": "78867e03ee9a02493154f913afe6b514"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\auth_gate.dart": {
+    "mtime": 1781742961.7341356,
+    "ast_hash": "330ba1eab1639f2c4770f32df9fc414e",
+    "semantic_hash": "330ba1eab1639f2c4770f32df9fc414e"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\create_class_screen.dart": {
+    "mtime": 1776456072.4493532,
+    "ast_hash": "550a66cad8c59a4a24a513c0dbbaf430",
+    "semantic_hash": "550a66cad8c59a4a24a513c0dbbaf430"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\diary\\diary_top_bar.dart": {
+    "mtime": 1781744385.0923984,
+    "ast_hash": "620579e0c564c02a94c52ca660d6a072",
+    "semantic_hash": "620579e0c564c02a94c52ca660d6a072"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\diary_screen.dart": {
+    "mtime": 1781744451.6618426,
+    "ast_hash": "4941757b13d1f96fdc1e413062bff4b9",
+    "semantic_hash": "4941757b13d1f96fdc1e413062bff4b9"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\join_class_screen.dart": {
+    "mtime": 1781744250.01691,
+    "ast_hash": "9115ee4db8161491a61b5e3630ec2b86",
+    "semantic_hash": "9115ee4db8161491a61b5e3630ec2b86"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\main_screen.dart": {
+    "mtime": 1776456033.4292972,
+    "ast_hash": "f231c0e1d93b68aae7f6f866b2b74a19",
+    "semantic_hash": "f231c0e1d93b68aae7f6f866b2b74a19"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\screens\\welcome_screen.dart": {
+    "mtime": 1781744250.0206935,
+    "ast_hash": "6567e3d560ac4dd21c71d03d50381323",
+    "semantic_hash": "6567e3d560ac4dd21c71d03d50381323"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\theme\\app_theme.dart": {
+    "mtime": 1774382443.3227806,
+    "ast_hash": "8999593877870f257f5a52e24a9276fd",
+    "semantic_hash": "8999593877870f257f5a52e24a9276fd"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\theme\\theme_controller.dart": {
+    "mtime": 1775076672.8713195,
+    "ast_hash": "bdc06b9dd107e382e7df8548c04c9591",
+    "semantic_hash": "bdc06b9dd107e382e7df8548c04c9591"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\utils\\app_date_utils.dart": {
+    "mtime": 1776456099.2131891,
+    "ast_hash": "9fe77aace5a513e2858b39f91aa36dbb",
+    "semantic_hash": "9fe77aace5a513e2858b39f91aa36dbb"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\utils\\image_data.dart": {
+    "mtime": 1781744250.028435,
+    "ast_hash": "a685978100449376b224d583b8940149",
+    "semantic_hash": "a685978100449376b224d583b8940149"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\utils\\image_picker_utils.dart": {
+    "mtime": 1776455820.3794992,
+    "ast_hash": "4db991eaabb0e82f62ffc55804a82f9c",
+    "semantic_hash": "4db991eaabb0e82f62ffc55804a82f9c"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\utils\\subject_utils.dart": {
+    "mtime": 1776455845.842665,
+    "ast_hash": "65185d4f429bff0949a56dcae7ac9db3",
+    "semantic_hash": "65185d4f429bff0949a56dcae7ac9db3"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\ai_chat_bottom_sheet.dart": {
+    "mtime": 1781744250.0336215,
+    "ast_hash": "546c37ed09726aa0c1e43331e1399afa",
+    "semantic_hash": "546c37ed09726aa0c1e43331e1399afa"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\fast_page_scroll_physics.dart": {
+    "mtime": 1774467618.2351246,
+    "ast_hash": "0145a7d7b38b3934b25a0274cf978671",
+    "semantic_hash": "0145a7d7b38b3934b25a0274cf978671"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\network_photo.dart": {
+    "mtime": 1774468916.1157181,
+    "ast_hash": "ce921076f7a98a4e3de5f3260be6b368",
+    "semantic_hash": "ce921076f7a98a4e3de5f3260be6b368"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\premium_glow_button.dart": {
+    "mtime": 1776455855.6138697,
+    "ast_hash": "9dd883be912fea62f6ec17b2b4b17b18",
+    "semantic_hash": "9dd883be912fea62f6ec17b2b4b17b18"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\theme_switch_button.dart": {
+    "mtime": 1781744250.0359788,
+    "ast_hash": "ad8e3baa5f4ce89f429d855ea700b1f5",
+    "semantic_hash": "ad8e3baa5f4ce89f429d855ea700b1f5"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\top_notification.dart": {
+    "mtime": 1776455862.9960127,
+    "ast_hash": "92e04ad0ab75e91eee52f03a1b42521d",
+    "semantic_hash": "92e04ad0ab75e91eee52f03a1b42521d"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\flutter\\generated_plugin_registrant.cc": {
+    "mtime": 1774129124.700668,
+    "ast_hash": "c74f5e1a5f32575a4b26f639876ee827",
+    "semantic_hash": "c74f5e1a5f32575a4b26f639876ee827"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\flutter\\generated_plugin_registrant.h": {
+    "mtime": 1774115419.7194097,
+    "ast_hash": "d295462c9da9f7fef22dc86c34492318",
+    "semantic_hash": "d295462c9da9f7fef22dc86c34492318"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\runner\\main.cc": {
+    "mtime": 1774114678.9695911,
+    "ast_hash": "539395bcd63dba20afed0838d136189f",
+    "semantic_hash": "539395bcd63dba20afed0838d136189f"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\runner\\my_application.cc": {
+    "mtime": 1774115416.5724115,
+    "ast_hash": "c5b5fc2184c8fbdf812cd3333bc3387c",
+    "semantic_hash": "c5b5fc2184c8fbdf812cd3333bc3387c"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\runner\\my_application.h": {
+    "mtime": 1774114678.9695911,
+    "ast_hash": "ffa1a7c0a2ad45a2c14a921596516ff8",
+    "semantic_hash": "ffa1a7c0a2ad45a2c14a921596516ff8"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Flutter\\GeneratedPluginRegistrant.swift": {
+    "mtime": 1781743696.8815405,
+    "ast_hash": "e5cfc149d67f277d90fa13d7249d6e79",
+    "semantic_hash": "e5cfc149d67f277d90fa13d7249d6e79"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Flutter\\ephemeral\\flutter_export_environment.sh": {
+    "mtime": 1775070253.6320205,
+    "ast_hash": "751abac073b76dedbd1f9090aa61d0ed",
+    "semantic_hash": "751abac073b76dedbd1f9090aa61d0ed"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\RunnerTests\\RunnerTests.swift": {
+    "mtime": 1774115416.6892023,
+    "ast_hash": "8059f5d27a19c556eeafb49b3f9b7bdd",
+    "semantic_hash": "8059f5d27a19c556eeafb49b3f9b7bdd"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\AppDelegate.swift": {
+    "mtime": 1774114678.971596,
+    "ast_hash": "4b52e0b89ebfef9baf45b04548c463d6",
+    "semantic_hash": "4b52e0b89ebfef9baf45b04548c463d6"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Contents.json": {
+    "mtime": 1774114678.971596,
+    "ast_hash": "1d48e925145d4b573a3b5d7960a1c585",
+    "semantic_hash": "1d48e925145d4b573a3b5d7960a1c585"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\MainFlutterWindow.swift": {
+    "mtime": 1774114678.981839,
+    "ast_hash": "93c22dae2d93f3dc1402e121901f582b",
+    "semantic_hash": "93c22dae2d93f3dc1402e121901f582b"
+  },
+  "C:\\src\\DnevnikFlutter\\test\\test_ai.dart": {
+    "mtime": 1781744261.7221653,
+    "ast_hash": "b7d8ff672481fd84398d804edf01fadf",
+    "semantic_hash": "b7d8ff672481fd84398d804edf01fadf"
+  },
+  "C:\\src\\DnevnikFlutter\\test\\test_firestore.dart": {
+    "mtime": 1781744263.7286575,
+    "ast_hash": "12432834d87925a6c9924c9bf848bb3c",
+    "semantic_hash": "12432834d87925a6c9924c9bf848bb3c"
+  },
+  "C:\\src\\DnevnikFlutter\\test\\widget_test.dart": {
+    "mtime": 1776456546.7444673,
+    "ast_hash": "9db56712d0ec3f89ac7346486e7978ec",
+    "semantic_hash": "9db56712d0ec3f89ac7346486e7978ec"
+  },
+  "C:\\src\\DnevnikFlutter\\web\\manifest.json": {
+    "mtime": 1774115416.7467365,
+    "ast_hash": "96f052fa2fa8188fbc92cf9bc4fc914c",
+    "semantic_hash": "96f052fa2fa8188fbc92cf9bc4fc914c"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\flutter\\generated_plugin_registrant.cc": {
+    "mtime": 1781743696.877681,
+    "ast_hash": "62691e9244ae71795e2b617ac80286a5",
+    "semantic_hash": "62691e9244ae71795e2b617ac80286a5"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\flutter\\generated_plugin_registrant.h": {
+    "mtime": 1774115419.7260532,
+    "ast_hash": "0ea33875f9f8e118f9c2ded03e2e2835",
+    "semantic_hash": "0ea33875f9f8e118f9c2ded03e2e2835"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\flutter_window.cpp": {
+    "mtime": 1774114678.987461,
+    "ast_hash": "2f463f9b7da67a2d692a012f9ea85e0c",
+    "semantic_hash": "2f463f9b7da67a2d692a012f9ea85e0c"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\flutter_window.h": {
+    "mtime": 1774114678.987461,
+    "ast_hash": "7defcc89d4a26d56e801241d624d48fb",
+    "semantic_hash": "7defcc89d4a26d56e801241d624d48fb"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\main.cpp": {
+    "mtime": 1774115416.7939007,
+    "ast_hash": "649e4c660aa7a419a929302f040a5b97",
+    "semantic_hash": "649e4c660aa7a419a929302f040a5b97"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\resource.h": {
+    "mtime": 1774114678.987461,
+    "ast_hash": "1ade5dd15e613479a15e8832ed276f2b",
+    "semantic_hash": "1ade5dd15e613479a15e8832ed276f2b"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\utils.cpp": {
+    "mtime": 1774114678.987461,
+    "ast_hash": "432461b09d862a2f8dadf380ff0e34e5",
+    "semantic_hash": "432461b09d862a2f8dadf380ff0e34e5"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\utils.h": {
+    "mtime": 1774114678.987461,
+    "ast_hash": "fd81e143f5614eb6fd75efe539002853",
+    "semantic_hash": "fd81e143f5614eb6fd75efe539002853"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\win32_window.cpp": {
+    "mtime": 1774114678.9899654,
+    "ast_hash": "571eb8234dbc2661be03aa5f2a4d2fca",
+    "semantic_hash": "571eb8234dbc2661be03aa5f2a4d2fca"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\win32_window.h": {
+    "mtime": 1774114678.9899654,
+    "ast_hash": "7569387d58711ab975940f4df3b4bcda",
+    "semantic_hash": "7569387d58711ab975940f4df3b4bcda"
+  },
+  "C:\\src\\DnevnikFlutter\\README.md": {
+    "mtime": 1774115416.7110767,
+    "ast_hash": "c5beae8824b61a5867cd5ba91e654b3a",
+    "semantic_hash": "c5beae8824b61a5867cd5ba91e654b3a"
+  },
+  "C:\\src\\DnevnikFlutter\\analysis_options.yaml": {
+    "mtime": 1774472634.1251037,
+    "ast_hash": "3de0c52ea6b4c8f912c8a4ad3d3f9e34",
+    "semantic_hash": "3de0c52ea6b4c8f912c8a4ad3d3f9e34"
+  },
+  "C:\\src\\DnevnikFlutter\\devtools_options.yaml": {
+    "mtime": 1774201341.8896866,
+    "ast_hash": "d1ff5187b1b67653e7357395895e8449",
+    "semantic_hash": "d1ff5187b1b67653e7357395895e8449"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\README.md": {
+    "mtime": 1774114678.9614391,
+    "ast_hash": "f7ee1b402881509d197f34963e569927",
+    "semantic_hash": "f7ee1b402881509d197f34963e569927"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\CMakeLists.txt": {
+    "mtime": 1774115416.55477,
+    "ast_hash": "3058d45955761d046b338dd5a9685666",
+    "semantic_hash": "3058d45955761d046b338dd5a9685666"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\flutter\\CMakeLists.txt": {
+    "mtime": 1774114678.9659698,
+    "ast_hash": "2195470ce31675d31db5a37590d011f6",
+    "semantic_hash": "2195470ce31675d31db5a37590d011f6"
+  },
+  "C:\\src\\DnevnikFlutter\\linux\\runner\\CMakeLists.txt": {
+    "mtime": 1774114678.9695911,
+    "ast_hash": "30cc1614b16214b66c014af09ba699eb",
+    "semantic_hash": "30cc1614b16214b66c014af09ba699eb"
+  },
+  "C:\\src\\DnevnikFlutter\\pubspec.yaml": {
+    "mtime": 1781742961.7363994,
+    "ast_hash": "c948c79b3a5c9c5ba1f0f96fa5efbd5f",
+    "semantic_hash": "c948c79b3a5c9c5ba1f0f96fa5efbd5f"
+  },
+  "C:\\src\\DnevnikFlutter\\web\\index.html": {
+    "mtime": 1774115416.7410839,
+    "ast_hash": "3858ad6d494df0ea117fb465697066ab",
+    "semantic_hash": "3858ad6d494df0ea117fb465697066ab"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\CMakeLists.txt": {
+    "mtime": 1774115416.7614186,
+    "ast_hash": "3bee2396435086e2c6d4573d749e4090",
+    "semantic_hash": "3bee2396435086e2c6d4573d749e4090"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\flutter\\CMakeLists.txt": {
+    "mtime": 1774114678.9838598,
+    "ast_hash": "bbf66fed5180bd9ae8198b8d7c4a0001",
+    "semantic_hash": "bbf66fed5180bd9ae8198b8d7c4a0001"
+  },
+  "C:\\src\\DnevnikFlutter\\windows\\runner\\CMakeLists.txt": {
+    "mtime": 1774114678.987461,
+    "ast_hash": "028602ab9754bffe716659ada7590d29",
+    "semantic_hash": "028602ab9754bffe716659ada7590d29"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.png": {
+    "mtime": 1774114678.949763,
+    "ast_hash": "13e9c72ec37fac220397aa819fa1ef2d",
+    "semantic_hash": "13e9c72ec37fac220397aa819fa1ef2d"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.png": {
+    "mtime": 1774114678.949763,
+    "ast_hash": "6270344430679711b81476e29878caa7",
+    "semantic_hash": "6270344430679711b81476e29878caa7"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.png": {
+    "mtime": 1774114678.949763,
+    "ast_hash": "a0a8db5985280b3679d99a820ae2db79",
+    "semantic_hash": "a0a8db5985280b3679d99a820ae2db79"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.png": {
+    "mtime": 1774114678.949763,
+    "ast_hash": "afe1b655b9f32da22f9a4301bb8e6ba8",
+    "semantic_hash": "afe1b655b9f32da22f9a4301bb8e6ba8"
+  },
+  "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.png": {
+    "mtime": 1774114678.949763,
+    "ast_hash": "57838d52c318faff743130c3fcfae0c6",
+    "semantic_hash": "57838d52c318faff743130c3fcfae0c6"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-1024x1024@1x.png": {
+    "mtime": 1774115211.1891778,
+    "ast_hash": "c785f8932297af4acd5f5ccb7630f01c",
+    "semantic_hash": "c785f8932297af4acd5f5ccb7630f01c"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-20x20@1x.png": {
+    "mtime": 1774115211.19068,
+    "ast_hash": "a2f8558fb1d42514111fbbb19fb67314",
+    "semantic_hash": "a2f8558fb1d42514111fbbb19fb67314"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-20x20@2x.png": {
+    "mtime": 1774115211.177575,
+    "ast_hash": "2247a840b6ee72b8a069208af170e5b1",
+    "semantic_hash": "2247a840b6ee72b8a069208af170e5b1"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-20x20@3x.png": {
+    "mtime": 1774115211.270198,
+    "ast_hash": "1b3b1538136316263c7092951e923e9d",
+    "semantic_hash": "1b3b1538136316263c7092951e923e9d"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-29x29@1x.png": {
+    "mtime": 1774115211.282948,
+    "ast_hash": "be8887071dd7ec39cb754d236aa9584f",
+    "semantic_hash": "be8887071dd7ec39cb754d236aa9584f"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-29x29@2x.png": {
+    "mtime": 1774115211.162765,
+    "ast_hash": "043119ef4faa026ff82bd03f241e5338",
+    "semantic_hash": "043119ef4faa026ff82bd03f241e5338"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-29x29@3x.png": {
+    "mtime": 1774115211.2684221,
+    "ast_hash": "2b1452c4c1bda6177b4fbbb832df217f",
+    "semantic_hash": "2b1452c4c1bda6177b4fbbb832df217f"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-40x40@1x.png": {
+    "mtime": 1774115211.1688437,
+    "ast_hash": "2247a840b6ee72b8a069208af170e5b1",
+    "semantic_hash": "2247a840b6ee72b8a069208af170e5b1"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-40x40@2x.png": {
+    "mtime": 1774115211.280439,
+    "ast_hash": "8245359312aea1b0d2412f79a07b0ca5",
+    "semantic_hash": "8245359312aea1b0d2412f79a07b0ca5"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-40x40@3x.png": {
+    "mtime": 1774115211.1720443,
+    "ast_hash": "5b3c0902200ce596e9848f22e1f0fe0e",
+    "semantic_hash": "5b3c0902200ce596e9848f22e1f0fe0e"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-60x60@2x.png": {
+    "mtime": 1774115211.1865678,
+    "ast_hash": "5b3c0902200ce596e9848f22e1f0fe0e",
+    "semantic_hash": "5b3c0902200ce596e9848f22e1f0fe0e"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-60x60@3x.png": {
+    "mtime": 1774115211.1617625,
+    "ast_hash": "e419d22a37bc40ba185aca1acb6d4ac6",
+    "semantic_hash": "e419d22a37bc40ba185aca1acb6d4ac6"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-76x76@1x.png": {
+    "mtime": 1774115211.1720443,
+    "ast_hash": "36c0d7a7132bdde18898ffdfcfcdc4d2",
+    "semantic_hash": "36c0d7a7132bdde18898ffdfcfcdc4d2"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-76x76@2x.png": {
+    "mtime": 1774115211.282948,
+    "ast_hash": "643842917530acf4c5159ae851b0baf2",
+    "semantic_hash": "643842917530acf4c5159ae851b0baf2"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\AppIcon.appiconset\\Icon-App-83.5x83.5@2x.png": {
+    "mtime": 1774115211.2725897,
+    "ast_hash": "665cb5e3c5729da6d639d26eff47a503",
+    "semantic_hash": "665cb5e3c5729da6d639d26eff47a503"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\LaunchImage.png": {
+    "mtime": 1774115211.1585703,
+    "ast_hash": "978c1bee49d7ad5fc1a4d81099b13e18",
+    "semantic_hash": "978c1bee49d7ad5fc1a4d81099b13e18"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\LaunchImage@2x.png": {
+    "mtime": 1774115211.1559608,
+    "ast_hash": "978c1bee49d7ad5fc1a4d81099b13e18",
+    "semantic_hash": "978c1bee49d7ad5fc1a4d81099b13e18"
+  },
+  "C:\\src\\DnevnikFlutter\\ios\\Runner\\Assets.xcassets\\LaunchImage.imageset\\LaunchImage@3x.png": {
+    "mtime": 1774115211.1524222,
+    "ast_hash": "978c1bee49d7ad5fc1a4d81099b13e18",
+    "semantic_hash": "978c1bee49d7ad5fc1a4d81099b13e18"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_1024.png": {
+    "mtime": 1774115211.1408439,
+    "ast_hash": "c9becc9105f8cabce934d20c7bfb6aac",
+    "semantic_hash": "c9becc9105f8cabce934d20c7bfb6aac"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_128.png": {
+    "mtime": 1774115211.1187034,
+    "ast_hash": "3ded30823804caaa5ccc944067c54a36",
+    "semantic_hash": "3ded30823804caaa5ccc944067c54a36"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_16.png": {
+    "mtime": 1774115211.1299791,
+    "ast_hash": "8bf511604bc6ed0a6aeb380c5113fdcf",
+    "semantic_hash": "8bf511604bc6ed0a6aeb380c5113fdcf"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_256.png": {
+    "mtime": 1774115211.1456437,
+    "ast_hash": "dfe2c93d1536ae02f085cc63faa3430e",
+    "semantic_hash": "dfe2c93d1536ae02f085cc63faa3430e"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_32.png": {
+    "mtime": 1774115211.130888,
+    "ast_hash": "8e0ae58e362a6636bdfccbc04da2c58c",
+    "semantic_hash": "8e0ae58e362a6636bdfccbc04da2c58c"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_512.png": {
+    "mtime": 1774115211.1187034,
+    "ast_hash": "0ad44039155424738917502c69667699",
+    "semantic_hash": "0ad44039155424738917502c69667699"
+  },
+  "C:\\src\\DnevnikFlutter\\macos\\Runner\\Assets.xcassets\\AppIcon.appiconset\\app_icon_64.png": {
+    "mtime": 1774115211.1187034,
+    "ast_hash": "04e7b6ef05346c70b663ca1d97de3ad5",
+    "semantic_hash": "04e7b6ef05346c70b663ca1d97de3ad5"
+  },
+  "C:\\src\\DnevnikFlutter\\web\\favicon.png": {
+    "mtime": 1774114678.9838598,
+    "ast_hash": "5dcef449791fa27946b3d35ad8803796",
+    "semantic_hash": "5dcef449791fa27946b3d35ad8803796"
+  },
+  "C:\\src\\DnevnikFlutter\\web\\icons\\Icon-192.png": {
+    "mtime": 1774114678.9838598,
+    "ast_hash": "ac9a721a12bbc803b44f645561ecb1e1",
+    "semantic_hash": "ac9a721a12bbc803b44f645561ecb1e1"
+  },
+  "C:\\src\\DnevnikFlutter\\web\\icons\\Icon-512.png": {
+    "mtime": 1774114678.9838598,
+    "ast_hash": "96e752610906ba2a93c65f8abe1645f1",
+    "semantic_hash": "96e752610906ba2a93c65f8abe1645f1"
+  },
+  "C:\\src\\DnevnikFlutter\\web\\icons\\Icon-maskable-192.png": {
+    "mtime": 1774115211.5509255,
+    "ast_hash": "c457ef57daa1d16f64b27b786ec2ea3c",
+    "semantic_hash": "c457ef57daa1d16f64b27b786ec2ea3c"
+  },
+  "C:\\src\\DnevnikFlutter\\web\\icons\\Icon-maskable-512.png": {
+    "mtime": 1774115211.5404387,
+    "ast_hash": "301a7604d45b3e739efc881eb04896ea",
+    "semantic_hash": "301a7604d45b3e739efc881eb04896ea"
+  }
+}
