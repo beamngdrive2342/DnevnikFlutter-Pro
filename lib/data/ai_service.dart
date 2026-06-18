@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIService {
-  // GOOGLE AI STUDIO CONFIG
-  static const String _apiKey = "AIzaSyBoHVkxPo_N31-zqcelSXpaBN_WDGUfV5E";
+  // VERCEL PROXY CONFIG
+  // URL вашего задеплоенного сервера на Vercel
   static const String _apiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent";
+      "https://vercel-proxy-delta-red.vercel.app/api/gemini";
 
   static final http.Client _client = http.Client();
 
@@ -18,10 +18,6 @@ class AIService {
     String? mimeType,
     List<Map<String, dynamic>>? chatHistory,
   }) async {
-    if (_apiKey.isEmpty) {
-      return "API Key не найден!";
-    }
-
     try {
       final String systemPrompt = """
 Ты — умный и полезный ассистент по учёбе в электронном дневнике школьника.
@@ -99,7 +95,7 @@ $homeworkContext
 
       final response = await _client
           .post(
-            Uri.parse("$_apiUrl?key=$_apiKey"),
+            Uri.parse(_apiUrl),
             headers: {'Content-Type': 'application/json; charset=utf-8'},
             body: jsonEncode({
               "contents": contents,

@@ -11,8 +11,12 @@ import 'schedule_data.dart';
 class AuthService {
   static const String _projectId = 'domashka-381cb';
   static const String _databaseId = '(default)';
+  static const String firebaseWebApiKey = 'ВСТАВЬТЕ_СЮДА_ВАШ_WEB_API_KEY';
   static final http.Client _client = http.Client();
   static const Duration _timeout = Duration(seconds: 15);
+
+  static String? _idToken;
+  static String? get idToken => _idToken;
 
   static String get _base =>
       'https://firestore.googleapis.com/v1/projects/$_projectId/databases/$_databaseId/documents';
@@ -41,6 +45,28 @@ class AuthService {
     required Map<int, List<Map<String, String>>> schedule,
   }) async {
     try {
+      if (firebaseWebApiKey.contains('ВСТАВЬТЕ')) {
+        debugPrint('ОШИБКА: Укажите firebaseWebApiKey в auth_service.dart!');
+        return null;
+      }
+
+      // 1. Регистрируем админа в Firebase Auth
+      final authRes = await _client.post(
+        Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$firebaseWebApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': adminEmail.trim().toLowerCase(),
+          'password': adminPassword,
+          'returnSecureToken': true
+        }),
+      );
+
+      if (authRes.statusCode != 200) {
+        debugPrint('Firebase Auth SignUp failed: ${authRes.body}');
+        return null;
+      }
+      _idToken = jsonDecode(authRes.body)['idToken'];
+
       final classId = 'cls_${DateTime.now().millisecondsSinceEpoch}';
       final code = generateClassCode();
 
@@ -48,7 +74,7 @@ class AuthService {
         classId: classId,
         code: code,
         adminEmail: adminEmail.trim().toLowerCase(),
-        adminHash: hashPassword(adminPassword),
+        adminHash: hashPassword(adminPassword), // Оставляем для совместимости
         className: className,
         schoolName: schoolName,
         subjects: subjects,
@@ -59,7 +85,10 @@ class AuthService {
       final res = await _client
           .post(
             Uri.parse('$_base/classes?documentId=$classId'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              if (_idToken != null) 'Authorization': 'Bearer $_idToken'
+            },
             body: jsonEncode(body),
           )
           .timeout(_timeout);
@@ -73,7 +102,10 @@ class AuthService {
       final codeRes = await _client
           .post(
             Uri.parse('$_base/class_codes?documentId=$code'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              if (_idToken != null) 'Authorization': 'Bearer $_idToken'
+            },
             body: jsonEncode({
               'fields': {
                 'classId': {'stringValue': classId},
@@ -84,7 +116,10 @@ class AuthService {
 
       if (codeRes.statusCode != 200 && codeRes.statusCode != 201) {
         debugPrint('Create code index failed: ${codeRes.statusCode}');
-        await _client.delete(Uri.parse('$_base/classes/$classId'));
+        await _client.delete(
+          Uri.parse('$_base/classes/$classId'),
+          headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+        );
         return null;
       }
 
@@ -100,9 +135,24 @@ class AuthService {
 
   static Future<String?> joinClass(String code) async {
     try {
+      if (firebaseWebApiKey.contains('ВСТАВЬТЕ')) return null;
+
+      // 1. Анонимный логин для ученика
+      final authRes = await _client.post(
+        Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=$firebaseWebApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'returnSecureToken': true}),
+      );
+      if (authRes.statusCode == 200) {
+        _idToken = jsonDecode(authRes.body)['idToken'];
+      }
+
       final upperCode = code.trim().toUpperCase();
       final codeRes = await _client
-          .get(Uri.parse('$_base/class_codes/$upperCode'))
+          .get(
+            Uri.parse('$_base/class_codes/$upperCode'),
+            headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+          )
           .timeout(_timeout);
       if (codeRes.statusCode != 200) return null;
 
@@ -111,7 +161,10 @@ class AuthService {
       if (classId == null) return null;
 
       final classRes = await _client
-          .get(Uri.parse('$_base/classes/$classId'))
+          .get(
+            Uri.parse('$_base/classes/$classId'),
+            headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'},
+          )
           .timeout(_timeout);
       if (classRes.statusCode != 200) return null;
 
@@ -130,6 +183,26 @@ class AuthService {
 
   static Future<String?> loginAdmin(String email, String password) async {
     try {
+      if (firebaseWebApiKey.contains('ВСТАВЬТЕ')) return null;
+
+      // 1. Логин через Firebase Auth
+      final authRes = await _client.post(
+        Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$firebaseWebApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email.trim().toLowerCase(),
+          'password': password,
+          'returnSecureToken': true
+        }),
+      );
+
+      if (authRes.statusCode != 200) {
+        debugPrint('Firebase Auth Login failed: ${authRes.body}');
+        return null;
+      }
+      _idToken = jsonDecode(authRes.body)['idToken'];
+
+      // 2. Ищем класс
       final queryBody = {
         'structuredQuery': {
           'from': [
@@ -149,7 +222,10 @@ class AuthService {
       final res = await _client
           .post(
             Uri.parse('$_base:runQuery'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              if (_idToken != null) 'Authorization': 'Bearer $_idToken'
+            },
             body: jsonEncode(queryBody),
           )
           .timeout(_timeout);
@@ -157,17 +233,11 @@ class AuthService {
       if (res.statusCode != 200) return null;
 
       final results = jsonDecode(res.body) as List;
-      if (results.isEmpty) return null;
+      if (results.isEmpty || results.first['document'] == null) return null;
 
-      final doc = results.first['document'] as Map<String, dynamic>?;
-      if (doc == null) return null;
-
-      final storedHash = doc['fields']?['adminPasswordHash']?['stringValue'];
-      if (storedHash == null || hashPassword(password) != storedHash) {
-        return null;
-      }
-
+      final doc = results.first['document'] as Map<String, dynamic>;
       final classId = (doc['name'] as String).split('/').last;
+      
       ClassSchedule.loadFromFirestoreDoc(doc);
       await _saveSession(classId, 'admin', email.trim().toLowerCase());
       return classId;
