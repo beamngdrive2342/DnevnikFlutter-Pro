@@ -18,7 +18,7 @@ class FirestoreService {
       if (AuthService.idToken != null) 'Authorization': 'Bearer ${AuthService.idToken}'
     };
   }
-  static const String databaseId = "(default)";
+
 
   static String? _classId;
   static String? get classId => _classId;
