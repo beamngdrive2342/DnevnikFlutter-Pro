@@ -6,9 +6,18 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'schedule_data.dart';
 import '../utils/image_data.dart';
+import 'auth_service.dart';
 
 class FirestoreService {
   static const String projectId = "domashka-381cb";
+  static const String databaseId = "(default)";
+
+  static Map<String, String> _headers() {
+    return {
+      'Content-Type': 'application/json',
+      if (AuthService.idToken != null) 'Authorization': 'Bearer ${AuthService.idToken}'
+    };
+  }
   static const String databaseId = "(default)";
 
   static String? _classId;
@@ -96,7 +105,7 @@ class FirestoreService {
   static Future<List<HomeworkItem>> _fetchHomework() async {
     try {
       final response = await _requestWithRetry(
-        () => _client.get(Uri.parse(baseUrl)),
+        () => _client.get(Uri.parse(baseUrl), headers: _headers()),
       );
       if (response == null) {
         final cached = _getFreshCache();
@@ -158,7 +167,7 @@ class FirestoreService {
       final response = await _requestWithRetry(
         () => _client.post(
           Uri.parse("$baseUrl?documentId=$docId"),
-          headers: {'Content-Type': 'application/json'},
+          headers: _headers(),
           body: jsonEncode(_toFirestore(hw)),
         ),
       );
@@ -183,7 +192,7 @@ class FirestoreService {
       final response = await _requestWithRetry(
         () => _client.patch(
           Uri.parse("$baseUrl/${hw.id}"),
-          headers: {'Content-Type': 'application/json'},
+          headers: _headers(),
           body: jsonEncode(_toFirestore(hw)),
         ),
       );
@@ -206,7 +215,7 @@ class FirestoreService {
   static Future<bool> deleteHomework(String id) async {
     try {
       final response = await _requestWithRetry(
-        () => _client.delete(Uri.parse("$baseUrl/$id")),
+        () => _client.delete(Uri.parse("$baseUrl/$id"), headers: _headers()),
       );
       if (response == null) {
         return false;

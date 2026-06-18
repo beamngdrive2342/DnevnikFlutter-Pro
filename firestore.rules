@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Коды для вступления: читать может кто угодно, писать - только авторизованные (при создании класса)
+    match /class_codes/{code} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Классы
+    match /classes/{classId} {
+      // Читать могут все, кто вошел (даже ученики анонимно)
+      allow read: if request.auth != null;
+      
+      // Создавать класс может тот, чей email совпадает с adminEmail в новом документе
+      allow create: if request.auth != null && request.auth.token.email == request.resource.data.adminEmail;
+      
+      // Обновлять и удалять может только создатель (админ)
+      allow update, delete: if request.auth != null && request.auth.token.email == resource.data.adminEmail;
+    }
+    
+    // Домашние задания
+    match /classes/{classId}/homework/{hwId} {
+      // Читать и писать домашку могут все участники (и админы, и ученики)
+      allow read, write: if request.auth != null;
+    }
+  }
+}
