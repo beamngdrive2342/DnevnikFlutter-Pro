@@ -11,7 +11,7 @@ import 'schedule_data.dart';
 class AuthService {
   static const String _projectId = 'domashka-381cb';
   static const String _databaseId = '(default)';
-  static const String firebaseWebApiKey = 'ВСТАВЬТЕ_СЮДА_ВАШ_WEB_API_KEY';
+  static const String firebaseWebApiKey = 'AIzaSyBUxrNWBGasZjWUvR6qtY0BuKr35iebUTQ';
   static final http.Client _client = http.Client();
   static const Duration _timeout = Duration(seconds: 15);
 
