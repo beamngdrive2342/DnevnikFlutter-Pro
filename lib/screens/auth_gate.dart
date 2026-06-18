@@ -30,15 +30,18 @@ class _AuthGateState extends State<AuthGate> {
 
     if (classId != null && role != null) {
       FirestoreService.setClassId(classId);
-      final loaded = await AuthService.loadClassData(classId);
-      if (!mounted) return;
-      if (loaded) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => MainScreen(role: role, classId: classId),
-          ),
-        );
-        return;
+      final restored = await AuthService.restoreSession();
+      if (restored) {
+        final loaded = await AuthService.loadClassData(classId);
+        if (!mounted) return;
+        if (loaded) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => MainScreen(role: role, classId: classId),
+            ),
+          );
+          return;
+        }
       }
       await AuthService.logout();
     }
