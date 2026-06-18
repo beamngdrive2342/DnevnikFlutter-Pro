@@ -83,8 +83,9 @@ class ThemeSwitchButton extends StatelessWidget {
                                     isLightMode
                                         ? Icons.wb_sunny_rounded
                                         : Icons.nightlight_round,
-                                    color:
-                                        isLightMode ? sunIconColor : moonIconColor,
+                                    color: isLightMode
+                                        ? sunIconColor
+                                        : moonIconColor,
                                     size: knobIconSize,
                                   ),
                                 ),

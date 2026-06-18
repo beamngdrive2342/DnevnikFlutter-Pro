@@ -121,8 +121,7 @@ class WelcomeScreen extends StatelessWidget {
                     onPressed: () => _showAdminLoginDialog(context),
                     child: Text(
                       'Уже есть класс? Войти как админ',
-                      style:
-                          TextStyle(color: palette.onSurface2, fontSize: 13),
+                      style: TextStyle(color: palette.onSurface2, fontSize: 13),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -289,8 +288,8 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
           _field(_emailC, 'Email', fieldBg, palette,
               keyboard: TextInputType.emailAddress),
           const SizedBox(height: 12),
-          _field(_passC, 'Пароль', fieldBg, palette, obscure: true,
-              onSubmit: (_) => _submit()),
+          _field(_passC, 'Пароль', fieldBg, palette,
+              obscure: true, onSubmit: (_) => _submit()),
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(_error!,
@@ -301,8 +300,7 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.pop(context),
-          child:
-              Text('Отмена', style: TextStyle(color: palette.onSurface2)),
+          child: Text('Отмена', style: TextStyle(color: palette.onSurface2)),
         ),
         ElevatedButton(
           onPressed: _loading ? null : _submit,

@@ -133,7 +133,12 @@ $homeworkContext
     required String adminText,
   }) async {
     if (_apiKey.isEmpty) {
-      return {'subject': null, 'deadline': null, 'task': null, 'fallback': true};
+      return {
+        'subject': null,
+        'deadline': null,
+        'task': null,
+        'fallback': true
+      };
     }
 
     final todayText =
@@ -260,7 +265,12 @@ $scheduleText
         'fallback': parsed['fallback'] == true,
       };
     } catch (_) {
-      return {'subject': null, 'deadline': null, 'task': null, 'fallback': true};
+      return {
+        'subject': null,
+        'deadline': null,
+        'task': null,
+        'fallback': true
+      };
     }
   }
 

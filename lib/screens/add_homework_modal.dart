@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -177,8 +176,7 @@ Future<void> showAddHomeworkModal({
         if (!parentContext.mounted) return;
         messenger.showSnackBar(
           const SnackBar(
-              content:
-                  Text('Ошибка при подготовке фото. Попробуйте еще раз.')),
+              content: Text('Ошибка при подготовке фото. Попробуйте еще раз.')),
         );
         return;
       }
@@ -201,8 +199,7 @@ Future<void> showAddHomeworkModal({
       if (!success) {
         safeSetModalState(() => isUploading = false);
         messenger.showSnackBar(
-          const SnackBar(
-              content: Text('Ошибка при сохранении в базу данных.')),
+          const SnackBar(content: Text('Ошибка при сохранении в базу данных.')),
         );
         return;
       }
@@ -328,8 +325,8 @@ Future<void> showAddHomeworkModal({
           return PopScope(
             canPop: !isUploading,
             child: Container(
-              margin: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 40),
+              margin:
+                  EdgeInsets.only(top: MediaQuery.of(context).padding.top + 40),
               decoration: BoxDecoration(
                 color: modalSurface,
                 borderRadius: const BorderRadius.vertical(
@@ -371,8 +368,7 @@ Future<void> showAddHomeworkModal({
                                       onTap: isUploading
                                           ? null
                                           : () => Navigator.of(ctx).pop(),
-                                      borderRadius:
-                                          BorderRadius.circular(100),
+                                      borderRadius: BorderRadius.circular(100),
                                       child: SizedBox(
                                         width: 36,
                                         height: 36,
@@ -396,15 +392,13 @@ Future<void> showAddHomeworkModal({
                                 child: SizedBox(
                                   height: 64,
                                   child: ElevatedButton.icon(
-                                    onPressed:
-                                        isUploading || isRecognizingQuick
-                                            ? null
-                                            : () async {
-                                                await captureBoardPhoto(
-                                                    ctx, setModalState);
-                                              },
-                                    icon: const Icon(
-                                        Icons.photo_camera_rounded,
+                                    onPressed: isUploading || isRecognizingQuick
+                                        ? null
+                                        : () async {
+                                            await captureBoardPhoto(
+                                                ctx, setModalState);
+                                          },
+                                    icon: const Icon(Icons.photo_camera_rounded,
                                         size: 24),
                                     label: const FittedBox(
                                       fit: BoxFit.scaleDown,
@@ -422,9 +416,8 @@ Future<void> showAddHomeworkModal({
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 8),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(
-                                                AppTheme.radiusMd),
+                                        borderRadius: BorderRadius.circular(
+                                            AppTheme.radiusMd),
                                       ),
                                     ),
                                   ),
@@ -436,13 +429,11 @@ Future<void> showAddHomeworkModal({
                                 width: 58,
                                 height: 64,
                                 child: ElevatedButton(
-                                  onPressed:
-                                      isUploading || isRecognizingQuick
-                                          ? null
-                                          : () async {
-                                              await pickImages(
-                                                  ctx, setModalState);
-                                            },
+                                  onPressed: isUploading || isRecognizingQuick
+                                      ? null
+                                      : () async {
+                                          await pickImages(ctx, setModalState);
+                                        },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: palette.surface2,
                                     foregroundColor: palette.onSurface2,
@@ -451,12 +442,11 @@ Future<void> showAddHomeworkModal({
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(
                                           AppTheme.radiusMd),
-                                      side: BorderSide(
-                                          color: palette.cardBorder),
+                                      side:
+                                          BorderSide(color: palette.cardBorder),
                                     ),
                                   ),
-                                  child: const Icon(
-                                      Icons.photo_library_rounded,
+                                  child: const Icon(Icons.photo_library_rounded,
                                       size: 24),
                                 ),
                               ),
@@ -473,15 +463,13 @@ Future<void> showAddHomeworkModal({
                                   final path = pickedImagePaths[idx];
                                   return Container(
                                     width: 100,
-                                    margin:
-                                        const EdgeInsets.only(right: 8),
+                                    margin: const EdgeInsets.only(right: 8),
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
                                           child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                                    AppTheme.radiusSm),
+                                            borderRadius: BorderRadius.circular(
+                                                AppTheme.radiusSm),
                                             child: Image.file(
                                               File(path),
                                               fit: BoxFit.cover,
@@ -494,18 +482,15 @@ Future<void> showAddHomeworkModal({
                                           child: GestureDetector(
                                             onTap: () {
                                               safeSetModalState(() {
-                                                pickedImagePaths
-                                                    .removeAt(idx);
+                                                pickedImagePaths.removeAt(idx);
                                               });
                                             },
                                             child: Container(
-                                              decoration:
-                                                  const BoxDecoration(
+                                              decoration: const BoxDecoration(
                                                 color: Colors.black54,
                                                 shape: BoxShape.circle,
                                               ),
-                                              padding:
-                                                  const EdgeInsets.all(4),
+                                              padding: const EdgeInsets.all(4),
                                               child: const Icon(
                                                 Icons.close_rounded,
                                                 color: Colors.white,
@@ -528,13 +513,12 @@ Future<void> showAddHomeworkModal({
                             controller: quickCommandController,
                             minLines: 2,
                             maxLines: 4,
-                            style: TextStyle(
-                                color: palette.onBg, fontSize: 15),
+                            style: TextStyle(color: palette.onBg, fontSize: 15),
                             decoration: InputDecoration(
                               hintText: 'Уточните задание',
                               hintStyle: TextStyle(
-                                color: palette.onSurface3
-                                    .withValues(alpha: 0.8),
+                                color:
+                                    palette.onSurface3.withValues(alpha: 0.8),
                               ),
                               filled: true,
                               fillColor: fieldSurface,
@@ -543,22 +527,22 @@ Future<void> showAddHomeworkModal({
                                 vertical: 16,
                               ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusLg),
-                                borderSide: BorderSide(
-                                    color: palette.cardBorder),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusLg),
+                                borderSide:
+                                    BorderSide(color: palette.cardBorder),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusLg),
-                                borderSide: BorderSide(
-                                    color: palette.cardBorder),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusLg),
+                                borderSide:
+                                    BorderSide(color: palette.cardBorder),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusLg),
-                                borderSide: const BorderSide(
-                                    color: AppTheme.primary),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusLg),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.primary),
                               ),
                             ),
                           ),
@@ -569,13 +553,12 @@ Future<void> showAddHomeworkModal({
                             width: double.infinity,
                             height: 52,
                             child: ElevatedButton.icon(
-                              onPressed:
-                                  isUploading || isRecognizingQuick
-                                      ? null
-                                      : () async {
-                                          await recognizeQuickHomework(
-                                              ctx, setModalState);
-                                        },
+                              onPressed: isUploading || isRecognizingQuick
+                                  ? null
+                                  : () async {
+                                      await recognizeQuickHomework(
+                                          ctx, setModalState);
+                                    },
                               icon: isRecognizingQuick
                                   ? const SizedBox(
                                       width: 18,
@@ -585,23 +568,21 @@ Future<void> showAddHomeworkModal({
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Icon(
-                                      Icons.auto_awesome_rounded),
+                                  : const Icon(Icons.auto_awesome_rounded),
                               label: Text(
                                 isRecognizingQuick
                                     ? 'Публикуем...'
                                     : 'Опубликовать',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16),
+                                    fontWeight: FontWeight.w600, fontSize: 16),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primaryDim,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      AppTheme.radiusMd),
+                                  borderRadius:
+                                      BorderRadius.circular(AppTheme.radiusMd),
                                 ),
                               ),
                             ),
@@ -620,8 +601,7 @@ Future<void> showAddHomeworkModal({
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 minimumSize: Size.zero,
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               child: Text(
                                 'Добавить вручную',
@@ -640,14 +620,12 @@ Future<void> showAddHomeworkModal({
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
-                              margin:
-                                  const EdgeInsets.only(bottom: 20),
+                              margin: const EdgeInsets.only(bottom: 20),
                               decoration: BoxDecoration(
                                 color: modalSurface,
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusSm),
-                                border: Border.all(
-                                    color: palette.cardBorder),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                border: Border.all(color: palette.cardBorder),
                               ),
                               child: Text(
                                 quickRecognitionMessage!,
@@ -664,14 +642,12 @@ Future<void> showAddHomeworkModal({
                           const SizedBox(height: 6),
                           Container(
                             height: 44,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
                               color: fieldSurface,
-                              borderRadius: BorderRadius.circular(
-                                  AppTheme.radiusSm),
-                              border:
-                                  Border.all(color: palette.cardBorder),
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusSm),
+                              border: Border.all(color: palette.cardBorder),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
@@ -684,8 +660,7 @@ Future<void> showAddHomeworkModal({
                                 isExpanded: true,
                                 dropdownColor: fieldSurface,
                                 style: TextStyle(
-                                    color: palette.onBg,
-                                    fontSize: 14),
+                                    color: palette.onBg, fontSize: 14),
                                 items: allSubjects
                                     .map((s) => DropdownMenuItem(
                                         value: s, child: Text(s)))
@@ -703,8 +678,7 @@ Future<void> showAddHomeworkModal({
                           TextField(
                             controller: taskController,
                             maxLines: 4,
-                            style: TextStyle(
-                                color: palette.onBg, fontSize: 14),
+                            style: TextStyle(color: palette.onBg, fontSize: 14),
                             decoration: InputDecoration(
                               hintText: 'Опишите задание...',
                               hintStyle: TextStyle(
@@ -712,27 +686,25 @@ Future<void> showAddHomeworkModal({
                                       .withValues(alpha: 0.8)),
                               filled: true,
                               fillColor: fieldSurface,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusSm),
-                                borderSide: BorderSide(
-                                    color: palette.cardBorder),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                borderSide:
+                                    BorderSide(color: palette.cardBorder),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusSm),
-                                borderSide: BorderSide(
-                                    color: palette.cardBorder),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                borderSide:
+                                    BorderSide(color: palette.cardBorder),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusSm),
-                                borderSide: const BorderSide(
-                                    color: AppTheme.primary),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.primary),
                               ),
                             ),
                           ),
@@ -747,92 +719,67 @@ Future<void> showAddHomeworkModal({
                             },
                             child: Container(
                               width: double.infinity,
-                              height: pickedImagePaths.isEmpty
-                                  ? 50
-                                  : 170,
+                              height: pickedImagePaths.isEmpty ? 50 : 170,
                               decoration: BoxDecoration(
                                 color: fieldSurface,
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusSm),
-                                border: Border.all(
-                                    color: palette.cardBorder),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                border: Border.all(color: palette.cardBorder),
                               ),
                               child: pickedImagePaths.isEmpty
                                   ? Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Icon(
-                                            Icons
-                                                .photo_library_rounded,
+                                        Icon(Icons.photo_library_rounded,
                                             color: palette.onSurface3
-                                                .withValues(
-                                                    alpha: 0.8),
+                                                .withValues(alpha: 0.8),
                                             size: 22),
                                         const SizedBox(width: 8),
                                         Text('Добавить фото',
                                             style: TextStyle(
-                                                color: palette
-                                                    .onSurface3
-                                                    .withValues(
-                                                        alpha: 0.8),
+                                                color: palette.onSurface3
+                                                    .withValues(alpha: 0.8),
                                                 fontSize: 14)),
                                       ],
                                     )
                                   : ListView.builder(
-                                      scrollDirection:
-                                          Axis.horizontal,
-                                      padding:
-                                          const EdgeInsets.all(8),
-                                      itemCount:
-                                          pickedImagePaths.length +
-                                              1,
+                                      scrollDirection: Axis.horizontal,
+                                      padding: const EdgeInsets.all(8),
+                                      itemCount: pickedImagePaths.length + 1,
                                       itemBuilder: (ctx, idx) {
-                                        if (idx ==
-                                            pickedImagePaths
-                                                .length) {
+                                        if (idx == pickedImagePaths.length) {
                                           return GestureDetector(
                                             onTap: () async {
-                                              await pickImages(ctx,
-                                                  setModalState);
+                                              await pickImages(
+                                                  ctx, setModalState);
                                             },
                                             child: Container(
                                               width: 120,
-                                              margin:
-                                                  const EdgeInsets
-                                                      .only(
-                                                      left: 8),
-                                              decoration:
-                                                  BoxDecoration(
-                                                color:
-                                                    modalSurface,
+                                              margin: const EdgeInsets.only(
+                                                  left: 8),
+                                              decoration: BoxDecoration(
+                                                color: modalSurface,
                                                 borderRadius:
-                                                    BorderRadius
-                                                        .circular(
-                                                            AppTheme
-                                                                .radiusSm),
+                                                    BorderRadius.circular(
+                                                        AppTheme.radiusSm),
                                                 border: Border.all(
-                                                    color: palette
-                                                        .cardBorder),
+                                                    color: palette.cardBorder),
                                               ),
                                               child: const Center(
                                                 child: Icon(
-                                                    Icons
-                                                        .add_a_photo_rounded,
-                                                    color: AppTheme
-                                                        .primaryDim),
+                                                    Icons.add_a_photo_rounded,
+                                                    color: AppTheme.primaryDim),
                                               ),
                                             ),
                                           );
                                         }
-                                        final path =
-                                            pickedImagePaths[idx];
+                                        final path = pickedImagePaths[idx];
                                         return Container(
                                           width: 120,
                                           margin: EdgeInsets.only(
                                               right: idx ==
-                                                      pickedImagePaths
-                                                              .length -
+                                                      pickedImagePaths.length -
                                                           1
                                                   ? 0
                                                   : 8),
@@ -841,30 +788,21 @@ Future<void> showAddHomeworkModal({
                                               Positioned.fill(
                                                 child: ClipRRect(
                                                   borderRadius:
-                                                      BorderRadius
-                                                          .circular(
-                                                              AppTheme
-                                                                  .radiusSm),
-                                                  child:
-                                                      Image.file(
+                                                      BorderRadius.circular(
+                                                          AppTheme.radiusSm),
+                                                  child: Image.file(
                                                     File(path),
-                                                    fit: BoxFit
-                                                        .cover,
-                                                    errorBuilder: (ctx,
-                                                            err,
-                                                            stack) =>
-                                                        Container(
-                                                      color: palette
-                                                          .surface2,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (ctx, err, stack) =>
+                                                            Container(
+                                                      color: palette.surface2,
                                                       alignment:
-                                                          Alignment
-                                                              .center,
-                                                      child:
-                                                          const Icon(
+                                                          Alignment.center,
+                                                      child: const Icon(
                                                         Icons
                                                             .broken_image_rounded,
-                                                        color: Colors
-                                                            .white70,
+                                                        color: Colors.white70,
                                                         size: 24,
                                                       ),
                                                     ),
@@ -874,37 +812,25 @@ Future<void> showAddHomeworkModal({
                                               Positioned(
                                                 top: 4,
                                                 right: 4,
-                                                child:
-                                                    GestureDetector(
+                                                child: GestureDetector(
                                                   onTap: () {
-                                                    safeSetModalState(
-                                                        () {
+                                                    safeSetModalState(() {
                                                       pickedImagePaths
-                                                          .removeAt(
-                                                              idx);
+                                                          .removeAt(idx);
                                                     });
                                                   },
-                                                  child:
-                                                      Container(
+                                                  child: Container(
                                                     decoration:
                                                         const BoxDecoration(
-                                                      color: Colors
-                                                          .black54,
-                                                      shape:
-                                                          BoxShape
-                                                              .circle,
+                                                      color: Colors.black54,
+                                                      shape: BoxShape.circle,
                                                     ),
                                                     padding:
-                                                        const EdgeInsets
-                                                            .all(
-                                                            4),
-                                                    child:
-                                                        const Icon(
-                                                            Icons
-                                                                .close_rounded,
-                                                            color:
-                                                                Colors.white,
-                                                            size: 14),
+                                                        const EdgeInsets.all(4),
+                                                    child: const Icon(
+                                                        Icons.close_rounded,
+                                                        color: Colors.white,
+                                                        size: 14),
                                                   ),
                                                 ),
                                               ),
@@ -929,28 +855,21 @@ Future<void> showAddHomeworkModal({
                                 firstDate: DateTime.now(),
                                 lastDate: DateTime.now()
                                     .add(const Duration(days: 365)),
-                                selectableDayPredicate:
-                                    (DateTime val) =>
-                                        val.weekday != 6 &&
-                                        val.weekday != 7,
+                                selectableDayPredicate: (DateTime val) =>
+                                    val.weekday != 6 && val.weekday != 7,
                                 builder: (context, child) {
-                                  final pickerBaseTheme =
-                                      Theme.of(context);
+                                  final pickerBaseTheme = Theme.of(context);
                                   return Theme(
-                                    data:
-                                        pickerBaseTheme.copyWith(
-                                      colorScheme: pickerBaseTheme
-                                          .colorScheme
-                                          .copyWith(
+                                    data: pickerBaseTheme.copyWith(
+                                      colorScheme:
+                                          pickerBaseTheme.colorScheme.copyWith(
                                         primary: AppTheme.primary,
                                         onPrimary: Colors.white,
                                         surface: palette.surface2,
                                         onSurface: palette.onBg,
                                       ),
-                                      dialogTheme:
-                                          DialogThemeData(
-                                        backgroundColor:
-                                            palette.surface2,
+                                      dialogTheme: DialogThemeData(
+                                        backgroundColor: palette.surface2,
                                       ),
                                     ),
                                     child: child!,
@@ -958,37 +877,30 @@ Future<void> showAddHomeworkModal({
                                 },
                               );
                               if (picked != null) {
-                                safeSetModalState(() =>
-                                    selectedDeadline = picked);
+                                safeSetModalState(
+                                    () => selectedDeadline = picked);
                               }
                             },
                             child: Container(
                               height: 44,
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
                               decoration: BoxDecoration(
                                 color: fieldSurface,
-                                borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusSm),
-                                border: Border.all(
-                                    color: palette.cardBorder),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm),
+                                border: Border.all(color: palette.cardBorder),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(
-                                      Icons
-                                          .calendar_today_rounded,
-                                      size: 18,
-                                      color:
-                                          palette.onSurface2),
+                                  Icon(Icons.calendar_today_rounded,
+                                      size: 18, color: palette.onSurface2),
                                   const SizedBox(width: 10),
                                   Text(
-                                    date_utils.formatDate(
-                                        selectedDeadline),
+                                    date_utils.formatDate(selectedDeadline),
                                     style: TextStyle(
-                                        color: palette.onBg,
-                                        fontSize: 14),
+                                        color: palette.onBg, fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -1005,8 +917,7 @@ Future<void> showAddHomeworkModal({
                                   ? null
                                   : () async {
                                       await doSubmit(
-                                        safeSetModalState:
-                                            safeSetModalState,
+                                        safeSetModalState: safeSetModalState,
                                         sheetContext: ctx,
                                       );
                                     },
@@ -1014,12 +925,9 @@ Future<void> showAddHomeworkModal({
                                   ? const SizedBox(
                                       width: 24,
                                       height: 24,
-                                      child:
-                                          CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2))
-                                  : const Text(
-                                      'Сохранить задание'),
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2))
+                                  : const Text('Сохранить задание'),
                             ),
                           ),
                         ],

@@ -60,8 +60,9 @@ Future<Uint8List?> loadImageBytes(
 
   if (isRemoteImageUrl(source)) {
     try {
-      final response =
-          await (client ?? http.Client()).get(Uri.parse(source)).timeout(timeout);
+      final response = await (client ?? http.Client())
+          .get(Uri.parse(source))
+          .timeout(timeout);
       if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
         return null;
       }

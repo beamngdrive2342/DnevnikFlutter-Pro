@@ -24,7 +24,9 @@ class AIChatController extends ChangeNotifier {
   static const String _storageKey = 'ai_chat_history_v3';
 
   Future<void>? _initialization;
-  List<Map<String, dynamic>> _messages = <Map<String, dynamic>>[_welcomeMessage()];
+  List<Map<String, dynamic>> _messages = <Map<String, dynamic>>[
+    _welcomeMessage()
+  ];
   AIChatActivity _activity = AIChatActivity.idle;
   String? _selectedImageBase64;
 
@@ -174,13 +176,19 @@ class AIChatController extends ChangeNotifier {
 
   Future<String> _buildDiaryContext() async {
     final sb = StringBuffer();
-    
+
     final now = DateTime.now();
     final weekdaysStr = [
-      'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'
+      'Понедельник',
+      'Вторник',
+      'Среда',
+      'Четверг',
+      'Пятница',
+      'Суббота',
+      'Воскресенье'
     ];
     final todayWeekday = weekdaysStr[now.weekday - 1];
-    
+
     sb.writeln('ТЕКУЩАЯ ДАТА: $now');
     sb.writeln('ТЕКУЩИЙ ДЕНЬ НЕДЕЛИ: $todayWeekday\n');
 

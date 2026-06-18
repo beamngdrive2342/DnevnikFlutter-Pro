@@ -9,7 +9,6 @@ import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'screens/auth_gate.dart';
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const DnevnikApp());

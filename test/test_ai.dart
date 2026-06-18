@@ -1,10 +1,12 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 void main() async {
   final client = http.Client();
   const apiKey = "AIzaSyBoHVkxPo_N31-zqcelSXpaBN_WDGUfV5E";
-  
+
   // Model in AIService: gemma-3-27b-it
   // Let's test a few models:
   final models = [
@@ -18,8 +20,9 @@ void main() async {
 
   for (final model in models) {
     print('--- Testing model: $model ---');
-    final url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey";
-    
+    final url =
+        "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey";
+
     try {
       final res = await client.post(
         Uri.parse(url),

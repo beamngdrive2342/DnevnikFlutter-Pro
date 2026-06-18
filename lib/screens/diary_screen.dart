@@ -1,15 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../data/auth_service.dart';
 import 'package:gal/gal.dart';
-import 'auth_gate.dart';
 import '../theme/app_theme.dart';
 import '../data/schedule_data.dart';
 import '../data/firestore_service.dart';
 import '../utils/image_data.dart';
 import '../widgets/fast_page_scroll_physics.dart';
 import '../widgets/network_photo.dart';
-import '../widgets/theme_switch_button.dart';
+import '../widgets/top_notification.dart';
+import 'diary/diary_top_bar.dart';
 
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({super.key});
@@ -97,7 +96,7 @@ class DiaryScreenState extends State<DiaryScreen>
     super.build(context);
     return Column(
       children: [
-        _buildTopBar(context),
+        const DiaryTopBar(),
         const SizedBox(height: 12),
         _buildCalendarStrip(),
         // Native paged scrolling: smoother and less jank than manual drag+spring.
@@ -120,128 +119,7 @@ class DiaryScreenState extends State<DiaryScreen>
     );
   }
 
-  // ═══════════════════════════════════ TOP BAR
-  Widget _buildTopBar(BuildContext context) {
-    final className = ClassSchedule.className.trim().isNotEmpty
-        ? ClassSchedule.className.trim()
-        : '\u041A\u043B\u0430\u0441\u0441';
-    final schoolName = ClassSchedule.schoolName.trim().isNotEmpty
-        ? ClassSchedule.schoolName.trim()
-        : '\u0428\u043A\u043E\u043B\u0430';
-
-    return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: palette.bg.withValues(alpha: 0.4),
-        border: Border(
-          bottom: BorderSide(color: palette.cardBorder, width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.menu_book_rounded,
-              color: AppTheme.primary, size: 22),
-          const SizedBox(width: 10),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                className,
-                style: TextStyle(
-                  fontFamily: AppTheme.fontSerif,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: palette.onBg,
-                ),
-              ),
-              Text(
-                schoolName,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          const ThemeSwitchButton(),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: palette.surface2.withValues(alpha: 1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  title: Text(
-                    '\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430?',
-                    style: TextStyle(color: palette.onBg, fontSize: 18),
-                  ),
-                  content: Text(
-                    '\u0412\u044B \u0432\u0435\u0440\u043D\u0451\u0442\u0435\u0441\u044C \u043A \u0432\u044B\u0431\u043E\u0440\u0443 \u0440\u043E\u043B\u0438',
-                    style: TextStyle(color: palette.onSurface2),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text(
-                        '\u041E\u0442\u043C\u0435\u043D\u0430',
-                        style: TextStyle(color: palette.onSurface2),
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                      ),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text(
-                        '\u0412\u044B\u0439\u0442\u0438',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                await AuthService.logout();
-                if (!context.mounted) return;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const AuthGate()),
-                  (route) => false,
-                );
-              }
-            },
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.primary, width: 2),
-              ),
-              child: ClipOval(
-                child: Container(
-                  color: AppTheme.primary,
-                  child: const Center(
-                    child: Icon(
-                      Icons.home_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // ═══════════════════════════════════ CALENDAR STRIP
 
   Widget _buildCalendarStrip() {
     return SizedBox(
@@ -1239,7 +1117,7 @@ class DiaryScreenState extends State<DiaryScreen>
 
       await Gal.putImageBytes(bytes);
       if (context.mounted) {
-        _showTopNotification(
+        showTopNotification(
           context,
           'Фото успешно сохранено в галерею!',
         );
@@ -1314,111 +1192,6 @@ class DiaryScreenState extends State<DiaryScreen>
         },
         transitionDuration: const Duration(milliseconds: 250),
         reverseTransitionDuration: const Duration(milliseconds: 200),
-      ),
-    );
-  }
-
-  void _showTopNotification(BuildContext context, String message) {
-    final overlay = Overlay.of(context);
-    late OverlayEntry entry;
-    entry = OverlayEntry(
-      builder: (ctx) => _TopNotification(
-        message: message,
-        onDismiss: () => entry.remove(),
-      ),
-    );
-    overlay.insert(entry);
-  }
-}
-
-class _TopNotification extends StatefulWidget {
-  final String message;
-  final VoidCallback onDismiss;
-  const _TopNotification({required this.message, required this.onDismiss});
-  @override
-  State<_TopNotification> createState() => _TopNotificationState();
-}
-
-class _TopNotificationState extends State<_TopNotification>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnim;
-  late Animation<double> _fadeAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, -1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _fadeAnim = Tween<double>(begin: 0, end: 1)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _controller.forward();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        _controller.reverse().then((_) {
-          widget.onDismiss();
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 8,
-      left: 20,
-      right: 20,
-      child: SlideTransition(
-        position: _slideAnim,
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle_rounded,
-                      color: Colors.white, size: 22),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      widget.message,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

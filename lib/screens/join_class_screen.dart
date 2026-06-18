@@ -143,18 +143,15 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
                   filled: true,
                   fillColor: fieldBg,
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     borderSide: BorderSide(color: palette.cardBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     borderSide: BorderSide(color: palette.cardBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusSm),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     borderSide: const BorderSide(color: AppTheme.primary),
                   ),
                 ),
