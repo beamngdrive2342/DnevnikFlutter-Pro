@@ -128,14 +128,7 @@ $homeworkContext
     required String scheduleText,
     required String adminText,
   }) async {
-    if (_apiKey.isEmpty) {
-      return {
-        'subject': null,
-        'deadline': null,
-        'task': null,
-        'fallback': true
-      };
-    }
+
 
     final todayText =
         '${today.year}-${today.month.toString().padLeft(2, "0")}-${today.day.toString().padLeft(2, "0")}';
@@ -224,7 +217,7 @@ $scheduleText
     try {
       final response = await _client
           .post(
-            Uri.parse("$_apiUrl?key=$_apiKey"),
+            Uri.parse(_apiUrl),
             headers: {'Content-Type': 'application/json; charset=utf-8'},
             body: jsonEncode({
               "contents": [
