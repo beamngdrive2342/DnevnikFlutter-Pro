@@ -6,7 +6,7 @@ class AIService {
   // VERCEL PROXY CONFIG
   // URL вашего задеплоенного сервера на Vercel
   static const String _apiUrl =
-      "https://vercel-proxy-delta-red.vercel.app/api/gemini";
+      "https://vercel-proxy-delta-red.vercel.app/api/api/gemini";
 
   static final http.Client _client = http.Client();
 
