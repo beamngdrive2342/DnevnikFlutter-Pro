@@ -1,12 +1,11 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/auth_service.dart';
-import 'main_screen.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
-import 'create_class_screen.dart';
-import 'join_class_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -94,11 +93,7 @@ class WelcomeScreen extends StatelessWidget {
                     icon: Icons.add_circle_outline_rounded,
                     title: 'Создать класс',
                     subtitle: 'Для администратора класса',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const CreateClassScreen()),
-                    ),
+                    onTap: () => context.push('/create'),
                   ),
                   const SizedBox(height: 16),
 
@@ -107,11 +102,7 @@ class WelcomeScreen extends StatelessWidget {
                     icon: Icons.login_rounded,
                     title: 'Войти в класс',
                     subtitle: 'По коду от администратора',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const JoinClassScreen()),
-                    ),
+                    onTap: () => context.push('/join'),
                   ),
 
                   const Spacer(),
@@ -217,14 +208,14 @@ class _WelcomeButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin login dialog
 // ─────────────────────────────────────────────────────────────────────────────
-class _AdminLoginDialog extends StatefulWidget {
+class _AdminLoginDialog extends ConsumerStatefulWidget {
   const _AdminLoginDialog();
 
   @override
-  State<_AdminLoginDialog> createState() => _AdminLoginDialogState();
+  ConsumerState<_AdminLoginDialog> createState() => _AdminLoginDialogState();
 }
 
-class _AdminLoginDialogState extends State<_AdminLoginDialog> {
+class _AdminLoginDialogState extends ConsumerState<_AdminLoginDialog> {
   final _emailC = TextEditingController();
   final _passC = TextEditingController();
   bool _loading = false;
@@ -262,13 +253,7 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
       return;
     }
 
-    Navigator.of(context).pop(); // close dialog
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => MainScreen(role: 'admin', classId: classId),
-      ),
-      (route) => false,
-    );
+    ref.read(authProvider.notifier).login(classId, 'admin');
   }
 
   @override

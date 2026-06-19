@@ -7,14 +7,20 @@ import 'package:flutter_displaymode/flutter_displaymode.dart';
 
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
-import 'screens/auth_gate.dart';
+import 'router/app_router.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  runApp(const DnevnikApp());
+  runApp(
+    const ProviderScope(
+      child: DnevnikApp(),
+    ),
+  );
   unawaited(_bootstrapRuntime());
 }
 
@@ -35,18 +41,20 @@ Future<void> _configureDisplayMode() async {
   }
 }
 
-class DnevnikApp extends StatelessWidget {
+class DnevnikApp extends ConsumerWidget {
   const DnevnikApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
     return ValueListenableBuilder<bool>(
       valueListenable: ThemeController.hydrated,
       builder: (context, hydrated, _) {
         return ValueListenableBuilder<ThemeMode>(
           valueListenable: ThemeController.notifier,
           builder: (context, themeMode, child) {
-            return MaterialApp(
+            return MaterialApp.router(
               title: 'Дневник',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,
@@ -63,7 +71,7 @@ class DnevnikApp extends StatelessWidget {
               supportedLocales: const [
                 Locale('ru', 'RU'),
               ],
-              home: const AuthGate(),
+              routerConfig: router,
             );
           },
         );

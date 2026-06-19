@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../data/auth_service.dart';
 import '../data/schedule_data.dart';
-import 'main_screen.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
-class CreateClassScreen extends StatefulWidget {
+class CreateClassScreen extends ConsumerStatefulWidget {
   const CreateClassScreen({super.key});
 
   @override
-  State<CreateClassScreen> createState() => _CreateClassScreenState();
+  ConsumerState<CreateClassScreen> createState() => _CreateClassScreenState();
 }
 
-class _CreateClassScreenState extends State<CreateClassScreen> {
+class _CreateClassScreenState extends ConsumerState<CreateClassScreen> {
   final _pageController = PageController();
   int _step = 0;
 
@@ -222,7 +225,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
                   )
                 : IconButton(
                     icon: Icon(Icons.close_rounded, color: palette.onBg),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                   ),
         title: _step < 4
             ? Text(
@@ -733,12 +736,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
             child: ElevatedButton(
               onPressed: () {
                 final classId = _createdClassId ?? ClassSchedule.classId;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (_) => MainScreen(role: 'admin', classId: classId),
-                  ),
-                  (route) => false,
-                );
+                ref.read(authProvider.notifier).login(classId, 'admin');
               },
               child: const Text('Начать работу'),
             ),

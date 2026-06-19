@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../data/auth_service.dart';
-import 'main_screen.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
-class JoinClassScreen extends StatefulWidget {
+class JoinClassScreen extends ConsumerStatefulWidget {
   const JoinClassScreen({super.key});
 
   @override
-  State<JoinClassScreen> createState() => _JoinClassScreenState();
+  ConsumerState<JoinClassScreen> createState() => _JoinClassScreenState();
 }
 
-class _JoinClassScreenState extends State<JoinClassScreen> {
+class _JoinClassScreenState extends ConsumerState<JoinClassScreen> {
   final _codeC = TextEditingController();
   bool _loading = false;
   String? _error;
@@ -53,12 +56,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
       return;
     }
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => MainScreen(role: 'student', classId: classId),
-      ),
-      (route) => false,
-    );
+    ref.read(authProvider.notifier).login(classId, 'student');
   }
 
   @override
@@ -72,7 +70,7 @@ class _JoinClassScreenState extends State<JoinClassScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: palette.onBg),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SafeArea(

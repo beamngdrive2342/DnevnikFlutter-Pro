@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../data/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
 import '../../data/schedule_data.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/theme_switch_button.dart';
-import '../auth_gate.dart';
 
-class DiaryTopBar extends StatelessWidget {
+class DiaryTopBar extends ConsumerWidget {
   const DiaryTopBar({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = AppTheme.colorsOf(context);
     final className = ClassSchedule.className.trim().isNotEmpty
         ? ClassSchedule.className.trim()
@@ -98,12 +98,7 @@ class DiaryTopBar extends StatelessWidget {
                 ),
               );
               if (confirm == true) {
-                await AuthService.logout();
-                if (!context.mounted) return;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const AuthGate()),
-                  (route) => false,
-                );
+                await ref.read(authProvider.notifier).logout();
               }
             },
             child: Container(
