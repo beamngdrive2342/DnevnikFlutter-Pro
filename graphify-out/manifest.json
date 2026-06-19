@@ -5,9 +5,9 @@
     "semantic_hash": "39243e7a0f98472822a1d8d446c01eb6"
   },
   "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\java\\io\\flutter\\plugins\\GeneratedPluginRegistrant.java": {
-    "mtime": 1781742964.4982514,
-    "ast_hash": "b65917cd8105bdd4a64cd077c6a30b3c",
-    "semantic_hash": "b65917cd8105bdd4a64cd077c6a30b3c"
+    "mtime": 1781906332.5721996,
+    "ast_hash": "f3f1e17221d95305d2c51d5ca4c3acb2",
+    "semantic_hash": "f3f1e17221d95305d2c51d5ca4c3acb2"
   },
   "C:\\src\\DnevnikFlutter\\android\\app\\src\\main\\kotlin\\com\\dnevnik\\dnevnik_app\\MainActivity.kt": {
     "mtime": 1774115416.316082,
@@ -65,9 +65,9 @@
     "semantic_hash": "decb9041b5e91a07e66f4664e5dac408"
   },
   "C:\\src\\DnevnikFlutter\\ios\\Runner\\GeneratedPluginRegistrant.m": {
-    "mtime": 1781742964.520422,
-    "ast_hash": "83a5d5ac868e5b336dc701a0347e38c3",
-    "semantic_hash": "83a5d5ac868e5b336dc701a0347e38c3"
+    "mtime": 1781906332.6263335,
+    "ast_hash": "869f19c01b4e6aab4230d96ebb805dd4",
+    "semantic_hash": "869f19c01b4e6aab4230d96ebb805dd4"
   },
   "C:\\src\\DnevnikFlutter\\ios\\Runner\\Runner-Bridging-Header.h": {
     "mtime": 1774114678.9659698,
@@ -80,29 +80,29 @@
     "semantic_hash": "0c3e86af131f6a9e547c80b5ed058914"
   },
   "C:\\src\\DnevnikFlutter\\lib\\data\\ai_service.dart": {
-    "mtime": 1781744249.9817798,
-    "ast_hash": "7944088b4cd9db2861bd5136cf2bb296",
-    "semantic_hash": "7944088b4cd9db2861bd5136cf2bb296"
+    "mtime": 1781825780.096029,
+    "ast_hash": "2a375054b1fcc1e46863b49983d999bf",
+    "semantic_hash": "2a375054b1fcc1e46863b49983d999bf"
   },
   "C:\\src\\DnevnikFlutter\\lib\\data\\auth_service.dart": {
-    "mtime": 1781742961.7310622,
-    "ast_hash": "d087f016d8760777ee05ed6e2036f9e7",
-    "semantic_hash": "d087f016d8760777ee05ed6e2036f9e7"
+    "mtime": 1781908130.0747147,
+    "ast_hash": "5d1401f8e7d8f01482b65bfa8c1d6470",
+    "semantic_hash": "5d1401f8e7d8f01482b65bfa8c1d6470"
   },
   "C:\\src\\DnevnikFlutter\\lib\\data\\firestore_service.dart": {
-    "mtime": 1781742961.731571,
-    "ast_hash": "07d9f0201a19541625dddf5397d783e2",
-    "semantic_hash": "07d9f0201a19541625dddf5397d783e2"
+    "mtime": 1781907107.7198682,
+    "ast_hash": "52423b2fd8203c44cd8b122ff5c98c14",
+    "semantic_hash": "52423b2fd8203c44cd8b122ff5c98c14"
   },
   "C:\\src\\DnevnikFlutter\\lib\\data\\schedule_data.dart": {
-    "mtime": 1781744249.988892,
-    "ast_hash": "50e82df93c1aacc6d554b83c6aa988f6",
-    "semantic_hash": "50e82df93c1aacc6d554b83c6aa988f6"
+    "mtime": 1781908110.2899292,
+    "ast_hash": "293b763c7097c7c0158eeee38d8b0c5b",
+    "semantic_hash": "293b763c7097c7c0158eeee38d8b0c5b"
   },
   "C:\\src\\DnevnikFlutter\\lib\\main.dart": {
-    "mtime": 1781744249.9915397,
-    "ast_hash": "914ff4a4a340ff2fde7ba7d294b84ed3",
-    "semantic_hash": "914ff4a4a340ff2fde7ba7d294b84ed3"
+    "mtime": 1781909249.9872422,
+    "ast_hash": "e1189e27c7b68da73c2ed150e5c86328",
+    "semantic_hash": "e1189e27c7b68da73c2ed150e5c86328"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\add_homework_modal.dart": {
     "mtime": 1781744249.9983518,
@@ -110,34 +110,34 @@
     "semantic_hash": "c74d13f657e95fd24a9ca66276875bbd"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\admin_panel_screen.dart": {
-    "mtime": 1781742961.7341356,
-    "ast_hash": "78867e03ee9a02493154f913afe6b514",
-    "semantic_hash": "78867e03ee9a02493154f913afe6b514"
+    "mtime": 1781909486.4467027,
+    "ast_hash": "59c45115bc52ed831e676ac9a205ccf4",
+    "semantic_hash": "59c45115bc52ed831e676ac9a205ccf4"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\auth_gate.dart": {
-    "mtime": 1781742961.7341356,
-    "ast_hash": "330ba1eab1639f2c4770f32df9fc414e",
-    "semantic_hash": "330ba1eab1639f2c4770f32df9fc414e"
+    "mtime": 1781909244.649568,
+    "ast_hash": "b23bcf85a8c9eff44ae6dde199001bf3",
+    "semantic_hash": "b23bcf85a8c9eff44ae6dde199001bf3"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\create_class_screen.dart": {
-    "mtime": 1776456072.4493532,
-    "ast_hash": "550a66cad8c59a4a24a513c0dbbaf430",
-    "semantic_hash": "550a66cad8c59a4a24a513c0dbbaf430"
+    "mtime": 1781909187.039982,
+    "ast_hash": "1980ed5897444e75a6fb07c32e51b45f",
+    "semantic_hash": "1980ed5897444e75a6fb07c32e51b45f"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\diary\\diary_top_bar.dart": {
-    "mtime": 1781744385.0923984,
-    "ast_hash": "620579e0c564c02a94c52ca660d6a072",
-    "semantic_hash": "620579e0c564c02a94c52ca660d6a072"
+    "mtime": 1781909201.625969,
+    "ast_hash": "a1b7253c57be9d9f2325058f350df189",
+    "semantic_hash": "a1b7253c57be9d9f2325058f350df189"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\diary_screen.dart": {
-    "mtime": 1781744451.6618426,
-    "ast_hash": "4941757b13d1f96fdc1e413062bff4b9",
-    "semantic_hash": "4941757b13d1f96fdc1e413062bff4b9"
+    "mtime": 1781908145.4405062,
+    "ast_hash": "c4cf0362b85b61a97d96dea70488174a",
+    "semantic_hash": "c4cf0362b85b61a97d96dea70488174a"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\join_class_screen.dart": {
-    "mtime": 1781744250.01691,
-    "ast_hash": "9115ee4db8161491a61b5e3630ec2b86",
-    "semantic_hash": "9115ee4db8161491a61b5e3630ec2b86"
+    "mtime": 1781909193.9395688,
+    "ast_hash": "a60568359ebf6a6ebff05e31ce226022",
+    "semantic_hash": "a60568359ebf6a6ebff05e31ce226022"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\main_screen.dart": {
     "mtime": 1776456033.4292972,
@@ -145,9 +145,9 @@
     "semantic_hash": "f231c0e1d93b68aae7f6f866b2b74a19"
   },
   "C:\\src\\DnevnikFlutter\\lib\\screens\\welcome_screen.dart": {
-    "mtime": 1781744250.0206935,
-    "ast_hash": "6567e3d560ac4dd21c71d03d50381323",
-    "semantic_hash": "6567e3d560ac4dd21c71d03d50381323"
+    "mtime": 1781909180.4284472,
+    "ast_hash": "741c77d0015699649bbb9a3f0f30cf78",
+    "semantic_hash": "741c77d0015699649bbb9a3f0f30cf78"
   },
   "C:\\src\\DnevnikFlutter\\lib\\theme\\app_theme.dart": {
     "mtime": 1774382443.3227806,
@@ -210,9 +210,9 @@
     "semantic_hash": "92e04ad0ab75e91eee52f03a1b42521d"
   },
   "C:\\src\\DnevnikFlutter\\linux\\flutter\\generated_plugin_registrant.cc": {
-    "mtime": 1774129124.700668,
-    "ast_hash": "c74f5e1a5f32575a4b26f639876ee827",
-    "semantic_hash": "c74f5e1a5f32575a4b26f639876ee827"
+    "mtime": 1781906332.5870898,
+    "ast_hash": "1b238d11df96640fc6f4415e12cbda5f",
+    "semantic_hash": "1b238d11df96640fc6f4415e12cbda5f"
   },
   "C:\\src\\DnevnikFlutter\\linux\\flutter\\generated_plugin_registrant.h": {
     "mtime": 1774115419.7194097,
@@ -235,9 +235,9 @@
     "semantic_hash": "ffa1a7c0a2ad45a2c14a921596516ff8"
   },
   "C:\\src\\DnevnikFlutter\\macos\\Flutter\\GeneratedPluginRegistrant.swift": {
-    "mtime": 1781743696.8815405,
-    "ast_hash": "e5cfc149d67f277d90fa13d7249d6e79",
-    "semantic_hash": "e5cfc149d67f277d90fa13d7249d6e79"
+    "mtime": 1781906332.6348188,
+    "ast_hash": "66d4259172d68dc0e25117e9f7189526",
+    "semantic_hash": "66d4259172d68dc0e25117e9f7189526"
   },
   "C:\\src\\DnevnikFlutter\\macos\\Flutter\\ephemeral\\flutter_export_environment.sh": {
     "mtime": 1775070253.6320205,
@@ -285,9 +285,9 @@
     "semantic_hash": "96f052fa2fa8188fbc92cf9bc4fc914c"
   },
   "C:\\src\\DnevnikFlutter\\windows\\flutter\\generated_plugin_registrant.cc": {
-    "mtime": 1781743696.877681,
-    "ast_hash": "62691e9244ae71795e2b617ac80286a5",
-    "semantic_hash": "62691e9244ae71795e2b617ac80286a5"
+    "mtime": 1781906332.6058848,
+    "ast_hash": "8d13633fb07bae49b98584bca5749715",
+    "semantic_hash": "8d13633fb07bae49b98584bca5749715"
   },
   "C:\\src\\DnevnikFlutter\\windows\\flutter\\generated_plugin_registrant.h": {
     "mtime": 1774115419.7260532,
@@ -370,9 +370,9 @@
     "semantic_hash": "30cc1614b16214b66c014af09ba699eb"
   },
   "C:\\src\\DnevnikFlutter\\pubspec.yaml": {
-    "mtime": 1781742961.7363994,
-    "ast_hash": "c948c79b3a5c9c5ba1f0f96fa5efbd5f",
-    "semantic_hash": "c948c79b3a5c9c5ba1f0f96fa5efbd5f"
+    "mtime": 1781909132.5978043,
+    "ast_hash": "2d2ed3a71a8f9803552abc34b9e9def5",
+    "semantic_hash": "2d2ed3a71a8f9803552abc34b9e9def5"
   },
   "C:\\src\\DnevnikFlutter\\web\\index.html": {
     "mtime": 1774115416.7410839,
@@ -568,5 +568,55 @@
     "mtime": 1774115211.5404387,
     "ast_hash": "301a7604d45b3e739efc881eb04896ea",
     "semantic_hash": "301a7604d45b3e739efc881eb04896ea"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\data\\schedule_data.freezed.dart": {
+    "mtime": 1781908081.1174228,
+    "ast_hash": "5792693aad13a87ce7cbfba70e4d1474",
+    "semantic_hash": "5792693aad13a87ce7cbfba70e4d1474"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\data\\schedule_data.g.dart": {
+    "mtime": 1781908081.118467,
+    "ast_hash": "3e401b072ed2e439664ccad9a19f56fd",
+    "semantic_hash": "3e401b072ed2e439664ccad9a19f56fd"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\providers\\auth_provider.dart": {
+    "mtime": 1781908829.691327,
+    "ast_hash": "5cd78c8d4f3721836ca28d05e845308f",
+    "semantic_hash": "5cd78c8d4f3721836ca28d05e845308f"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\router\\app_router.dart": {
+    "mtime": 1781909256.7416604,
+    "ast_hash": "41dbdd54c9222373c58c4bfb4665a790",
+    "semantic_hash": "41dbdd54c9222373c58c4bfb4665a790"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\admin\\admin_homework_card.dart": {
+    "mtime": 1781909442.8783069,
+    "ast_hash": "4120a5c6d98536e7a377601affbcda88",
+    "semantic_hash": "4120a5c6d98536e7a377601affbcda88"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\admin\\class_settings_tab.dart": {
+    "mtime": 1781909465.1694305,
+    "ast_hash": "bd51b2c432f24b8f3b0f0fe7cb488679",
+    "semantic_hash": "bd51b2c432f24b8f3b0f0fe7cb488679"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\diary\\calendar_strip.dart": {
+    "mtime": 1781907996.6689246,
+    "ast_hash": "4909eea0f59a3176f3239b22a684f9f8",
+    "semantic_hash": "4909eea0f59a3176f3239b22a684f9f8"
+  },
+  "C:\\src\\DnevnikFlutter\\lib\\widgets\\diary\\lesson_card.dart": {
+    "mtime": 1781907860.9220066,
+    "ast_hash": "de75c7bb2956ab354293d6f42eebdfb3",
+    "semantic_hash": "de75c7bb2956ab354293d6f42eebdfb3"
+  },
+  "C:\\src\\DnevnikFlutter\\vercel-proxy\\api\\api\\gemini.js": {
+    "mtime": 1781823369.1800609,
+    "ast_hash": "8637a93f473eb261a35f3acb8439c843",
+    "semantic_hash": "8637a93f473eb261a35f3acb8439c843"
+  },
+  "C:\\src\\DnevnikFlutter\\CLAUDE.md": {
+    "mtime": 1781909270.9809074,
+    "ast_hash": "8aa3e39092804535f7dc39f3c98df013",
+    "semantic_hash": "8aa3e39092804535f7dc39f3c98df013"
   }
 }

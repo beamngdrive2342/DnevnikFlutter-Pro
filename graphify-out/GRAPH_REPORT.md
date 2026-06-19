@@ -1,215 +1,281 @@
-# Graph Report - .  (2026-06-19)
+# Graph Report - .  (2026-06-20)
 
 ## Corpus Check
-- Corpus is ~37,224 words - fits in a single context window. You may not need a graph.
+- 28 files · ~41,103 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 856 nodes · 1063 edges · 44 communities (38 shown, 6 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 11 edges (avg confidence: 0.81)
+- 935 nodes · 1185 edges · 65 communities (49 shown, 16 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Admin Panel UI|Admin Panel UI]]
-- [[_COMMUNITY_App Entrypoint & Setup|App Entrypoint & Setup]]
-- [[_COMMUNITY_Class Schedule Schema|Class Schedule Schema]]
-- [[_COMMUNITY_UI Custom Painting & Effects|UI Custom Painting & Effects]]
-- [[_COMMUNITY_Firestore Data Operations|Firestore Data Operations]]
-- [[_COMMUNITY_AI Chat Widget & Logic|AI Chat Widget & Logic]]
-- [[_COMMUNITY_macOS Native Bridges|macOS Native Bridges]]
-- [[_COMMUNITY_App Theme & Styles|App Theme & Styles]]
-- [[_COMMUNITY_Homework Creation UI|Homework Creation UI]]
-- [[_COMMUNITY_Windows Win32 Windowing|Windows Win32 Windowing]]
-- [[_COMMUNITY_Class Creation UI|Class Creation UI]]
-- [[_COMMUNITY_Image Files & System Paths|Image Files & System Paths]]
-- [[_COMMUNITY_Diary & Calendar UI|Diary & Calendar UI]]
-- [[_COMMUNITY_Common Top Bars & Navigation|Common Top Bars & Navigation]]
-- [[_COMMUNITY_Main Navigation Shell|Main Navigation Shell]]
-- [[_COMMUNITY_Image Rendering Widgets|Image Rendering Widgets]]
-- [[_COMMUNITY_User Auth Service|User Auth Service]]
-- [[_COMMUNITY_Linux GTK Platform Runner|Linux GTK Platform Runner]]
-- [[_COMMUNITY_Join Class UI|Join Class UI]]
-- [[_COMMUNITY_Authentication Router|Authentication Router]]
-- [[_COMMUNITY_Admin Tab Layouts|Admin Tab Layouts]]
-- [[_COMMUNITY_Services Integration Tests|Services Integration Tests]]
-- [[_COMMUNITY_Windows App Entrypoint|Windows App Entrypoint]]
-- [[_COMMUNITY_PWA Web Settings|PWA Web Settings]]
-- [[_COMMUNITY_Gemini AI Service Client|Gemini AI Service Client]]
-- [[_COMMUNITY_Windows Shell Engine|Windows Shell Engine]]
-- [[_COMMUNITY_LLDB Debugger Utilities|LLDB Debugger Utilities]]
-- [[_COMMUNITY_Core Concepts & Config|Core Concepts & Config]]
-- [[_COMMUNITY_Widget Behavior Tests|Widget Behavior Tests]]
-- [[_COMMUNITY_Android Plugin Registry|Android Plugin Registry]]
-- [[_COMMUNITY_Windows Shell Declarations|Windows Shell Declarations]]
-- [[_COMMUNITY_Android App Entrypoint|Android App Entrypoint]]
-- [[_COMMUNITY_iOS Plugin Registrant|iOS Plugin Registrant]]
-- [[_COMMUNITY_iOS Build Config|iOS Build Config]]
-- [[_COMMUNITY_macOS Build Config|macOS Build Config]]
+- [[_COMMUNITY_Data Firestore Component|Data Firestore Component]]
+- [[_COMMUNITY_Widgets Premium Component|Widgets Premium Component]]
+- [[_COMMUNITY_Runner Appdelegate Component|Runner Appdelegate Component]]
+- [[_COMMUNITY_Theme Theme Component|Theme Theme Component]]
+- [[_COMMUNITY_Widgets Ai Component|Widgets Ai Component]]
+- [[_COMMUNITY_Screens Main Component|Screens Main Component]]
+- [[_COMMUNITY_Runner Win32 Component|Runner Win32 Component]]
+- [[_COMMUNITY_Theme App Component|Theme App Component]]
+- [[_COMMUNITY_Screens Diary Component|Screens Diary Component]]
+- [[_COMMUNITY_Screens Create Component|Screens Create Component]]
+- [[_COMMUNITY_Data Schedule Component|Data Schedule Component]]
+- [[_COMMUNITY_Screens Admin Component|Screens Admin Component]]
+- [[_COMMUNITY_Data Auth Component|Data Auth Component]]
+- [[_COMMUNITY_Admin Class Component|Admin Class Component]]
+- [[_COMMUNITY_Data Schedule Component|Data Schedule Component]]
+- [[_COMMUNITY_Widgets Network Component|Widgets Network Component]]
+- [[_COMMUNITY_Screens Add Component|Screens Add Component]]
+- [[_COMMUNITY_Utils App Component|Utils App Component]]
+- [[_COMMUNITY_Runner My Component|Runner My Component]]
+- [[_COMMUNITY_Admin Class Component|Admin Class Component]]
+- [[_COMMUNITY_Providers Auth Component|Providers Auth Component]]
+- [[_COMMUNITY_Screens Join Component|Screens Join Component]]
+- [[_COMMUNITY_Screens Welcome Component|Screens Welcome Component]]
+- [[_COMMUNITY_Utils Image Component|Utils Image Component]]
+- [[_COMMUNITY_Test Test Component|Test Test Component]]
+- [[_COMMUNITY_Windows Runner Component|Windows Runner Component]]
+- [[_COMMUNITY_Utils Image Component|Utils Image Component]]
+- [[_COMMUNITY_Web Manifest Component|Web Manifest Component]]
+- [[_COMMUNITY_Windows Runner Component|Windows Runner Component]]
+- [[_COMMUNITY_Screens Auth Component|Screens Auth Component]]
+- [[_COMMUNITY_Widgets Fast Component|Widgets Fast Component]]
+- [[_COMMUNITY_Data Ai Component|Data Ai Component]]
+- [[_COMMUNITY_Router App Component|Router App Component]]
+- [[_COMMUNITY_Admin Admin Component|Admin Admin Component]]
+- [[_COMMUNITY_Diary Calendar Component|Diary Calendar Component]]
+- [[_COMMUNITY_Screens Welcome Component|Screens Welcome Component]]
+- [[_COMMUNITY_Diary Lesson Component|Diary Lesson Component]]
+- [[_COMMUNITY_Ephemeral Flutter Component|Ephemeral Flutter Component]]
+- [[_COMMUNITY_Package Dnevnik Component|Package Dnevnik Component]]
+- [[_COMMUNITY_Plugins Generatedpluginregistrant Component|Plugins Generatedpluginregistrant Component]]
+- [[_COMMUNITY_Api Gemini Component|Api Gemini Component]]
+- [[_COMMUNITY_Windows Runner Component|Windows Runner Component]]
+- [[_COMMUNITY_Dnevnik App Component|Dnevnik App Component]]
+- [[_COMMUNITY_Route Create Component|Route Create Component]]
+- [[_COMMUNITY_Runner Generatedpluginregistrant Component|Runner Generatedpluginregistrant Component]]
+- [[_COMMUNITY_C Src Component|C Src Component]]
+- [[_COMMUNITY_C Src Component|C Src Component]]
+- [[_COMMUNITY_Concept Shared Component|Concept Shared Component]]
+- [[_COMMUNITY_Auth Gate Component|Auth Gate Component]]
+- [[_COMMUNITY_Create Class Component|Create Class Component]]
+- [[_COMMUNITY_Diaryscreen Component|Diaryscreen Component]]
+- [[_COMMUNITY_Join Class Component|Join Class Component]]
+- [[_COMMUNITY_Main Screen Component|Main Screen Component]]
+- [[_COMMUNITY_Materialpageroute Component|Materialpageroute Component]]
+- [[_COMMUNITY_Package Crypto Component|Package Crypto Component]]
+- [[_COMMUNITY_Welcome Screen Component|Welcome Screen Component]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `Create()` - 10 edges
-2. `MessageHandler()` - 10 edges
-3. `WndProc()` - 9 edges
-4. `_MyApplication` - 7 edges
-5. `HWND` - 7 edges
-6. `WindowClassRegistrar` - 7 edges
-7. `Destroy()` - 7 edges
-8. `MessageHandler()` - 6 edges
-9. `AppDelegate` - 5 edges
-10. `AdminPanelScreenState` - 5 edges
+1. `_` - 25 edges
+2. `authProvider` - 11 edges
+3. `Create()` - 10 edges
+4. `MessageHandler()` - 10 edges
+5. `WndProc()` - 9 edges
+6. `_MyApplication` - 7 edges
+7. `HWND` - 7 edges
+8. `WindowClassRegistrar` - 7 edges
+9. `Destroy()` - 7 edges
+10. `MessageHandler()` - 6 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Authentication and Gatekeeper Flow` --conceptually_related_to--> `dnevnik_app`  [INFERRED]
-  lib/screens/auth_gate.dart → pubspec.yaml
-- `Firestore Cloud Storage` --conceptually_related_to--> `dnevnik_app`  [INFERRED]
-  lib/data/firestore_service.dart → pubspec.yaml
-- `Google AI Studio API Integration` --conceptually_related_to--> `dnevnik_app`  [INFERRED]
-  lib/data/ai_service.dart → pubspec.yaml
 - `wWinMain()` --calls--> `CreateAndAttachConsole()`  [INFERRED]
   windows/runner/main.cpp → windows/runner/utils.cpp
+- `main()` --calls--> `my_application_new()`  [INFERRED]
+  linux/runner/main.cc → linux/runner/my_application.cc
 - `my_application_activate()` --calls--> `fl_register_plugins()`  [INFERRED]
   linux/runner/my_application.cc → linux/flutter/generated_plugin_registrant.cc
+- `OnCreate()` --calls--> `RegisterPlugins()`  [INFERRED]
+  windows/runner/flutter_window.cpp → windows/flutter/generated_plugin_registrant.cc
+- `OnCreate()` --calls--> `GetClientArea()`  [INFERRED]
+  windows/runner/flutter_window.cpp → windows/runner/win32_window.cpp
 
 ## Import Cycles
 - None detected.
 
-## Communities (44 total, 6 thin omitted)
+## Communities (65 total, 16 thin omitted)
 
-### Community 0 - "Admin Panel UI"
+### Community 0 - "Data Firestore Component"
 Cohesion: 0.04
-Nodes (49): _addLessonForDay, build, _buildAdminCard, _buildDangerZoneCard, _buildDayEditorTab, _buildEmptyState, _buildInfoCard, _buildList (+41 more)
+Nodes (50): auth_service.dart, addHomework, _applyLocalDoneState, _cachedHomework, _cacheExpiresAt, _cacheTtl, _classId, clearClassId (+42 more)
 
-### Community 1 - "App Entrypoint & Setup"
-Cohesion: 0.04
-Nodes (45): app_theme.dart, Color, dart:async, double get, _bootstrapRuntime, build, _configureDisplayMode, initialize (+37 more)
-
-### Community 2 - "Class Schedule Schema"
-Cohesion: 0.04
-Nodes (47): allSubjects, classCode, classId, className, ClassSchedule, copyWith, _dayPrefixes, deadline (+39 more)
-
-### Community 3 - "UI Custom Painting & Effects"
+### Community 1 - "Widgets Premium Component"
 Cohesion: 0.05
-Nodes (45): Animation, AnimationController, CustomPainter, dart:math, Offset, OverlayEntry, SingleTickerProviderStateMixin, VoidCallback (+37 more)
+Nodes (44): Animation, AnimationController, CustomPainter, dart:math, Offset, OverlayEntry, SingleTickerProviderStateMixin, Widget (+36 more)
 
-### Community 4 - "Firestore Data Operations"
-Cohesion: 0.04
-Nodes (45): addHomework, _cachedHomework, _cacheExpiresAt, _cacheTtl, _classId, clearClassId, _client, databaseId (+37 more)
-
-### Community 5 - "AI Chat Widget & Logic"
+### Community 2 - "Runner Appdelegate Component"
 Cohesion: 0.05
-Nodes (44): AIChatActivity get, ChangeNotifier, ImagePicker, String? get, TextEditingController, Timer?, _activity, AIChatActivity (+36 more)
+Nodes (30): Any, Cocoa, file_selector_macos, Flutter, RegisterGeneratedPlugins(), flutter_secure_storage_darwin, FlutterAppDelegate, FlutterImplicitEngineBridge (+22 more)
 
-### Community 6 - "macOS Native Bridges"
+### Community 3 - "Theme Theme Component"
+Cohesion: 0.05
+Nodes (41): app_theme.dart, Color, ConsumerWidget, dart:async, DiaryTopBar, _bootstrapRuntime, build, _configureDisplayMode (+33 more)
+
+### Community 4 - "Widgets Ai Component"
+Cohesion: 0.05
+Nodes (42): AIChatActivity get, ChangeNotifier, ImagePicker, TextEditingController, Timer?, _activity, AIChatActivity, AIChatController (+34 more)
+
+### Community 5 - "Screens Main Component"
 Cohesion: 0.06
-Nodes (29): Any, Cocoa, file_selector_macos, Flutter, RegisterGeneratedPlugins(), FlutterAppDelegate, FlutterImplicitEngineBridge, FlutterImplicitEngineDelegate (+21 more)
+Nodes (41): _DayEditor, _DayEditorState, AutomaticKeepAliveClientMixin, bool get, GlobalKey, PageController, ../screens/add_homework_modal.dart, ../screens/admin_panel_screen.dart (+33 more)
 
-### Community 7 - "App Theme & Styles"
-Cohesion: 0.05
-Nodes (41): @immutable, static const AppPalette, static const Color, static const double, static List, static ThemeData get, AppPalette, AppTheme (+33 more)
-
-### Community 8 - "Homework Creation UI"
-Cohesion: 0.05
-Nodes (40): ../data/ai_service.dart, ../data/schedule_data.dart, DateTime, package:image_picker/image_picker.dart, captureBoardPhoto, doSubmit, fieldSurface, formLabel (+32 more)
-
-### Community 9 - "Windows Win32 Windowing"
+### Community 6 - "Runner Win32 Component"
 Cohesion: 0.09
 Nodes (34): RegisterPlugins(), PluginRegistry, Point, RECT, OnCreate(), Create(), Destroy(), EnableFullDpiSupportIfAvailable() (+26 more)
 
-### Community 10 - "Class Creation UI"
+### Community 7 - "Theme App Component"
 Cohesion: 0.05
-Nodes (40): List, Map, _adminPassC, _adminPassConfirmC, _availableSubjects, build, _buildDayEditor, _buildField (+32 more)
+Nodes (39): @immutable, static const AppPalette, static const Color, static ThemeData get, AppPalette, AppTheme, bg, _buildTheme (+31 more)
 
-### Community 11 - "Image Files & System Paths"
-Cohesion: 0.05
-Nodes (36): Client? client,
-  Duration, dart:io, dart:typed_data, image_data.dart, library, package:flutter/foundation.dart, package:path_provider/path_provider.dart, return (+28 more)
-
-### Community 12 - "Diary & Calendar UI"
-Cohesion: 0.05
-Nodes (38): diary/diary_top_bar.dart, package:gal/gal.dart, build, _buildCalendarStrip, _buildDetailsSectionTitle, _buildHomeworkImageCard, _buildHomeworkKey, _buildHomeworkLookup (+30 more)
-
-### Community 13 - "Common Top Bars & Navigation"
+### Community 8 - "Screens Diary Component"
 Cohesion: 0.06
-Nodes (33): ../auth_gate.dart, create_class_screen.dart, dart:ui, ../data/auth_service.dart, build, DiaryTopBar, IconData, join_class_screen.dart (+25 more)
+Nodes (35): diary/diary_top_bar.dart, package:gal/gal.dart, build, _buildDetailsSectionTitle, _buildHomeworkImageCard, _buildHomeworkKey, _buildHomeworkLookup, _buildHomeworkTextCard (+27 more)
 
-### Community 14 - "Main Navigation Shell"
+### Community 9 - "Screens Create Component"
+Cohesion: 0.06
+Nodes (33): _adminPassC, _adminPassConfirmC, _availableSubjects, build, _buildDayEditor, _buildField, _classNameC, _createClass (+25 more)
+
+### Community 10 - "Data Schedule Component"
+Cohesion: 0.06
+Nodes (32): allSubjects, classCode, classId, className, ClassSchedule, _dayPrefixes, defaultLessonTimes, defaultSubjects (+24 more)
+
+### Community 11 - "Screens Admin Component"
+Cohesion: 0.06
+Nodes (32): AdminPanelScreen, AdminPanelScreenState, build, _buildEmptyState, _buildList, _buildTabButton, _buildTopBar, createState (+24 more)
+
+### Community 12 - "Data Auth Component"
+Cohesion: 0.06
+Nodes (30): AuthService, _base, _buildClassDoc, _buildScheduleMap, _client, createClass, _databaseId, deleteClass (+22 more)
+
+### Community 13 - "Admin Class Component"
 Cohesion: 0.07
-Nodes (30): bool get, GlobalKey, PageController, ../screens/add_homework_modal.dart, ../screens/admin_panel_screen.dart, ../screens/diary_screen.dart, _adminKey, _adminScreen (+22 more)
+Nodes (28): _addLessonForDay, build, _buildDangerZoneCard, _buildDayEditorTab, _buildInfoCard, _buildScheduleEditor, _classCode, classId (+20 more)
 
-### Community 15 - "Image Rendering Widgets"
+### Community 14 - "Data Schedule Component"
+Cohesion: 0.08
+Nodes (28): @freezed, @JsonSerializable, @unfreezed, class, hashCode, HomeworkItemPatterns, id, identical (+20 more)
+
+### Community 15 - "Widgets Network Component"
 Cohesion: 0.07
-Nodes (28): BoxFit, double?, Future, static const int, static final Map, ../utils/image_data.dart, build, _cache (+20 more)
+Nodes (27): BoxFit, double?, Future, static const Duration, static const int, static final Map, ../utils/image_data.dart, build (+19 more)
 
-### Community 16 - "User Auth Service"
+### Community 16 - "Screens Add Component"
 Cohesion: 0.07
-Nodes (26): AuthService, _base, _buildClassDoc, _buildScheduleMap, _client, createClass, _databaseId, deleteClass (+18 more)
+Nodes (27): ../data/ai_service.dart, package:image_picker/image_picker.dart, captureBoardPhoto, doSubmit, fieldSurface, formLabel, imagePicker, isQuickMode (+19 more)
 
-### Community 17 - "Linux GTK Platform Runner"
-Cohesion: 0.11
+### Community 17 - "Utils App Component"
+Cohesion: 0.07
+Nodes (25): library, return, app_date_utils, date, day, defaultHomeworkDeadline, formatDate, formatDateIso (+17 more)
+
+### Community 18 - "Runner My Component"
+Cohesion: 0.10
 Nodes (22): FlPluginRegistry, fl_register_plugins(), FlView, GApplication, gboolean, gchar, GObject, GtkApplication (+14 more)
 
-### Community 18 - "Join Class UI"
+### Community 19 - "Admin Class Component"
+Cohesion: 0.17
+Nodes (16): ClassSettingsTab, ClassSettingsTabState, _confirmDeleteClass, ConsumerState, ConsumerStatefulWidget, build, authProvider, CreateClassScreen (+8 more)
+
+### Community 20 - "Providers Auth Component"
+Cohesion: 0.12
+Nodes (15): AuthState, ../data/auth_service.dart, ../data/firestore_service.dart, Notifier, AuthNotifier, AuthState, AuthStatus, build (+7 more)
+
+### Community 21 - "Screens Join Component"
 Cohesion: 0.13
-Nodes (15): package:flutter/services.dart, build, _codeC, createState, dispose, _error, formatEditUpdate, JoinClassScreen (+7 more)
+Nodes (14): AppPalette get, package:flutter/services.dart, build, _codeC, createState, dispose, _error, formatEditUpdate (+6 more)
 
-### Community 19 - "Authentication Router"
-Cohesion: 0.18
-Nodes (11): AppPalette get, ../data/firestore_service.dart, main_screen.dart, AuthGate, _AuthGateState, build, _checkSession, createState (+3 more)
+### Community 22 - "Screens Welcome Component"
+Cohesion: 0.13
+Nodes (14): dart:ui, IconData, createState, dispose, _emailC, _error, _field, icon (+6 more)
 
-### Community 20 - "Admin Tab Layouts"
-Cohesion: 0.23
-Nodes (12): AutomaticKeepAliveClientMixin, DiaryScreen, AdminPanelScreen, AdminPanelScreenState, _ClassSettingsTab, _ClassSettingsTabState, _DayEditor, _DayEditorState (+4 more)
+### Community 23 - "Utils Image Component"
+Cohesion: 0.15
+Nodes (12): Client? client,
+  Duration, dart:typed_data, commaIndex, decodeInlineImageData, encodeInlineImageData, inferImageMimeType, isInlineImageData, isRemoteImageUrl (+4 more)
 
-### Community 21 - "Services Integration Tests"
+### Community 24 - "Test Test Component"
 Cohesion: 0.18
 Nodes (10): dart:convert, package:http/http.dart, apiKey, client, main, models, base, client (+2 more)
 
-### Community 22 - "Windows App Entrypoint"
+### Community 25 - "Windows Runner Component"
 Cohesion: 0.23
 Nodes (9): _In_, _In_opt_, wWinMain(), CreateAndAttachConsole(), GetCommandLineArguments(), Utf8FromUtf16(), vector, string (+1 more)
 
-### Community 23 - "PWA Web Settings"
+### Community 26 - "Utils Image Component"
+Cohesion: 0.18
+Nodes (10): dart:io, image_data.dart, package:flutter/foundation.dart, package:path_provider/path_provider.dart, cleanupTemporaryPickerFiles, maxEmbeddedImageChars, null, pickedImageMaxSide (+2 more)
+
+### Community 27 - "Web Manifest Component"
 Cohesion: 0.18
 Nodes (10): background_color, description, display, icons, name, orientation, prefer_related_applications, short_name (+2 more)
 
-### Community 24 - "Gemini AI Service Client"
-Cohesion: 0.20
-Nodes (9): Client, AIService, _apiKey, _apiUrl, _client, _extractQuickHomeworkJson, getAIResponse, recognizeQuickHomework (+1 more)
-
-### Community 25 - "Windows Shell Engine"
+### Community 28 - "Windows Runner Component"
 Cohesion: 0.22
 Nodes (8): DartProject, MessageHandler(), HWND, LPARAM, LRESULT, FlutterWindow(), UINT, WPARAM
 
-### Community 26 - "LLDB Debugger Utilities"
+### Community 29 - "Screens Auth Component"
+Cohesion: 0.22
+Nodes (8): ../data/schedule_data.dart, package:flutter/material.dart, package:flutter_riverpod/flutter_riverpod.dart, ../providers/auth_provider.dart, AuthGate, build, ../theme/app_theme.dart, ../../widgets/theme_switch_button.dart
+
+### Community 30 - "Widgets Fast Component"
+Cohesion: 0.20
+Nodes (9): double get, PageScrollPhysics, SpringDescription get, applyTo, dragStartDistanceMotionThreshold, FastPageScrollPhysics, minFlingDistance, minFlingVelocity (+1 more)
+
+### Community 31 - "Data Ai Component"
+Cohesion: 0.22
+Nodes (8): Client, AIService, _apiUrl, _client, _extractQuickHomeworkJson, getAIResponse, recognizeQuickHomework, static const String
+
+### Community 32 - "Router App Component"
+Cohesion: 0.22
+Nodes (8): GoRouter, package:go_router/go_router.dart, authState, screens/auth_gate.dart, ../screens/create_class_screen.dart, ../screens/join_class_screen.dart, ../screens/main_screen.dart, ../screens/welcome_screen.dart
+
+### Community 33 - "Admin Admin Component"
+Cohesion: 0.25
+Nodes (7): build, hw, images, onDelete, onEdit, List, ../network_photo.dart
+
+### Community 34 - "Diary Calendar Component"
+Cohesion: 0.25
+Nodes (7): DateTime, build, days, _isSameDay, scrollController, selectedDayIndex, today
+
+### Community 35 - "Screens Welcome Component"
+Cohesion: 0.29
+Nodes (7): AdminHomeworkCard, CalendarStrip, _WelcomeButton, WelcomeScreen, StatelessWidget, _PhotoStateBox, ThemeSwitchButton
+
+### Community 36 - "Diary Lesson Component"
+Cohesion: 0.29
+Nodes (6): build, customHw, lesson, LessonCard, onTap, VoidCallback
+
+### Community 37 - "Ephemeral Flutter Component"
 Cohesion: 0.33
 Nodes (5): handle_new_rx_page(), __lldb_init_module(), Intercept NOTIFY_DEBUGGER_ABOUT_RX_PAGES and touch the pages., SBDebugger, SBFrame
 
-### Community 27 - "Core Concepts & Config"
-Cohesion: 0.40
-Nodes (5): Authentication and Gatekeeper Flow, Firestore Cloud Storage, Google AI Studio API Integration, SharedPreferences Cache, dnevnik_app
-
-### Community 28 - "Widget Behavior Tests"
+### Community 38 - "Package Dnevnik Component"
 Cohesion: 0.40
 Nodes (4): package:dnevnik_app/main.dart, package:dnevnik_app/screens/auth_gate.dart, package:flutter_test/flutter_test.dart, main
 
+### Community 43 - "Route Create Component"
+Cohesion: 0.67
+Nodes (3): Route /create, Route /join, build
+
 ## Knowledge Gaps
-- **551 isolated node(s):** `SBFrame`, `SBDebugger`, `flutter_export_environment.sh script`, `UIApplication`, `Any` (+546 more)
+- **572 isolated node(s):** `SBFrame`, `SBDebugger`, `flutter_export_environment.sh script`, `UIApplication`, `Any` (+567 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `HomeworkItem` connect `Class Schedule Schema` to `Admin Panel UI`, `Firestore Data Operations`?**
-  _High betweenness centrality (0.012) - this node is a cross-community bridge._
-- **Why does `DiaryScreenState` connect `Admin Tab Layouts` to `Diary & Calendar UI`, `Main Navigation Shell`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Why does `_` connect `Data Schedule Component` to `Utils App Component`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **What connects `SBFrame`, `SBDebugger`, `Intercept NOTIFY_DEBUGGER_ABOUT_RX_PAGES and touch the pages.` to the rest of the system?**
-  _552 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Admin Panel UI` be split into smaller, more focused modules?**
-  _Cohesion score 0.04 - nodes in this community are weakly interconnected._
-- **Should `App Entrypoint & Setup` be split into smaller, more focused modules?**
-  _Cohesion score 0.04421768707482993 - nodes in this community are weakly interconnected._
-- **Should `Class Schedule Schema` be split into smaller, more focused modules?**
-  _Cohesion score 0.041666666666666664 - nodes in this community are weakly interconnected._
-- **Should `UI Custom Painting & Effects` be split into smaller, more focused modules?**
-  _Cohesion score 0.04625346901017576 - nodes in this community are weakly interconnected._
+  _573 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Data Firestore Component` be split into smaller, more focused modules?**
+  _Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected._
+- **Should `Widgets Premium Component` be split into smaller, more focused modules?**
+  _Cohesion score 0.0463768115942029 - nodes in this community are weakly interconnected._
+- **Should `Runner Appdelegate Component` be split into smaller, more focused modules?**
+  _Cohesion score 0.05496828752642706 - nodes in this community are weakly interconnected._
+- **Should `Theme Theme Component` be split into smaller, more focused modules?**
+  _Cohesion score 0.048625792811839326 - nodes in this community are weakly interconnected._
+- **Should `Widgets Ai Component` be split into smaller, more focused modules?**
+  _Cohesion score 0.046511627906976744 - nodes in this community are weakly interconnected._
