@@ -1,19 +1,21 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'schedule_data.dart';
 
 class AuthService {
   static const String _projectId = 'domashka-381cb';
   static const String _databaseId = '(default)';
-  static const String firebaseWebApiKey = 'AIzaSyBUxrNWBGasZjWUvR6qtY0BuKr35iebUTQ';
+  static String get firebaseWebApiKey => dotenv.env['FIREBASE_WEB_API_KEY'] ?? '';
   static final http.Client _client = http.Client();
   static const Duration _timeout = Duration(seconds: 15);
+  static const _secureStorage = FlutterSecureStorage();
 
   static String? _idToken;
   static String? get idToken => _idToken;
@@ -62,7 +64,10 @@ class AuthService {
       );
 
       if (authRes.statusCode != 200) {
-        debugPrint('Firebase Auth SignUp failed: ${authRes.body}');
+        assert(() {
+          debugPrint('Firebase Auth SignUp failed: ${authRes.statusCode}');
+          return true;
+        }());
         return null;
       }
       _idToken = jsonDecode(authRes.body)['idToken'];
@@ -74,7 +79,6 @@ class AuthService {
         classId: classId,
         code: code,
         adminEmail: adminEmail.trim().toLowerCase(),
-        adminHash: hashPassword(adminPassword), // Оставляем для совместимости
         className: className,
         schoolName: schoolName,
         subjects: subjects,
@@ -145,10 +149,12 @@ class AuthService {
         body: jsonEncode({'returnSecureToken': true}),
       );
       String? refreshToken;
+      String? localId;
       if (authRes.statusCode == 200) {
         final data = jsonDecode(authRes.body);
         _idToken = data['idToken'];
         refreshToken = data['refreshToken'];
+        localId = data['localId'];
       }
 
       final upperCode = code.trim().toUpperCase();
@@ -173,6 +179,24 @@ class AuthService {
       if (classRes.statusCode != 200) return null;
 
       final classDoc = jsonDecode(classRes.body) as Map<String, dynamic>;
+
+      if (localId != null && _idToken != null) {
+        final memberRes = await _client.post(
+          Uri.parse('$_base/classes/$classId/members?documentId=$localId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_idToken'
+          },
+          body: jsonEncode({
+            'fields': {
+              'joinedAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+            }
+          }),
+        ).timeout(_timeout);
+        if (memberRes.statusCode != 200 && memberRes.statusCode != 201) {
+            debugPrint('Failed to add member: ${memberRes.statusCode}');
+        }
+      }
 
       ClassSchedule.loadFromFirestoreDoc(classDoc);
       await _saveSession(classId, 'student', null, refreshToken);
@@ -201,7 +225,10 @@ class AuthService {
       );
 
       if (authRes.statusCode != 200) {
-        debugPrint('Firebase Auth Login failed: ${authRes.body}');
+        assert(() {
+          debugPrint('Firebase Auth Login failed: ${authRes.statusCode}');
+          return true;
+        }());
         return null;
       }
       final authData = jsonDecode(authRes.body);
@@ -365,10 +392,22 @@ class AuthService {
 
       final doc = jsonDecode(classRes.body) as Map<String, dynamic>;
       final fields = (doc['fields'] ?? {}) as Map<String, dynamic>;
-      final storedHash = fields['adminPasswordHash']?['stringValue'] as String?;
+      final adminEmail = fields['adminEmail']?['stringValue'] as String?;
       final classCode = fields['code']?['stringValue'] as String? ?? '';
 
-      if (storedHash == null || hashPassword(adminPassword) != storedHash) {
+      if (adminEmail == null) return false;
+
+      final reAuthRes = await _client.post(
+        Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$firebaseWebApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': adminEmail,
+          'password': adminPassword,
+          'returnSecureToken': true
+        }),
+      );
+
+      if (reAuthRes.statusCode != 200) {
         return false;
       }
 
@@ -423,7 +462,7 @@ class AuthService {
       await prefs.setString('dnevnik_admin_email', email);
     }
     if (refreshToken != null) {
-      await prefs.setString('dnevnik_refresh_token', refreshToken);
+      await _secureStorage.write(key: 'dnevnik_refresh_token', value: refreshToken);
     }
   }
 
@@ -443,13 +482,23 @@ class AuthService {
     await prefs.remove('dnevnik_role');
     await prefs.remove('dnevnik_admin_email');
     await prefs.remove('dnevnik_refresh_token');
+    await _secureStorage.delete(key: 'dnevnik_refresh_token');
     _idToken = null;
     ClassSchedule.reset();
   }
 
   static Future<bool> restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
-    final refreshToken = prefs.getString('dnevnik_refresh_token');
+    String? refreshToken = await _secureStorage.read(key: 'dnevnik_refresh_token');
+    
+    if (refreshToken == null) {
+      refreshToken = prefs.getString('dnevnik_refresh_token');
+      if (refreshToken != null) {
+        await _secureStorage.write(key: 'dnevnik_refresh_token', value: refreshToken);
+        await prefs.remove('dnevnik_refresh_token');
+      }
+    }
+    
     if (refreshToken == null) return false;
 
     try {
@@ -467,7 +516,7 @@ class AuthService {
         _idToken = data['id_token'];
         final newRefreshToken = data['refresh_token'];
         if (newRefreshToken != null) {
-          await prefs.setString('dnevnik_refresh_token', newRefreshToken);
+          await _secureStorage.write(key: 'dnevnik_refresh_token', value: newRefreshToken);
         }
         return true;
       }
@@ -556,7 +605,6 @@ class AuthService {
     required String classId,
     required String code,
     required String adminEmail,
-    required String adminHash,
     required String className,
     required String schoolName,
     required List<String> subjects,
@@ -568,7 +616,6 @@ class AuthService {
         'classId': {'stringValue': classId},
         'code': {'stringValue': code},
         'adminEmail': {'stringValue': adminEmail},
-        'adminPasswordHash': {'stringValue': adminHash},
         'className': {'stringValue': className},
         'schoolName': {'stringValue': schoolName},
         'subjects': {
