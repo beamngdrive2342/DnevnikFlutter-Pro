@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.5.0
+  sdk: ^3.8.0
 
 dependencies:
   flutter:
@@ -23,11 +23,16 @@ dependencies:
   flutter_displaymode: ^0.6.0
   flutter_dotenv: ^6.0.1
   flutter_secure_storage: ^10.3.1
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  build_runner: ^2.15.0
+  freezed: ^3.2.5
+  json_serializable: ^6.14.0
 
 flutter:
   uses-material-design: true

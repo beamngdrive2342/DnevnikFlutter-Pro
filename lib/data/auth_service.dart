@@ -23,11 +23,6 @@ class AuthService {
   static String get _base =>
       'https://firestore.googleapis.com/v1/projects/$_projectId/databases/$_databaseId/documents';
 
-  // ── Hashing ──────────────────────────────────────────────────────────
-
-  static String hashPassword(String password) {
-    return sha256.convert(utf8.encode(password)).toString();
-  }
 
   static String generateClassCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -72,7 +67,10 @@ class AuthService {
       }
       _idToken = jsonDecode(authRes.body)['idToken'];
 
-      final classId = 'cls_${DateTime.now().millisecondsSinceEpoch}';
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      final rng = Random.secure();
+      final randomStr = List.generate(24, (_) => chars[rng.nextInt(chars.length)]).join();
+      final classId = 'cls_$randomStr';
       final code = generateClassCode();
 
       final body = _buildClassDoc(
@@ -113,6 +111,7 @@ class AuthService {
             body: jsonEncode({
               'fields': {
                 'classId': {'stringValue': classId},
+                'adminEmail': {'stringValue': adminEmail.trim().toLowerCase()},
               }
             }),
           )

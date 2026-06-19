@@ -1,71 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class Lesson {
-  final String id;
-  final int num;
-  final String subject;
-  final String room;
-  final String time;
-  final String topic;
-  final String hw;
+part 'schedule_data.freezed.dart';
+part 'schedule_data.g.dart';
 
-  Lesson({
-    required this.id,
-    required this.num,
-    required this.subject,
-    required this.room,
-    required this.time,
-    this.topic = 'Обычный урок',
-    this.hw = '',
-  });
+@freezed
+abstract class Lesson with _$Lesson {
+  const factory Lesson({
+    required String id,
+    required int num,
+    required String subject,
+    required String room,
+    required String time,
+    @Default('Обычный урок') String topic,
+    @Default('') String hw,
+  }) = _Lesson;
 
-  Lesson copyWith({String? hw}) {
-    return Lesson(
-      id: id,
-      num: num,
-      subject: subject,
-      room: room,
-      time: time,
-      topic: topic,
-      hw: hw ?? this.hw,
-    );
-  }
+  factory Lesson.fromJson(Map<String, dynamic> json) => _$LessonFromJson(json);
 }
 
-class HomeworkItem {
-  final String id;
-  final String subject;
-  final String task;
-  final String deadline; // YYYY-MM-DD
-  final String? imageUrl;
-  final List<String>? imageUrls;
-  final List<String>? fullResolutionUrls;
-  bool done;
-  final bool fromSchedule;
+@unfreezed
+abstract class HomeworkItem with _$HomeworkItem {
+  HomeworkItem._();
 
-  HomeworkItem({
-    required this.id,
-    required this.subject,
-    required this.task,
-    required this.deadline,
-    this.imageUrl,
-    this.imageUrls,
-    this.fullResolutionUrls,
-    this.done = false,
-    this.fromSchedule = false,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'subject': subject,
-        'task': task,
-        'deadline': deadline,
-        'imageUrl': imageUrl,
-        'imageUrls': imageUrls,
-        'fullResolutionUrls': fullResolutionUrls,
-        'done': done,
-        'fromSchedule': fromSchedule,
-      };
+  factory HomeworkItem({
+    required String id,
+    required String subject,
+    required String task,
+    required String deadline,
+    String? imageUrl,
+    List<String>? imageUrls,
+    List<String>? fullResolutionUrls,
+    @Default(false) bool done,
+    @Default(false) bool fromSchedule,
+  }) = _HomeworkItem;
 
   factory HomeworkItem.fromJson(Map<String, dynamic> json) {
     List<String>? parsedUrls;
@@ -82,35 +50,30 @@ class HomeworkItem {
       parsedFullUrls = List<String>.from(json['fullResolutionUrls']);
     }
 
-    return HomeworkItem(
-      id: json['id'],
-      subject: json['subject'],
-      task: json['task'],
-      deadline: json['deadline'],
-      imageUrl: json['imageUrl'],
+    return _HomeworkItem(
+      id: json['id'] as String,
+      subject: json['subject'] as String,
+      task: json['task'] as String,
+      deadline: json['deadline'] as String,
+      imageUrl: json['imageUrl'] as String?,
       imageUrls: parsedUrls,
       fullResolutionUrls: parsedFullUrls,
-      done: json['done'] ?? false,
-      fromSchedule: json['fromSchedule'] ?? false,
+      done: json['done'] as bool? ?? false,
+      fromSchedule: json['fromSchedule'] as bool? ?? false,
     );
   }
 
-  HomeworkItem copyWith(
-      {String? task,
-      List<String>? imageUrls,
-      List<String>? fullResolutionUrls}) {
-    return HomeworkItem(
-      id: id,
-      subject: subject,
-      task: task ?? this.task,
-      deadline: deadline,
-      imageUrl: imageUrl,
-      imageUrls: imageUrls ?? this.imageUrls,
-      fullResolutionUrls: fullResolutionUrls ?? this.fullResolutionUrls,
-      done: done,
-      fromSchedule: fromSchedule,
-    );
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'subject': subject,
+        'task': task,
+        'deadline': deadline,
+        'imageUrl': imageUrl,
+        'imageUrls': imageUrls,
+        'fullResolutionUrls': fullResolutionUrls,
+        'done': done,
+        'fromSchedule': fromSchedule,
+      };
 }
 
 final Map<String, Color> subjectColors = {

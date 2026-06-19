@@ -8,6 +8,8 @@ import '../utils/image_data.dart';
 import '../widgets/fast_page_scroll_physics.dart';
 import '../widgets/network_photo.dart';
 import '../widgets/top_notification.dart';
+import '../widgets/diary/lesson_card.dart';
+import '../widgets/diary/calendar_strip.dart';
 import 'diary/diary_top_bar.dart';
 
 class DiaryScreen extends StatefulWidget {
@@ -98,7 +100,21 @@ class DiaryScreenState extends State<DiaryScreen>
       children: [
         const DiaryTopBar(),
         const SizedBox(height: 12),
-        _buildCalendarStrip(),
+        CalendarStrip(
+          days: _days,
+          today: _today,
+          selectedDayIndex: _selectedDayIndex,
+          scrollController: _calendarScrollController,
+          onDaySelected: (index) {
+            setState(() => _selectedDayIndex = index);
+            _pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 170),
+              curve: Curves.easeOutCubic,
+            );
+            _scrollToIndex(index);
+          },
+        ),
         // Native paged scrolling: smoother and less jank than manual drag+spring.
         Expanded(
           child: PageView.builder(
@@ -121,107 +137,7 @@ class DiaryScreenState extends State<DiaryScreen>
 
   // ═══════════════════════════════════ CALENDAR STRIP
 
-  Widget _buildCalendarStrip() {
-    return SizedBox(
-      height: 82,
-      child: ListView.builder(
-        controller: _calendarScrollController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _days.length,
-        itemBuilder: (context, index) {
-          final d = _days[index];
-          final isToday = _isSameDay(d, _today);
-          final isSelected = index == _selectedDayIndex;
-          final dayOfWeek = d.weekday - 1; // 0=Mon, 6=Sun
-          final hasLessons = weekSchedule[dayOfWeek] != null &&
-              weekSchedule[dayOfWeek]!.isNotEmpty;
 
-          return GestureDetector(
-            onTap: () {
-              setState(() => _selectedDayIndex = index);
-              _pageController.animateToPage(
-                index,
-                duration: const Duration(milliseconds: 170),
-                curve: Curves.easeOutCubic,
-              );
-              _scrollToIndex(index);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              width: 56,
-              margin: const EdgeInsets.only(right: 6),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primary : palette.surface,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                border: Border.all(
-                  color: isSelected ? AppTheme.primary : palette.cardBorder,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppTheme.primary.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        )
-                      ]
-                    : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    weekdaysShort[dayOfWeek],
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: isSelected
-                          ? Colors.white.withValues(alpha: 0.78)
-                          : palette.onSurface3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${d.day}',
-                    style: TextStyle(
-                      fontFamily: AppTheme.fontSerif,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : palette.onBg,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (hasLessons)
-                    Container(
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected
-                            ? Colors.white.withValues(alpha: 0.6)
-                            : AppTheme.primaryDim.withValues(alpha: 0.5),
-                      ),
-                    )
-                  else if (isToday && !isSelected)
-                    Container(
-                      width: 4,
-                      height: 4,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   // ═══════════════════════════════════ LESSONS
   Widget _buildLessonsSectionForDay(DateTime date) {
@@ -258,9 +174,16 @@ class DiaryScreenState extends State<DiaryScreen>
           _buildNoLessons()
         else
           ...lessons.asMap().entries.map((entry) {
-            return _buildLessonCard(
-              entry.value,
-              lessonHomework[entry.key] ?? const <HomeworkItem>[],
+            return LessonCard(
+              lesson: entry.value,
+              customHw: lessonHomework[entry.key] ?? const <HomeworkItem>[],
+              onTap: () {
+                _showLessonDetailsSheet(
+                  context,
+                  entry.value,
+                  lessonHomework[entry.key] ?? const <HomeworkItem>[],
+                );
+              },
             );
           }),
       ],
@@ -306,194 +229,7 @@ class DiaryScreenState extends State<DiaryScreen>
     );
   }
 
-  Widget _buildLessonCard(Lesson lesson, List<HomeworkItem> customHw) {
-    final hasAnyHw = lesson.hw.isNotEmpty || customHw.isNotEmpty;
 
-    return RepaintBoundary(
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: palette.cardBg,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          border: Border.all(color: palette.cardBorder),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            onTap: () {
-              if (hasAnyHw) {
-                _showLessonDetailsSheet(context, lesson, customHw);
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.primaryLight,
-                        ),
-                        child: Center(
-                          child: Text('${lesson.num}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.primaryDim,
-                              )),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(lesson.subject,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: palette.onBg,
-                                        height: 1.2,
-                                      )),
-                                ),
-                                if (hasAnyHw)
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    margin:
-                                        const EdgeInsets.only(left: 8, top: 2),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppTheme.primaryDim,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.primaryDim
-                                              .withValues(alpha: 0.5),
-                                          blurRadius: 4,
-                                          spreadRadius: 1,
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            Text(lesson.time,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: palette.onBg.withValues(alpha: 0.45),
-                                )),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (hasAnyHw) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryDim.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        border: Border.all(
-                            color: AppTheme.primaryDim.withValues(alpha: 0.2)),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Container(
-                              width: 4,
-                              color: AppTheme.primaryDim,
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Row(
-                                      children: [
-                                        Icon(Icons.assignment_rounded,
-                                            size: 12,
-                                            color: AppTheme.primaryDim),
-                                        SizedBox(width: 6),
-                                        Text('ЗАДАНО',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1.0,
-                                              color: AppTheme.primaryDim,
-                                            )),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (lesson.hw.isNotEmpty)
-                                      Text(lesson.hw,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: palette.onSurface,
-                                            height: 1.5,
-                                            fontWeight: FontWeight.w500,
-                                          )),
-                                    for (var ch in customHw)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                            top: (lesson.hw.isNotEmpty ||
-                                                    customHw.indexOf(ch) > 0)
-                                                ? 6
-                                                : 0),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text('• ',
-                                                style: TextStyle(
-                                                    color: AppTheme.primaryDim,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13)),
-                                            Expanded(
-                                                child: Text(ch.task,
-                                                    style: TextStyle(
-                                                        fontSize: 13,
-                                                        color:
-                                                            palette.onSurface,
-                                                        height: 1.5,
-                                                        fontWeight:
-                                                            FontWeight.w500))),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   // ignore: unused_element
   void _showLessonDetails(
@@ -1082,8 +818,6 @@ class DiaryScreenState extends State<DiaryScreen>
     );
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 
   Future<void> _saveImageToGallery(BuildContext context, String source) async {
     try {

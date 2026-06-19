@@ -23,6 +23,37 @@ class FirestoreService {
   static String? _classId;
   static String? get classId => _classId;
 
+  static const _doneKeyPrefix = 'hw_done_';
+
+  static Future<void> setHomeworkDone(String hwId, bool done) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (done) {
+      await prefs.setBool('$_doneKeyPrefix$hwId', true);
+    } else {
+      await prefs.remove('$_doneKeyPrefix$hwId');
+    }
+    
+    final currentCache = _cachedHomework;
+    if (currentCache != null) {
+      final updated = currentCache.map((item) {
+        if (item.id == hwId) {
+          item.done = done;
+        }
+        return item;
+      }).toList(growable: false);
+      _cachedHomework = List.unmodifiable(updated);
+      _persistHomework(updated);
+    }
+  }
+
+  static Future<List<HomeworkItem>> _applyLocalDoneState(List<HomeworkItem> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final hw in items) {
+      hw.done = prefs.getBool('$_doneKeyPrefix${hw.id}') ?? false;
+    }
+    return items;
+  }
+
   static void setClassId(String classId) {
     _classId = classId;
     _cachedHomework = null;
@@ -128,6 +159,7 @@ class FirestoreService {
         final allHomework = documents
             .map((doc) => _fromFirestore(doc as Map<String, dynamic>))
             .toList(growable: false);
+        await _applyLocalDoneState(allHomework);
         final expiredHomework =
             allHomework.where(_isExpiredHomework).toList(growable: false);
         final homework = allHomework
@@ -293,13 +325,15 @@ class FirestoreService {
       if (decoded is! List) {
         return const [];
       }
-      return decoded
+      final list = decoded
           .whereType<Map>()
           .map<Map<String, dynamic>>(
             (item) => Map<String, dynamic>.from(item.cast<String, dynamic>()),
           )
           .map<HomeworkItem>(_fromFirestore)
           .toList(growable: false);
+      await _applyLocalDoneState(list);
+      return list;
     } catch (e) {
       debugPrint('Read persisted homework cache skipped: $e');
       return const [];
@@ -514,7 +548,6 @@ class FirestoreService {
                   hw.fullResolutionUrls!.map((u) => {'stringValue': u}).toList()
             }
           },
-        'done': {'booleanValue': hw.done},
         'fromSchedule': {'booleanValue': hw.fromSchedule},
       }
     };
@@ -550,7 +583,6 @@ class FirestoreService {
       imageUrl: fields['imageUrl']?['stringValue'],
       imageUrls: urls,
       fullResolutionUrls: fullUrls,
-      done: parseBool('done'),
       fromSchedule: parseBool('fromSchedule'),
     );
   }
