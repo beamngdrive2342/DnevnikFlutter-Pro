@@ -38,7 +38,8 @@ class CalendarStrip extends StatelessWidget {
           final isToday = _isSameDay(d, today);
           final isSelected = index == selectedDayIndex;
           final dayOfWeek = d.weekday - 1; // 0=Mon, 6=Sun
-          final hasLessons = weekSchedule[dayOfWeek] != null &&
+          final hasLessons =
+              weekSchedule[dayOfWeek] != null &&
               weekSchedule[dayOfWeek]!.isNotEmpty;
 
           return GestureDetector(
@@ -61,7 +62,7 @@ class CalendarStrip extends StatelessWidget {
                           color: AppTheme.primary.withValues(alpha: 0.4),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
-                        )
+                        ),
                       ]
                     : null,
               ),
