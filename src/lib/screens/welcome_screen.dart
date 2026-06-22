@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,33 +17,21 @@ class WelcomeScreen extends StatelessWidget {
       backgroundColor: palette.bg,
       body: Stack(
         children: [
-          // Background blobs
+          // Background Glow
           Positioned(
-            top: -100,
-            right: -50,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 36, sigmaY: 36),
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.primary.withValues(alpha: 0.15),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 50,
+            top: -150,
             left: -100,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 42, sigmaY: 42),
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.blue.withValues(alpha: 0.1),
+            right: -100,
+            child: Container(
+              height: 500,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppTheme.primary.withValues(alpha: 0.25),
+                    AppTheme.primary.withValues(alpha: 0.0),
+                  ],
+                  stops: const [0.1, 1.0],
                 ),
               ),
             ),
@@ -92,7 +79,6 @@ class WelcomeScreen extends StatelessWidget {
                   _WelcomeButton(
                     icon: Icons.add_circle_outline_rounded,
                     title: 'Создать класс',
-                    subtitle: 'Для администратора класса',
                     onTap: () => context.push('/create'),
                   ),
                   const SizedBox(height: 16),
@@ -101,7 +87,6 @@ class WelcomeScreen extends StatelessWidget {
                   _WelcomeButton(
                     icon: Icons.login_rounded,
                     title: 'Войти в класс',
-                    subtitle: 'По коду от администратора',
                     onTap: () => context.push('/join'),
                   ),
 
@@ -111,8 +96,12 @@ class WelcomeScreen extends StatelessWidget {
                   TextButton(
                     onPressed: () => _showAdminLoginDialog(context),
                     child: Text(
-                      'Уже есть класс? Войти как админ',
-                      style: TextStyle(color: palette.onSurface2, fontSize: 13),
+                      'Войти как админ',
+                      style: TextStyle(
+                        color: palette.onSurface2,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -139,13 +128,11 @@ class WelcomeScreen extends StatelessWidget {
 class _WelcomeButton extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
   final VoidCallback onTap;
 
   const _WelcomeButton({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.onTap,
   });
 
@@ -153,50 +140,34 @@ class _WelcomeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppTheme.colorsOf(context);
     return Material(
-      color: palette.cardBg,
-      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+      color: palette.cardBg.withValues(alpha: 0.6), // Dark translucent
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            border: Border.all(color: palette.cardBorder),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
           ),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.primaryLight,
-                ),
-                child: Icon(icon, color: AppTheme.primary, size: 24),
-              ),
-              const SizedBox(width: 16),
+              Icon(icon, color: palette.onBg, size: 28),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: palette.onBg,
-                        )),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: palette.onSurface2,
-                        )),
-                  ],
+                child: Center(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: palette.onBg,
+                    ),
+                  ),
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: palette.onSurface3),
+              const SizedBox(width: 28), // Balance for centering text
             ],
           ),
         ),
