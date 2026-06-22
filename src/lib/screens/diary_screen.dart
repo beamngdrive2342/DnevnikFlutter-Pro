@@ -10,6 +10,7 @@ import '../widgets/network_photo.dart';
 import '../widgets/top_notification.dart';
 import '../widgets/diary/lesson_card.dart';
 import '../widgets/diary/calendar_strip.dart';
+import '../widgets/shimmer_loading.dart';
 import 'diary/diary_top_bar.dart';
 
 class DiaryScreen extends StatefulWidget {
@@ -34,6 +35,7 @@ class DiaryScreenState extends State<DiaryScreen>
   late List<DateTime> _days;
   late DateTime _today;
   Map<String, List<HomeworkItem>> _homeworkLookup = {};
+  bool _isLoadingHomework = true;
 
   @override
   void initState() {
@@ -51,10 +53,14 @@ class DiaryScreenState extends State<DiaryScreen>
   }
 
   Future<void> _loadCustomHomework({bool forceRefresh = false}) async {
+    setState(() {
+      _isLoadingHomework = true;
+    });
     final list = await FirestoreService.getHomework(forceRefresh: forceRefresh);
     if (!mounted) return;
     setState(() {
       _homeworkLookup = _buildHomeworkLookup(list);
+      _isLoadingHomework = false;
     });
   }
 
@@ -148,8 +154,8 @@ class DiaryScreenState extends State<DiaryScreen>
     final lessonHomework = _buildLessonHomeworkMap(dateStr, lessons);
 
     return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -170,7 +176,9 @@ class DiaryScreenState extends State<DiaryScreen>
           ],
         ),
         const SizedBox(height: 16),
-        if (lessons.isEmpty)
+        if (_isLoadingHomework && lessons.isNotEmpty)
+          ...List.generate(lessons.length, (i) => const SkeletonLessonCard())
+        else if (lessons.isEmpty)
           _buildNoLessons()
         else
           ...lessons.asMap().entries.map((entry) {

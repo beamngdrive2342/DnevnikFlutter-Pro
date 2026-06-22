@@ -13,6 +13,16 @@
 
 ---
 
+## 2026-06-23 - Внедрение единого дизайн-ядра (PremiumCard & ShimmerLoading)
+
+- **Status:** accepted
+- **Decision:** Использовать кастомные премиум-виджеты (PremiumCard с глассморфизмом, ShimmerLoading для скелетонов, SwipeUpToEnter) вместо стандартных компонентов Material Design
+- **Why:** Стандартный Material 3 не подходит под премиальный стиль "Sahara Warm Minimalism"; кастомные виджеты инкапсулируют сложную логику анимаций и блюра, упрощая код экранов
+- **Consequences:** Все новые карточки должны наследоваться/использовать `PremiumCard`; для индикации загрузки списков обязательно использовать `ShimmerLoading`
+- **Rollback:** Заменить `PremiumCard` на `Card` из Flutter, убрать блюр и анимации нажатия
+
+---
+
 ## 2026-06-01 - Firestore через REST API напрямую (без FlutterFire)
 
 - **Status:** accepted

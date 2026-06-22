@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/app_text_styles.dart';
 import '../../data/schedule_data.dart';
+import '../premium_card.dart';
 
-class LessonCard extends StatelessWidget {
+class LessonCard extends StatefulWidget {
   final Lesson lesson;
   final List<HomeworkItem> customHw;
   final VoidCallback onTap;
@@ -15,190 +17,190 @@ class LessonCard extends StatelessWidget {
   });
 
   @override
+  State<LessonCard> createState() => _LessonCardState();
+}
+
+class _LessonCardState extends State<LessonCard> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final palette = AppTheme.colorsOf(context);
-    final hasAnyHw = lesson.hw.isNotEmpty || customHw.isNotEmpty;
+    final hasAnyHw = widget.lesson.hw.isNotEmpty || widget.customHw.isNotEmpty;
 
-    return RepaintBoundary(
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: palette.cardBg,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          border: Border.all(color: palette.cardBorder),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            onTap: () {
-              if (hasAnyHw) {
-                onTap();
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return PremiumCard(
+      padding: EdgeInsets.zero,
+      onTap: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.primaryLight,
-                        ),
-                        child: Center(
-                          child: Text('${lesson.num}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.primaryDim,
-                              )),
-                        ),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primary.withValues(alpha: 0.2),
+                          AppTheme.primary.withValues(alpha: 0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(lesson.subject,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: palette.onBg,
-                                        height: 1.2,
-                                      )),
-                                ),
-                                if (hasAnyHw)
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    margin:
-                                        const EdgeInsets.only(left: 8, top: 2),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppTheme.primaryDim,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.primaryDim
-                                              .withValues(alpha: 0.5),
-                                          blurRadius: 4,
-                                          spreadRadius: 1,
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            Text(lesson.time,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: palette.onBg.withValues(alpha: 0.45),
-                                )),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
+                    child: Center(
+                      child: Text('${widget.lesson.num}',
+                          style: const TextStyle(
+                            fontFamily: AppTheme.fontSans,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryDim,
+                          )),
+                    ),
                   ),
-                  if (hasAnyHw) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryDim.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        border: Border.all(
-                            color: AppTheme.primaryDim.withValues(alpha: 0.2)),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Container(
-                              width: 4,
-                              color: AppTheme.primaryDim,
-                            ),
                             Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Row(
-                                      children: [
-                                        Icon(Icons.assignment_rounded,
-                                            size: 12,
-                                            color: AppTheme.primaryDim),
-                                        SizedBox(width: 6),
-                                        Text('ЗАДАНО',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 1.0,
-                                              color: AppTheme.primaryDim,
-                                            )),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (lesson.hw.isNotEmpty)
-                                      Text(lesson.hw,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: palette.onSurface,
-                                            height: 1.5,
-                                            fontWeight: FontWeight.w500,
-                                          )),
-                                    for (var ch in customHw)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                            top: (lesson.hw.isNotEmpty ||
-                                                    customHw.indexOf(ch) > 0)
-                                                ? 6
-                                                : 0),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text('• ',
-                                                style: TextStyle(
-                                                    color: AppTheme.primaryDim,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13)),
-                                            Expanded(
-                                                child: Text(ch.task,
-                                                    style: TextStyle(
-                                                        fontSize: 13,
-                                                        color:
-                                                            palette.onSurface,
-                                                        height: 1.5,
-                                                        fontWeight:
-                                                            FontWeight.w500))),
-                                          ],
-                                        ),
-                                      ),
+                              child: Text(
+                                widget.lesson.subject,
+                                style: AppTextStyles.h2Sans(context).copyWith(fontSize: 17),
+                              ),
+                            ),
+                            if (hasAnyHw)
+                              Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.only(left: 8),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppTheme.primaryDim,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primaryDim.withValues(alpha: 0.6),
+                                      blurRadius: 6,
+                                    )
                                   ],
                                 ),
                               ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              widget.lesson.time,
+                              style: AppTextStyles.caption(context),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              _isExpanded
+                                  ? Icons.keyboard_arrow_up_rounded
+                                  : Icons.keyboard_arrow_down_rounded,
+                              size: 16,
+                              color: palette.onSurface3,
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
-            ),
+              
+              if (_isExpanded && hasAnyHw) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryDim.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(
+                        color: AppTheme.primaryDim.withValues(alpha: 0.15)),
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.assignment_rounded,
+                                  size: 14, color: AppTheme.primaryDim),
+                              const SizedBox(width: 6),
+                              Text('ДОМАШНЕЕ ЗАДАНИЕ',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.fontSans,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                    color: AppTheme.primaryDim,
+                                  )),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: widget.onTap,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryDim.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.open_in_new_rounded,
+                                  size: 16, color: AppTheme.primaryDim),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (widget.lesson.hw.isNotEmpty)
+                        Text(widget.lesson.hw,
+                            style: AppTextStyles.body(context).copyWith(fontSize: 14)),
+                      for (var ch in widget.customHw)
+                        Padding(
+                          padding: EdgeInsets.only(
+                              top: (widget.lesson.hw.isNotEmpty ||
+                                      widget.customHw.indexOf(ch) > 0)
+                                  ? 8
+                                  : 0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('• ',
+                                  style: TextStyle(
+                                      color: AppTheme.primaryDim,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                              Expanded(
+                                child: Text(ch.task,
+                                    style: AppTextStyles.body(context).copyWith(fontSize: 14)),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

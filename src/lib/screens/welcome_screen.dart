@@ -5,9 +5,91 @@ import 'package:go_router/go_router.dart';
 import '../data/auth_service.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_text_styles.dart';
+import '../widgets/primary_scale_button.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  void _showLoginOptionsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final palette = AppTheme.colorsOf(ctx);
+        return Container(
+          decoration: BoxDecoration(
+            color: palette.bg.withValues(alpha: 0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(color: palette.cardBorder),
+          ),
+          padding: const EdgeInsets.fromLTRB(32, 16, 32, 48),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: palette.onSurface3.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              PrimaryScaleButton(
+                icon: Icons.add_circle_outline_rounded,
+                title: 'Создать класс',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/create');
+                },
+              ),
+              const SizedBox(height: 16),
+              PrimaryScaleButton(
+                icon: Icons.login_rounded,
+                title: 'Войти в класс',
+                isSecondary: true,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/join');
+                },
+              ),
+              const SizedBox(height: 32),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showAdminLoginDialog(context);
+                },
+                child: Text(
+                  'Войти как админ',
+                  style: TextStyle(
+                    color: palette.onSurface2,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAdminLoginDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => const _AdminLoginDialog(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,146 +110,148 @@ class WelcomeScreen extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppTheme.primary.withValues(alpha: 0.25),
+                    AppTheme.primary.withValues(alpha: 0.20),
                     AppTheme.primary.withValues(alpha: 0.0),
                   ],
-                  stops: const [0.1, 1.0],
+                  stops: const [0.0, 1.0],
                 ),
               ),
             ),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                children: [
-                  const Spacer(flex: 2),
-
-                  // Logo
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(colors: [
-                        AppTheme.primary.withValues(alpha: 0.3),
-                        AppTheme.primary.withValues(alpha: 0.08),
-                      ]),
-                    ),
-                    child: const Icon(Icons.school_rounded,
-                        size: 44, color: AppTheme.primary),
+            child: Column(
+              children: [
+                const Spacer(flex: 3),
+                // Logo
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [
+                      AppTheme.primary.withValues(alpha: 0.3),
+                      AppTheme.primary.withValues(alpha: 0.08),
+                    ]),
                   ),
-                  const SizedBox(height: 24),
+                  child: const Icon(Icons.school_rounded,
+                      size: 44, color: AppTheme.primary),
+                ),
+                const SizedBox(height: 24),
 
-                  Text('Школьный Дневник',
-                      style: TextStyle(
-                        fontFamily: AppTheme.fontSerif,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w600,
-                        color: palette.onBg,
-                      )),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Расписание и задания для вашего класса',
-                    style: TextStyle(fontSize: 14, color: palette.onSurface2),
-                    textAlign: TextAlign.center,
-                  ),
+                Text('Школьный Дневник', style: AppTextStyles.h1Serif(context)),
+                const SizedBox(height: 8),
+                Text(
+                  'Расписание и задания\nдля вашего класса',
+                  style: AppTextStyles.caption(context),
+                  textAlign: TextAlign.center,
+                ),
 
-                  const Spacer(flex: 2),
+                const Spacer(flex: 4),
 
-                  // Create class
-                  _WelcomeButton(
-                    icon: Icons.add_circle_outline_rounded,
-                    title: 'Создать класс',
-                    onTap: () => context.push('/create'),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Join class
-                  _WelcomeButton(
-                    icon: Icons.login_rounded,
-                    title: 'Войти в класс',
-                    onTap: () => context.push('/join'),
-                  ),
-
-                  const Spacer(),
-
-                  // Admin login link
-                  TextButton(
-                    onPressed: () => _showAdminLoginDialog(context),
-                    child: Text(
-                      'Войти как админ',
-                      style: TextStyle(
-                        color: palette.onSurface2,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
+                // Swipe up gesture
+                _SwipeUpToEnter(
+                  onTriggered: () => _showLoginOptionsBottomSheet(context),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
           ),
         ],
       ),
     );
   }
-
-  void _showAdminLoginDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => const _AdminLoginDialog(),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Welcome button card
+// Swipe Up Interaction
 // ─────────────────────────────────────────────────────────────────────────────
-class _WelcomeButton extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
+class _SwipeUpToEnter extends StatefulWidget {
+  final VoidCallback onTriggered;
+  const _SwipeUpToEnter({required this.onTriggered});
 
-  const _WelcomeButton({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
+  @override
+  State<_SwipeUpToEnter> createState() => _SwipeUpToEnterState();
+}
+
+class _SwipeUpToEnterState extends State<_SwipeUpToEnter>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  double _dragOffset = 0.0;
+  final double _threshold = -60.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.primaryDelta!;
+      if (_dragOffset > 0) _dragOffset = 0;
+    });
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    if (_dragOffset < _threshold) {
+      widget.onTriggered();
+    }
+    setState(() {
+      _dragOffset = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final palette = AppTheme.colorsOf(context);
-    return Material(
-      color: palette.cardBg.withValues(alpha: 0.6), // Dark translucent
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+
+    return GestureDetector(
+      onVerticalDragUpdate: _onVerticalDragUpdate,
+      onVerticalDragEnd: _onVerticalDragEnd,
+      onTap: widget.onTriggered,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _dragOffset, 0),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
-          ),
-          child: Row(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: palette.onBg, size: 28),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: palette.onBg,
-                    ),
-                  ),
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, -6 * _pulseController.value),
+                    child: child,
+                  );
+                },
+                child: Icon(
+                  Icons.keyboard_arrow_up_rounded,
+                  color: palette.onSurface2,
+                  size: 28,
                 ),
               ),
-              const SizedBox(width: 28), // Balance for centering text
+              const SizedBox(height: 8),
+              Text(
+                'СВАЙПНИ ВВЕРХ',
+                style: AppTextStyles.caption(context).copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  letterSpacing: 1.5,
+                ),
+              ),
             ],
           ),
         ),
