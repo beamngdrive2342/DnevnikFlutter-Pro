@@ -142,10 +142,10 @@ class _LessonCardState extends State<LessonCard> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
-                            children: [
-                              const Icon(Icons.assignment_rounded,
+                            children: const [
+                              Icon(Icons.assignment_rounded,
                                   size: 14, color: AppTheme.primaryDim),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Text('ДОМАШНЕЕ ЗАДАНИЕ',
                                   style: TextStyle(
                                     fontFamily: AppTheme.fontSans,

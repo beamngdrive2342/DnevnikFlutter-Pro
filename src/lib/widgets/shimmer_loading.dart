@@ -102,24 +102,31 @@ class SkeletonLessonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppTheme.colorsOf(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return ShimmerLoading(
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: palette.cardBg, // using real card bg to make it look right
+          color: isDark ? palette.cardBg : palette.cardBg.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+          border: Border.all(
+            color: isDark 
+                ? Colors.white.withValues(alpha: 0.05) 
+                : palette.cardBorder,
+            width: 1,
+          ),
         ),
-        child: Row(
+        child: const Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SkeletonBlock(width: 32, height: 32, borderRadius: 16),
-            const SizedBox(width: 14),
+            SkeletonBlock(width: 32, height: 32, borderRadius: 16),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   SkeletonBlock(width: 140, height: 20),
                   SizedBox(height: 8),
                   SkeletonBlock(width: 80, height: 14),

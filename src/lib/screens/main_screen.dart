@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_controller.dart';
 import '../widgets/ai_chat_bottom_sheet.dart';
 import '../widgets/premium_glow_button.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 // ═══════════════════════════════════════════════════════════
 // MAIN SCREEN
@@ -113,9 +114,9 @@ class _MainScreenState extends State<MainScreen> {
 
     final items = <BottomNavigationBarItem>[
       const BottomNavigationBarItem(
-          icon: Icon(Icons.home_filled), label: 'Главная'),
+          icon: Icon(LucideIcons.home), label: 'Главная'),
       const BottomNavigationBarItem(
-          icon: Icon(Icons.admin_panel_settings_rounded), label: 'Админ'),
+          icon: Icon(LucideIcons.shieldAlert), label: 'Админ'),
     ];
 
     return SafeArea(
@@ -254,7 +255,7 @@ class _MainScreenState extends State<MainScreen> {
                   ? PremiumGlowButton(
                       onPressed: _showAddHomeworkModal,
                       child: const Icon(
-                        Icons.add_rounded,
+                        LucideIcons.plus,
                         size: 32,
                         color: Colors.white,
                       ),
@@ -266,7 +267,7 @@ class _MainScreenState extends State<MainScreen> {
                           onPressed: _showAIChatModal,
                           isLoading: aiChatController.isBusy,
                           child: const Icon(
-                            Icons.auto_awesome_rounded,
+                            LucideIcons.sparkles,
                             size: 32,
                             color: Colors.white,
                           ),

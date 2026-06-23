@@ -11,6 +11,8 @@ import '../widgets/top_notification.dart';
 import '../widgets/diary/lesson_card.dart';
 import '../widgets/diary/calendar_strip.dart';
 import '../widgets/shimmer_loading.dart';
+import '../widgets/premium_refresh_indicator.dart';
+import 'package:flutter/cupertino.dart';
 import 'diary/diary_top_bar.dart';
 
 class DiaryScreen extends StatefulWidget {
@@ -153,47 +155,66 @@ class DiaryScreenState extends State<DiaryScreen>
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final lessonHomework = _buildLessonHomeworkMap(dateStr, lessons);
 
-    return ListView(
+    return CustomScrollView(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Расписание',
-                style: TextStyle(
-                  fontFamily: AppTheme.fontSerif,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: palette.onBg,
-                )),
-            Text(weekdaysFull[dayOfWeek],
-                style: TextStyle(
-                  fontSize: 12,
-                  color: palette.onSurface2,
-                  fontWeight: FontWeight.w500,
-                )),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (_isLoadingHomework && lessons.isNotEmpty)
-          ...List.generate(lessons.length, (i) => const SkeletonLessonCard())
-        else if (lessons.isEmpty)
-          _buildNoLessons()
-        else
-          ...lessons.asMap().entries.map((entry) {
-            return LessonCard(
-              lesson: entry.value,
-              customHw: lessonHomework[entry.key] ?? const <HomeworkItem>[],
-              onTap: () {
-                _showLessonDetailsSheet(
-                  context,
-                  entry.value,
-                  lessonHomework[entry.key] ?? const <HomeworkItem>[],
-                );
-              },
+      slivers: [
+        CupertinoSliverRefreshControl(
+          onRefresh: () async {
+            await reloadHomework(forceRefresh: true);
+          },
+          builder: (context, refreshState, pulledExtent, refreshTriggerPullDistance, refreshIndicatorExtent) {
+            return PremiumRefreshControl(
+              refreshState: refreshState,
+              pulledExtent: pulledExtent,
+              refreshTriggerPullDistance: refreshTriggerPullDistance,
+              refreshIndicatorExtent: refreshIndicatorExtent,
             );
-          }),
+          },
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Расписание',
+                      style: TextStyle(
+                        fontFamily: AppTheme.fontSerif,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w500,
+                        color: palette.onBg,
+                      )),
+                  Text(weekdaysFull[dayOfWeek],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: palette.onSurface2,
+                        fontWeight: FontWeight.w500,
+                      )),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (_isLoadingHomework && lessons.isNotEmpty)
+                ...List.generate(lessons.length, (i) => const SkeletonLessonCard())
+              else if (lessons.isEmpty)
+                _buildNoLessons()
+              else
+                ...lessons.asMap().entries.map((entry) {
+                  return LessonCard(
+                    lesson: entry.value,
+                    customHw: lessonHomework[entry.key] ?? const <HomeworkItem>[],
+                    onTap: () {
+                      _showLessonDetailsSheet(
+                        context,
+                        entry.value,
+                        lessonHomework[entry.key] ?? const <HomeworkItem>[],
+                      );
+                    },
+                  );
+                }),
+            ]),
+          ),
+        ),
       ],
     );
   }

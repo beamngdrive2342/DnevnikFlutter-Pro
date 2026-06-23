@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_text_styles.dart';
 import '../widgets/primary_scale_button.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -45,7 +46,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
               const SizedBox(height: 32),
               PrimaryScaleButton(
-                icon: Icons.add_circle_outline_rounded,
+                icon: LucideIcons.plusCircle,
                 title: 'Создать класс',
                 onTap: () {
                   Navigator.pop(ctx);
@@ -54,7 +55,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
               const SizedBox(height: 16),
               PrimaryScaleButton(
-                icon: Icons.login_rounded,
+                icon: LucideIcons.logIn,
                 title: 'Войти в класс',
                 isSecondary: true,
                 onTap: () {
@@ -133,7 +134,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       AppTheme.primary.withValues(alpha: 0.08),
                     ]),
                   ),
-                  child: const Icon(Icons.school_rounded,
+                  child: const Icon(LucideIcons.graduationCap,
                       size: 44, color: AppTheme.primary),
                 ),
                 const SizedBox(height: 24),
@@ -238,7 +239,7 @@ class _SwipeUpToEnterState extends State<_SwipeUpToEnter>
                   );
                 },
                 child: Icon(
-                  Icons.keyboard_arrow_up_rounded,
+                  LucideIcons.chevronUp,
                   color: palette.onSurface2,
                   size: 28,
                 ),
