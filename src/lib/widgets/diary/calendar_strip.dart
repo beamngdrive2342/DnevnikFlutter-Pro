@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../data/schedule_data.dart';
+import '../scale_tap_wrapper.dart';
 
 class CalendarStrip extends StatelessWidget {
   final List<DateTime> days;
@@ -8,6 +9,7 @@ class CalendarStrip extends StatelessWidget {
   final int selectedDayIndex;
   final ScrollController scrollController;
   final Function(int) onDaySelected;
+  final List<bool> hasHomeworkFlags;
 
   const CalendarStrip({
     super.key,
@@ -16,6 +18,7 @@ class CalendarStrip extends StatelessWidget {
     required this.selectedDayIndex,
     required this.scrollController,
     required this.onDaySelected,
+    required this.hasHomeworkFlags,
   });
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -38,11 +41,13 @@ class CalendarStrip extends StatelessWidget {
           final isToday = _isSameDay(d, today);
           final isSelected = index == selectedDayIndex;
           final dayOfWeek = d.weekday - 1; // 0=Mon, 6=Sun
-          final hasLessons =
-              weekSchedule[dayOfWeek] != null &&
-              weekSchedule[dayOfWeek]!.isNotEmpty;
+          final hasLessons = weekSchedule[dayOfWeek] != null && weekSchedule[dayOfWeek]!.isNotEmpty;
+          final isWeekend = (d.weekday == 6 || d.weekday == 7) && !hasLessons;
 
-          return GestureDetector(
+          final isPast = d.isBefore(DateTime(today.year, today.month, today.day));
+          final hasHomework = hasHomeworkFlags[index];
+
+          return ScaleTapWrapper(
             onTap: () => onDaySelected(index),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 260),
@@ -51,7 +56,7 @@ class CalendarStrip extends StatelessWidget {
               margin: const EdgeInsets.only(right: 6),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: isSelected ? AppTheme.primary : palette.surface,
+                color: isSelected ? AppTheme.primary : (isWeekend ? AppTheme.primary.withValues(alpha: 0.05) : palette.surface),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 border: Border.all(
                   color: isSelected ? AppTheme.primary : palette.cardBorder,
@@ -77,7 +82,9 @@ class CalendarStrip extends StatelessWidget {
                       letterSpacing: 0.5,
                       color: isSelected
                           ? Colors.white.withValues(alpha: 0.78)
-                          : palette.onSurface3,
+                          : isWeekend
+                              ? AppTheme.primaryDim.withValues(alpha: 0.85)
+                              : palette.onSurface3,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -87,11 +94,13 @@ class CalendarStrip extends StatelessWidget {
                       fontFamily: AppTheme.fontSerif,
                       fontSize: 20,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : palette.onBg,
+                      color: isSelected 
+                          ? Colors.white 
+                          : palette.onBg,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (hasLessons)
+                  if (hasHomework)
                     Container(
                       width: 5,
                       height: 5,
@@ -99,7 +108,16 @@ class CalendarStrip extends StatelessWidget {
                         shape: BoxShape.circle,
                         color: isSelected
                             ? Colors.white.withValues(alpha: 0.6)
-                            : AppTheme.primaryDim.withValues(alpha: 0.5),
+                            : AppTheme.primaryDim.withValues(alpha: isPast ? 0.3 : 0.8),
+                        boxShadow: (!isPast && !isSelected)
+                            ? [
+                                BoxShadow(
+                                  color: AppTheme.primaryDim.withValues(alpha: 0.6),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                )
+                              ]
+                            : null,
                       ),
                     )
                   else if (isToday && !isSelected)

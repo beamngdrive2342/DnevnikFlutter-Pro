@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_controller.dart';
+import '../theme/app_theme.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'scale_tap_wrapper.dart';
 
 class ThemeSwitchButton extends StatelessWidget {
   final double size;
-  final Color switchTrackColor;
-  final Color switchActiveColor;
   final Color sunIconColor;
   final Color moonIconColor;
 
   const ThemeSwitchButton({
     super.key,
     this.size = 30,
-    this.switchTrackColor = const Color(0xFF424242),
-    this.switchActiveColor = const Color(0xFFDBDBDB),
     this.sunIconColor = const Color(0xFFFF9100),
     this.moonIconColor = const Color(0xFF6B6B6B),
   });
@@ -26,6 +25,7 @@ class ThemeSwitchButton extends StatelessWidget {
     final knobIconSize = knobSize * 0.6;
     final inset = (switchHeight - knobSize) / 2;
     final travel = switchWidth - knobSize - (inset * 2);
+    final palette = AppTheme.colorsOf(context);
 
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeController.notifier,
@@ -37,12 +37,9 @@ class ThemeSwitchButton extends StatelessWidget {
           toggled: isLightMode,
           label: 'Переключить тему',
           child: RepaintBoundary(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                customBorder: const StadiumBorder(),
-                onTap: ThemeController.toggle,
-                child: TweenAnimationBuilder<double>(
+            child: ScaleTapWrapper(
+              onTap: ThemeController.toggle,
+              child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(end: isLightMode ? 1.0 : 0.0),
                   duration: const Duration(milliseconds: 160),
                   curve: Curves.easeOutCubic,
@@ -51,11 +48,7 @@ class ThemeSwitchButton extends StatelessWidget {
                       width: switchWidth,
                       height: switchHeight,
                       decoration: BoxDecoration(
-                        color: Color.lerp(
-                          switchTrackColor,
-                          switchActiveColor,
-                          value,
-                        ),
+                        color: palette.surface3,
                         borderRadius: BorderRadius.circular(switchHeight / 2),
                       ),
                       child: Padding(
@@ -81,8 +74,8 @@ class ThemeSwitchButton extends StatelessWidget {
                                   height: knobSize,
                                   child: Icon(
                                     isLightMode
-                                        ? Icons.wb_sunny_rounded
-                                        : Icons.nightlight_round,
+                                        ? LucideIcons.sun
+                                        : LucideIcons.moon,
                                     color: isLightMode
                                         ? sunIconColor
                                         : moonIconColor,
@@ -98,7 +91,6 @@ class ThemeSwitchButton extends StatelessWidget {
                   },
                 ),
               ),
-            ),
           ),
         );
       },

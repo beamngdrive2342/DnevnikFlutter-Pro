@@ -134,7 +134,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       AppTheme.primary.withValues(alpha: 0.08),
                     ]),
                   ),
-                  child: const Icon(LucideIcons.graduationCap,
+                  child: Icon(LucideIcons.graduationCap,
                       size: 44, color: AppTheme.primary),
                 ),
                 const SizedBox(height: 24),

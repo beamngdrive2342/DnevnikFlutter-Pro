@@ -4,6 +4,8 @@ import '../../providers/auth_provider.dart';
 import '../../data/schedule_data.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/theme_switch_button.dart';
+import '../../widgets/scale_tap_wrapper.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 class DiaryTopBar extends ConsumerWidget {
   const DiaryTopBar({super.key});
@@ -29,7 +31,7 @@ class DiaryTopBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.menu_book_rounded,
+          Icon(LucideIcons.bookOpen,
               color: AppTheme.primary, size: 22),
           const SizedBox(width: 10),
           Column(
@@ -59,7 +61,7 @@ class DiaryTopBar extends ConsumerWidget {
           const Spacer(),
           const ThemeSwitchButton(),
           const SizedBox(width: 12),
-          GestureDetector(
+          ScaleTapWrapper(
             onTap: () async {
               final confirm = await showDialog<bool>(
                 context: context,
@@ -111,9 +113,9 @@ class DiaryTopBar extends ConsumerWidget {
               child: ClipOval(
                 child: Container(
                   color: AppTheme.primary,
-                  child: const Center(
+                  child: Center(
                     child: Icon(
-                      Icons.home_rounded,
+                      LucideIcons.home,
                       color: Colors.white,
                       size: 18,
                     ),

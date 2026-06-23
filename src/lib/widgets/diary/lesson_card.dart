@@ -3,17 +3,19 @@ import '../../theme/app_theme.dart';
 import '../../theme/app_text_styles.dart';
 import '../../data/schedule_data.dart';
 import '../premium_card.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import '../network_photo.dart';
 
 class LessonCard extends StatefulWidget {
   final Lesson lesson;
   final List<HomeworkItem> customHw;
-  final VoidCallback onTap;
+  final Function(String) onImageTap;
 
   const LessonCard({
     super.key,
     required this.lesson,
     required this.customHw,
-    required this.onTap,
+    required this.onImageTap,
   });
 
   @override
@@ -138,36 +140,19 @@ class _LessonCardState extends State<LessonCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      const Row(
                         children: [
-                          Row(
-                            children: const [
-                              Icon(Icons.assignment_rounded,
-                                  size: 14, color: AppTheme.primaryDim),
-                              SizedBox(width: 6),
-                              Text('ДОМАШНЕЕ ЗАДАНИЕ',
-                                  style: TextStyle(
-                                    fontFamily: AppTheme.fontSans,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.5,
-                                    color: AppTheme.primaryDim,
-                                  )),
-                            ],
-                          ),
-                          GestureDetector(
-                            onTap: widget.onTap,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryDim.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Icon(Icons.open_in_new_rounded,
-                                  size: 16, color: AppTheme.primaryDim),
-                            ),
-                          ),
+                          Icon(LucideIcons.clipboardList,
+                              size: 14, color: AppTheme.primaryDim),
+                          SizedBox(width: 6),
+                          Text('ДОМАШНЕЕ ЗАДАНИЕ',
+                              style: TextStyle(
+                                fontFamily: AppTheme.fontSans,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                                color: AppTheme.primaryDim,
+                              )),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -181,18 +166,73 @@ class _LessonCardState extends State<LessonCard> {
                                       widget.customHw.indexOf(ch) > 0)
                                   ? 8
                                   : 0),
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('• ',
-                                  style: TextStyle(
-                                      color: AppTheme.primaryDim,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14)),
-                              Expanded(
-                                child: Text(ch.task,
-                                    style: AppTextStyles.body(context).copyWith(fontSize: 14)),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('• ',
+                                      style: TextStyle(
+                                          color: AppTheme.primaryDim,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14)),
+                                  Expanded(
+                                    child: Text(ch.task,
+                                        style: AppTextStyles.body(context).copyWith(fontSize: 14)),
+                                  ),
+                                ],
                               ),
+                              if ((ch.imageUrls != null && ch.imageUrls!.isNotEmpty) || 
+                                  (ch.imageUrl != null && ch.imageUrl!.isNotEmpty)) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  height: 80,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    physics: const BouncingScrollPhysics(),
+                                    children: ((ch.imageUrls != null && ch.imageUrls!.isNotEmpty)
+                                            ? List.generate(ch.imageUrls!.length, (i) {
+                                                return {
+                                                  'display': (ch.fullResolutionUrls != null && ch.fullResolutionUrls!.length > i)
+                                                      ? ch.fullResolutionUrls![i]
+                                                      : ch.imageUrls![i],
+                                                  'full': (ch.fullResolutionUrls != null && ch.fullResolutionUrls!.length > i)
+                                                      ? ch.fullResolutionUrls![i]
+                                                      : ch.imageUrls![i]
+                                                };
+                                              })
+                                            : [
+                                                {'display': ch.imageUrl!, 'full': ch.imageUrl!}
+                                              ])
+                                        .map((imageMap) {
+                                      final displayUrl = imageMap['display']!;
+                                      final fullUrl = imageMap['full']!;
+                                      return GestureDetector(
+                                        onTap: () => widget.onImageTap(fullUrl),
+                                        child: Hero(
+                                          tag: fullUrl,
+                                          child: Container(
+                                            width: 80,
+                                            margin: const EdgeInsets.only(right: 8),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                              border: Border.all(color: AppTheme.primaryDim.withValues(alpha: 0.2)),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                              child: NetworkPhoto(
+                                                url: displayUrl,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ]
                             ],
                           ),
                         ),

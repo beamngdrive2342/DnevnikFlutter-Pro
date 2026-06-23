@@ -82,6 +82,20 @@ class DiaryScreenState extends State<DiaryScreen>
 
   String _buildHomeworkKey(String date, String subject) => '$date|$subject';
 
+  bool _dayHasHomework(DateTime date) {
+    final dayOfWeek = date.weekday - 1;
+    final lessons = weekSchedule[dayOfWeek] ?? [];
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    
+    for (final lesson in lessons) {
+      if (lesson.hw.isNotEmpty) return true;
+      final key = _buildHomeworkKey(dateStr, lesson.subject);
+      if ((_homeworkLookup[key] ?? []).isNotEmpty) return true;
+    }
+    return false;
+  }
+
   void _scrollToIndex(int index) {
     if (!_calendarScrollController.hasClients) return;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -112,6 +126,7 @@ class DiaryScreenState extends State<DiaryScreen>
           days: _days,
           today: _today,
           selectedDayIndex: _selectedDayIndex,
+          hasHomeworkFlags: _days.map((d) => _dayHasHomework(d)).toList(),
           scrollController: _calendarScrollController,
           onDaySelected: (index) {
             setState(() => _selectedDayIndex = index);
@@ -203,12 +218,8 @@ class DiaryScreenState extends State<DiaryScreen>
                   return LessonCard(
                     lesson: entry.value,
                     customHw: lessonHomework[entry.key] ?? const <HomeworkItem>[],
-                    onTap: () {
-                      _showLessonDetailsSheet(
-                        context,
-                        entry.value,
-                        lessonHomework[entry.key] ?? const <HomeworkItem>[],
-                      );
+                    onImageTap: (url) {
+                      _openFullScreenImage(context, url);
                     },
                   );
                 }),
@@ -565,287 +576,6 @@ class DiaryScreenState extends State<DiaryScreen>
     );
   }
 
-  void _showLessonDetailsSheet(
-    BuildContext context,
-    Lesson lesson,
-    List<HomeworkItem> customHw,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.78,
-              decoration: BoxDecoration(
-                color: palette.bg.withValues(alpha: 0.9),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(32)),
-                border: Border.all(color: palette.cardBorder),
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: palette.onSurface3.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    lesson.subject,
-                    style: TextStyle(
-                      fontFamily: AppTheme.fontSerif,
-                      fontSize: 30,
-                      fontWeight: FontWeight.w600,
-                      color: palette.onBg,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    lesson.time,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: palette.onSurface2,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (lesson.hw.isNotEmpty) ...[
-                            _buildDetailsSectionTitle('Задание из расписания'),
-                            const SizedBox(height: 12),
-                            _buildHomeworkTextCard(
-                              lesson.hw,
-                              backgroundColor: palette.surface2,
-                              borderColor: palette.cardBorder,
-                            ),
-                            const SizedBox(height: 18),
-                          ],
-                          ...customHw.map((hw) {
-                            final images = _homeworkImageMaps(hw);
-                            return Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(bottom: 18),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color:
-                                      AppTheme.primary.withValues(alpha: 0.24),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.assignment_rounded,
-                                        size: 18,
-                                        color: AppTheme.primary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Домашнее задание',
-                                        style: TextStyle(
-                                          color: palette.onBg,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 14),
-                                  _buildHomeworkTextCard(
-                                    hw.task,
-                                    backgroundColor:
-                                        palette.surface.withValues(alpha: 0.55),
-                                    borderColor: AppTheme.primary
-                                        .withValues(alpha: 0.18),
-                                  ),
-                                  if (images.isNotEmpty) ...[
-                                    const SizedBox(height: 14),
-                                    _buildDetailsSectionTitle('Фото'),
-                                    const SizedBox(height: 10),
-                                    ...images.map((imageMap) {
-                                      final displayUrl = imageMap['display']!;
-                                      final fullUrl = imageMap['full']!;
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 14),
-                                        child: _buildHomeworkImageCard(
-                                          context,
-                                          displayUrl: displayUrl,
-                                          fullUrl: fullUrl,
-                                        ),
-                                      );
-                                    }),
-                                  ],
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailsSectionTitle(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: palette.onSurface2,
-        letterSpacing: 0.3,
-      ),
-    );
-  }
-
-  Widget _buildHomeworkTextCard(
-    String text, {
-    required Color backgroundColor,
-    required Color borderColor,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-      ),
-      child: SelectableText(
-        text,
-        style: TextStyle(
-          fontSize: 15,
-          color: palette.onBg,
-          height: 1.55,
-        ),
-      ),
-    );
-  }
-
-  List<Map<String, String>> _homeworkImageMaps(HomeworkItem hw) {
-    if (hw.imageUrls != null && hw.imageUrls!.isNotEmpty) {
-      return List.generate(hw.imageUrls!.length, (i) {
-        final display = hw.imageUrls![i];
-        final full =
-            (hw.fullResolutionUrls != null && hw.fullResolutionUrls!.length > i)
-                ? hw.fullResolutionUrls![i]
-                : display;
-        return <String, String>{'display': display, 'full': full};
-      });
-    }
-
-    if (hw.imageUrl != null && hw.imageUrl!.trim().isNotEmpty) {
-      return <Map<String, String>>[
-        <String, String>{'display': hw.imageUrl!, 'full': hw.imageUrl!},
-      ];
-    }
-
-    return const <Map<String, String>>[];
-  }
-
-  Widget _buildHomeworkImageCard(
-    BuildContext context, {
-    required String displayUrl,
-    required String fullUrl,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: palette.surface.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: palette.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          GestureDetector(
-            onTap: () => _openFullScreenImage(context, fullUrl),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
-              ),
-              child: AspectRatio(
-                aspectRatio: 4 / 3,
-                child: ColoredBox(
-                  color: palette.surface3,
-                  child: NetworkPhoto(
-                    url: displayUrl,
-                    fit: BoxFit.contain,
-                    loading: const Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ),
-                    error: Center(
-                      child: Icon(
-                        Icons.broken_image_rounded,
-                        color: palette.onSurface3,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton.icon(
-                  onPressed: () => _saveImageToGallery(context, fullUrl),
-                  icon: const Icon(Icons.download_rounded, size: 16),
-                  label: const Text(
-                    'Сохранить фото',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 0,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
 
   Future<void> _saveImageToGallery(BuildContext context, String source) async {
