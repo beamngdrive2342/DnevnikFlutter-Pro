@@ -33,6 +33,7 @@ abstract class HomeworkItem with _$HomeworkItem {
     List<String>? fullResolutionUrls,
     @Default(false) bool done,
     @Default(false) bool fromSchedule,
+    @Default([]) List<String> textbookNumbers,
   }) = _HomeworkItem;
 
   factory HomeworkItem.fromJson(Map<String, dynamic> json) {
@@ -50,6 +51,11 @@ abstract class HomeworkItem with _$HomeworkItem {
       parsedFullUrls = List<String>.from(json['fullResolutionUrls']);
     }
 
+    List<String> parsedTextbookNumbers = [];
+    if (json['textbookNumbers'] != null && json['textbookNumbers'] is List) {
+      parsedTextbookNumbers = List<String>.from(json['textbookNumbers']);
+    }
+
     return _HomeworkItem(
       id: json['id'] as String,
       subject: json['subject'] as String,
@@ -60,6 +66,7 @@ abstract class HomeworkItem with _$HomeworkItem {
       fullResolutionUrls: parsedFullUrls,
       done: json['done'] as bool? ?? false,
       fromSchedule: json['fromSchedule'] as bool? ?? false,
+      textbookNumbers: parsedTextbookNumbers,
     );
   }
 
@@ -73,6 +80,7 @@ abstract class HomeworkItem with _$HomeworkItem {
         'fullResolutionUrls': fullResolutionUrls,
         'done': done,
         'fromSchedule': fromSchedule,
+        'textbookNumbers': textbookNumbers,
       };
 }
 

@@ -65,35 +65,29 @@ class _PremiumCardState extends State<PremiumCard>
     final palette = AppTheme.colorsOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    Widget content = ClipRRect(
-      borderRadius: BorderRadius.circular(widget.borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: widget.padding,
-          decoration: BoxDecoration(
+    Widget content = Container(
+      padding: widget.padding,
+      decoration: BoxDecoration(
+        color: isDark 
+            ? palette.cardBg.withValues(alpha: 0.6) 
+            : palette.cardBg.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        border: Border.all(
             color: isDark 
-                ? palette.cardBg.withValues(alpha: 0.4) 
-                : palette.cardBg.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            border: Border.all(
-                color: isDark 
-                    ? Colors.white.withValues(alpha: 0.06) 
-                    : palette.cardBorder, 
-                width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: isDark 
-                    ? Colors.black.withValues(alpha: 0.2) 
-                    : palette.cardBorder.withValues(alpha: 0.2),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: widget.child,
-        ),
+                ? Colors.white.withValues(alpha: 0.06) 
+                : palette.cardBorder, 
+            width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: isDark 
+                ? Colors.black.withValues(alpha: 0.2) 
+                : palette.cardBorder.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
+      child: widget.child,
     );
 
     if (widget.onTap != null) {

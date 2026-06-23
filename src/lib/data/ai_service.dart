@@ -127,6 +127,7 @@ $homeworkContext
     required DateTime today,
     required String scheduleText,
     required String adminText,
+    String? base64Image,
   }) async {
 
 
@@ -196,25 +197,40 @@ $scheduleText
 - "через [N] дней" -> текущая дата + N дней
 - Если дату определить невозможно -> deadline = null
 
-3. Извлеки текст задания (task)
+3. Извлеки текст задания (task) и номера из учебника (textbookNumbers)
 - Очисти текст от команд типа "добавь на [предмет]", "запиши по [предмету]" и указаний дат.
-- Оставь только суть: действие + объект.
-- Сделай первую букву заглавной.
-- Если задания нет -> task = null
+- Если передано фото доски, внимательно посмотри на него. Если там написаны номера заданий, извлеки их.
+- Оставь только суть: действие + объект (включая номера из текста или с фото). Сделай первую букву заглавной.
+- ВАЖНО: Номера могут идти со скобками или буквами (например "№ 15(а,б)" или "15(1,2)"). Игнорируй эти скобки и подпункты, извлекай в массив ТОЛЬКО главное число (например "15").
+- Номера задач вынеси в виде массива строк в поле `textbookNumbers`.
+- Если задания нет -> task = null, textbookNumbers = []
 
 Формат ответа (СТРОГО):
 Верни ТОЛЬКО JSON:
-{"subject": "Название", "deadline": "YYYY-MM-DD", "task": "Текст задания", "fallback": false}
+{"subject": "Название", "deadline": "YYYY-MM-DD", "task": "Текст задания", "textbookNumbers": ["101", "102"], "fallback": false}
 
 Примеры:
-1. "Алгебра на завтра номера 45 46" -> {"subject": "Алгебра", "deadline": "...", "task": "Номера 45 46", "fallback": false}
-2. "Задание на пятницу читать параграф" (без предмета) -> {"subject": null, "deadline": "...", "task": "Читать параграф", "fallback": true}
-3. "Математика на 5 апреля" (без задания) -> {"subject": "Математика", "deadline": "...", "task": null, "fallback": true}
+1. "Алгебра на завтра номера 45 46" -> {"subject": "Алгебра", "deadline": "...", "task": "Номера 45 46", "textbookNumbers": ["45", "46"], "fallback": false}
+2. "Задание на пятницу читать параграф" (без предмета) -> {"subject": null, "deadline": "...", "task": "Читать параграф", "textbookNumbers": [], "fallback": true}
+3. "Математика на 5 апреля" (без задания, но с фото на котором написано "№ 15, 16") -> {"subject": "Математика", "deadline": "...", "task": "Номера 15, 16", "textbookNumbers": ["15", "16"], "fallback": false}
 
 Никаких пояснений, только JSON.
 ''';
 
     try {
+      final List<Map<String, dynamic>> parts = [
+        {"text": prompt}
+      ];
+
+      if (base64Image != null && base64Image.isNotEmpty) {
+        parts.add({
+          "inline_data": {
+            "mime_type": "image/jpeg",
+            "data": base64Image,
+          }
+        });
+      }
+
       final response = await _client
           .post(
             Uri.parse(_apiUrl),
@@ -222,9 +238,7 @@ $scheduleText
             body: jsonEncode({
               "contents": [
                 {
-                  "parts": [
-                    {"text": prompt}
-                  ]
+                  "parts": parts
                 }
               ],
               "generationConfig": {
@@ -251,6 +265,7 @@ $scheduleText
         'subject': parsed['subject'] as String?,
         'deadline': parsed['deadline'] as String?,
         'task': parsed['task'] as String?,
+        'textbookNumbers': parsed['textbookNumbers'] != null ? List<String>.from(parsed['textbookNumbers']) : <String>[],
         'fallback': parsed['fallback'] == true,
       };
     } catch (_) {
@@ -258,6 +273,7 @@ $scheduleText
         'subject': null,
         'deadline': null,
         'task': null,
+        'textbookNumbers': <String>[],
         'fallback': true
       };
     }
@@ -282,6 +298,7 @@ $scheduleText
       'subject': null,
       'deadline': null,
       'task': null,
+      'textbookNumbers': [],
       'fallback': true
     };
   }

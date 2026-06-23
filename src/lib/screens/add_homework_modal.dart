@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -35,6 +36,7 @@ Future<void> showAddHomeworkModal({
   bool isQuickMode = true;
   bool isRecognizingQuick = false;
   String? quickRecognitionMessage;
+  bool isTextbookGeometry = false;
   final modalSurface = palette.surface2.withValues(alpha: 1);
   final fieldSurface = palette.surface3.withValues(alpha: 1);
 
@@ -94,7 +96,7 @@ Future<void> showAddHomeworkModal({
   }
 
   Future<Map<String, dynamic>> recognizeQuickHomeworkAI(
-      String adminText) async {
+      String adminText, List<String> imagePaths) async {
     final classId = FirestoreService.classId;
     if (classId == null || classId.isEmpty) {
       return {
@@ -113,10 +115,22 @@ Future<void> showAddHomeworkModal({
         'fallback': true
       };
     }
+
+    String? base64Image;
+    if (imagePaths.isNotEmpty) {
+      try {
+        final bytes = File(imagePaths.first).readAsBytesSync();
+        base64Image = base64Encode(bytes);
+      } catch (e) {
+        debugPrint('Error reading image for AI: $e');
+      }
+    }
+
     return AIService.recognizeQuickHomework(
       today: DateTime.now(),
       scheduleText: subject_utils.buildScheduleSummaryForAI(),
       adminText: adminText,
+      base64Image: base64Image,
     );
   }
 
@@ -130,6 +144,12 @@ Future<void> showAddHomeworkModal({
         const SnackBar(content: Text('Заполните предмет и задание')),
       );
       return;
+    }
+
+    List<String> extractedNumbers = [];
+    if (selectedSubject == 'Геометрия' && isTextbookGeometry) {
+      final matches = RegExp(r'\d+').allMatches(taskText);
+      extractedNumbers = matches.map((m) => m.group(0)!).toList();
     }
 
     if (!subject_utils.hasSubjectOnDate(selectedSubject!, selectedDeadline)) {
@@ -191,6 +211,7 @@ Future<void> showAddHomeworkModal({
         fullResolutionUrls: null,
         done: false,
         fromSchedule: false,
+        textbookNumbers: extractedNumbers,
       );
 
       final success = await FirestoreService.addHomework(hw);
@@ -245,7 +266,7 @@ Future<void> showAddHomeworkModal({
       quickRecognitionMessage = null;
     });
 
-    final result = await recognizeQuickHomeworkAI(quickText);
+    final result = await recognizeQuickHomeworkAI(quickText, pickedImagePaths);
     if (!sheetContext.mounted) return;
 
     final recognizedSubject =
@@ -277,6 +298,12 @@ Future<void> showAddHomeworkModal({
           subject_utils.hasSubjectOnDate(
               recognizedSubject, recognizedDeadline)) {
         canAutoSubmit = true;
+      }
+
+      if (recognizedSubject == 'Геометрия' &&
+          result['textbookNumbers'] != null &&
+          (result['textbookNumbers'] as List).isNotEmpty) {
+        isTextbookGeometry = true;
       }
 
       if (canAutoSubmit) {
@@ -660,7 +687,7 @@ Future<void> showAddHomeworkModal({
                                 isExpanded: true,
                                 dropdownColor: fieldSurface,
                                 style: TextStyle(
-                                    color: palette.onBg, fontSize: 14),
+                                      color: palette.onBg, fontSize: 14),
                                 items: allSubjects
                                     .map((s) => DropdownMenuItem(
                                         value: s, child: Text(s)))
@@ -671,6 +698,32 @@ Future<void> showAddHomeworkModal({
                             ),
                           ),
                           const SizedBox(height: 16),
+                          if (selectedSubject == 'Геометрия') ...[
+                            GestureDetector(
+                              onTap: () => safeSetModalState(
+                                  () => isTextbookGeometry = !isTextbookGeometry),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: Checkbox(
+                                      value: isTextbookGeometry,
+                                      onChanged: (v) => safeSetModalState(
+                                          () => isTextbookGeometry = v ?? false),
+                                      activeColor: AppTheme.primary,
+                                      side: BorderSide(color: palette.onSurface3),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text('Прикрепить ответы из учебника',
+                                      style: TextStyle(
+                                          color: palette.onBg, fontSize: 14)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
 
                           // Task
                           formLabel('Задание'),

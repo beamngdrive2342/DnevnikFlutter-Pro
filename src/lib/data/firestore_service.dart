@@ -549,6 +549,12 @@ class FirestoreService {
             }
           },
         'fromSchedule': {'booleanValue': hw.fromSchedule},
+        if (hw.textbookNumbers.isNotEmpty)
+          'textbookNumbers': {
+            'arrayValue': {
+              'values': hw.textbookNumbers.map((num) => {'stringValue': num}).toList()
+            }
+          },
       }
     };
   }
@@ -573,6 +579,13 @@ class FirestoreService {
           .toList();
     }
 
+    List<String> parsedTextbookNumbers = [];
+    if (fields['textbookNumbers']?['arrayValue']?['values'] != null) {
+      parsedTextbookNumbers = (fields['textbookNumbers']['arrayValue']['values'] as List)
+          .map((e) => e['stringValue'] as String)
+          .toList();
+    }
+
     return HomeworkItem(
       id: parseString('id').isNotEmpty
           ? parseString('id')
@@ -584,6 +597,7 @@ class FirestoreService {
       imageUrls: urls,
       fullResolutionUrls: fullUrls,
       fromSchedule: parseBool('fromSchedule'),
+      textbookNumbers: parsedTextbookNumbers,
     );
   }
 }

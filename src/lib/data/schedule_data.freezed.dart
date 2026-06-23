@@ -295,7 +295,7 @@ as String,
 /// @nodoc
 mixin _$HomeworkItem {
 
- String get id; set id(String value); String get subject; set subject(String value); String get task; set task(String value); String get deadline; set deadline(String value); String? get imageUrl; set imageUrl(String? value); List<String>? get imageUrls; set imageUrls(List<String>? value); List<String>? get fullResolutionUrls; set fullResolutionUrls(List<String>? value); bool get done; set done(bool value); bool get fromSchedule; set fromSchedule(bool value);
+ String get id; set id(String value); String get subject; set subject(String value); String get task; set task(String value); String get deadline; set deadline(String value); String? get imageUrl; set imageUrl(String? value); List<String>? get imageUrls; set imageUrls(List<String>? value); List<String>? get fullResolutionUrls; set fullResolutionUrls(List<String>? value); bool get done; set done(bool value); bool get fromSchedule; set fromSchedule(bool value); List<String> get textbookNumbers; set textbookNumbers(List<String> value);
 /// Create a copy of HomeworkItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -308,7 +308,7 @@ $HomeworkItemCopyWith<HomeworkItem> get copyWith => _$HomeworkItemCopyWithImpl<H
 
 @override
 String toString() {
-  return 'HomeworkItem(id: $id, subject: $subject, task: $task, deadline: $deadline, imageUrl: $imageUrl, imageUrls: $imageUrls, fullResolutionUrls: $fullResolutionUrls, done: $done, fromSchedule: $fromSchedule)';
+  return 'HomeworkItem(id: $id, subject: $subject, task: $task, deadline: $deadline, imageUrl: $imageUrl, imageUrls: $imageUrls, fullResolutionUrls: $fullResolutionUrls, done: $done, fromSchedule: $fromSchedule, textbookNumbers: $textbookNumbers)';
 }
 
 
@@ -319,7 +319,7 @@ abstract mixin class $HomeworkItemCopyWith<$Res>  {
   factory $HomeworkItemCopyWith(HomeworkItem value, $Res Function(HomeworkItem) _then) = _$HomeworkItemCopyWithImpl;
 @useResult
 $Res call({
- String id, String subject, String task, String deadline, String? imageUrl, List<String>? imageUrls, List<String>? fullResolutionUrls, bool done, bool fromSchedule
+ String id, String subject, String task, String deadline, String? imageUrl, List<String>? imageUrls, List<String>? fullResolutionUrls, bool done, bool fromSchedule, List<String> textbookNumbers
 });
 
 
@@ -336,7 +336,7 @@ class _$HomeworkItemCopyWithImpl<$Res>
 
 /// Create a copy of HomeworkItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? subject = null,Object? task = null,Object? deadline = null,Object? imageUrl = freezed,Object? imageUrls = freezed,Object? fullResolutionUrls = freezed,Object? done = null,Object? fromSchedule = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? subject = null,Object? task = null,Object? deadline = null,Object? imageUrl = freezed,Object? imageUrls = freezed,Object? fullResolutionUrls = freezed,Object? done = null,Object? fromSchedule = null,Object? textbookNumbers = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,subject: null == subject ? _self.subject : subject // ignore: cast_nullable_to_non_nullable
@@ -347,7 +347,8 @@ as String?,imageUrls: freezed == imageUrls ? _self.imageUrls : imageUrls // igno
 as List<String>?,fullResolutionUrls: freezed == fullResolutionUrls ? _self.fullResolutionUrls : fullResolutionUrls // ignore: cast_nullable_to_non_nullable
 as List<String>?,done: null == done ? _self.done : done // ignore: cast_nullable_to_non_nullable
 as bool,fromSchedule: null == fromSchedule ? _self.fromSchedule : fromSchedule // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,textbookNumbers: null == textbookNumbers ? _self.textbookNumbers : textbookNumbers // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -432,10 +433,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String subject,  String task,  String deadline,  String? imageUrl,  List<String>? imageUrls,  List<String>? fullResolutionUrls,  bool done,  bool fromSchedule)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String subject,  String task,  String deadline,  String? imageUrl,  List<String>? imageUrls,  List<String>? fullResolutionUrls,  bool done,  bool fromSchedule,  List<String> textbookNumbers)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HomeworkItem() when $default != null:
-return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,_that.imageUrls,_that.fullResolutionUrls,_that.done,_that.fromSchedule);case _:
+return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,_that.imageUrls,_that.fullResolutionUrls,_that.done,_that.fromSchedule,_that.textbookNumbers);case _:
   return orElse();
 
 }
@@ -453,10 +454,10 @@ return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String subject,  String task,  String deadline,  String? imageUrl,  List<String>? imageUrls,  List<String>? fullResolutionUrls,  bool done,  bool fromSchedule)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String subject,  String task,  String deadline,  String? imageUrl,  List<String>? imageUrls,  List<String>? fullResolutionUrls,  bool done,  bool fromSchedule,  List<String> textbookNumbers)  $default,) {final _that = this;
 switch (_that) {
 case _HomeworkItem():
-return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,_that.imageUrls,_that.fullResolutionUrls,_that.done,_that.fromSchedule);case _:
+return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,_that.imageUrls,_that.fullResolutionUrls,_that.done,_that.fromSchedule,_that.textbookNumbers);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -473,10 +474,10 @@ return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String subject,  String task,  String deadline,  String? imageUrl,  List<String>? imageUrls,  List<String>? fullResolutionUrls,  bool done,  bool fromSchedule)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String subject,  String task,  String deadline,  String? imageUrl,  List<String>? imageUrls,  List<String>? fullResolutionUrls,  bool done,  bool fromSchedule,  List<String> textbookNumbers)?  $default,) {final _that = this;
 switch (_that) {
 case _HomeworkItem() when $default != null:
-return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,_that.imageUrls,_that.fullResolutionUrls,_that.done,_that.fromSchedule);case _:
+return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,_that.imageUrls,_that.fullResolutionUrls,_that.done,_that.fromSchedule,_that.textbookNumbers);case _:
   return null;
 
 }
@@ -488,7 +489,7 @@ return $default(_that.id,_that.subject,_that.task,_that.deadline,_that.imageUrl,
 
 
 class _HomeworkItem extends HomeworkItem {
-   _HomeworkItem({required this.id, required this.subject, required this.task, required this.deadline, this.imageUrl, this.imageUrls, this.fullResolutionUrls, this.done = false, this.fromSchedule = false}): super._();
+   _HomeworkItem({required this.id, required this.subject, required this.task, required this.deadline, this.imageUrl, this.imageUrls, this.fullResolutionUrls, this.done = false, this.fromSchedule = false, this.textbookNumbers = const []}): super._();
   
 
 @override  String id;
@@ -500,6 +501,7 @@ class _HomeworkItem extends HomeworkItem {
 @override  List<String>? fullResolutionUrls;
 @override@JsonKey()  bool done;
 @override@JsonKey()  bool fromSchedule;
+@override@JsonKey()  List<String> textbookNumbers;
 
 /// Create a copy of HomeworkItem
 /// with the given fields replaced by the non-null parameter values.
@@ -513,7 +515,7 @@ _$HomeworkItemCopyWith<_HomeworkItem> get copyWith => __$HomeworkItemCopyWithImp
 
 @override
 String toString() {
-  return 'HomeworkItem(id: $id, subject: $subject, task: $task, deadline: $deadline, imageUrl: $imageUrl, imageUrls: $imageUrls, fullResolutionUrls: $fullResolutionUrls, done: $done, fromSchedule: $fromSchedule)';
+  return 'HomeworkItem(id: $id, subject: $subject, task: $task, deadline: $deadline, imageUrl: $imageUrl, imageUrls: $imageUrls, fullResolutionUrls: $fullResolutionUrls, done: $done, fromSchedule: $fromSchedule, textbookNumbers: $textbookNumbers)';
 }
 
 
@@ -524,7 +526,7 @@ abstract mixin class _$HomeworkItemCopyWith<$Res> implements $HomeworkItemCopyWi
   factory _$HomeworkItemCopyWith(_HomeworkItem value, $Res Function(_HomeworkItem) _then) = __$HomeworkItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String subject, String task, String deadline, String? imageUrl, List<String>? imageUrls, List<String>? fullResolutionUrls, bool done, bool fromSchedule
+ String id, String subject, String task, String deadline, String? imageUrl, List<String>? imageUrls, List<String>? fullResolutionUrls, bool done, bool fromSchedule, List<String> textbookNumbers
 });
 
 
@@ -541,7 +543,7 @@ class __$HomeworkItemCopyWithImpl<$Res>
 
 /// Create a copy of HomeworkItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? subject = null,Object? task = null,Object? deadline = null,Object? imageUrl = freezed,Object? imageUrls = freezed,Object? fullResolutionUrls = freezed,Object? done = null,Object? fromSchedule = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? subject = null,Object? task = null,Object? deadline = null,Object? imageUrl = freezed,Object? imageUrls = freezed,Object? fullResolutionUrls = freezed,Object? done = null,Object? fromSchedule = null,Object? textbookNumbers = null,}) {
   return _then(_HomeworkItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,subject: null == subject ? _self.subject : subject // ignore: cast_nullable_to_non_nullable
@@ -552,7 +554,8 @@ as String?,imageUrls: freezed == imageUrls ? _self.imageUrls : imageUrls // igno
 as List<String>?,fullResolutionUrls: freezed == fullResolutionUrls ? _self.fullResolutionUrls : fullResolutionUrls // ignore: cast_nullable_to_non_nullable
 as List<String>?,done: null == done ? _self.done : done // ignore: cast_nullable_to_non_nullable
 as bool,fromSchedule: null == fromSchedule ? _self.fromSchedule : fromSchedule // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,textbookNumbers: null == textbookNumbers ? _self.textbookNumbers : textbookNumbers // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
