@@ -147,7 +147,8 @@ Future<void> showAddHomeworkModal({
     }
 
     List<String> extractedNumbers = [];
-    if (selectedSubject == 'Геометрия' && isTextbookGeometry) {
+    final isTextbookSubject = (selectedSubject == 'Геометрия' || selectedSubject == 'Алгебра');
+    if (isTextbookSubject && isTextbookGeometry) {
       final matches = RegExp(r'\d+').allMatches(taskText);
       extractedNumbers = matches.map((m) => m.group(0)!).toList();
     }
@@ -300,7 +301,7 @@ Future<void> showAddHomeworkModal({
         canAutoSubmit = true;
       }
 
-      if (recognizedSubject == 'Геометрия' &&
+      if ((recognizedSubject == 'Геометрия' || recognizedSubject == 'Алгебра') &&
           result['textbookNumbers'] != null &&
           (result['textbookNumbers'] as List).isNotEmpty) {
         isTextbookGeometry = true;
@@ -698,7 +699,7 @@ Future<void> showAddHomeworkModal({
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (selectedSubject == 'Геометрия') ...[
+                          if (selectedSubject == 'Геометрия' || selectedSubject == 'Алгебра') ...[
                             GestureDetector(
                               onTap: () => safeSetModalState(
                                   () => isTextbookGeometry = !isTextbookGeometry),

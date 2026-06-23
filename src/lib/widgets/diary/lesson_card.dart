@@ -188,7 +188,7 @@ class _LessonCardState extends State<LessonCard> {
                                   const SizedBox(height: 8),
                                   GestureDetector(
                                     onTap: () {
-                                      _showTextbookAnswers(context, ch.textbookNumbers);
+                                      _showTextbookAnswers(context, ch.textbookNumbers, ch.subject);
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -279,7 +279,15 @@ class _LessonCardState extends State<LessonCard> {
     );
   }
 
-  void _showTextbookAnswers(BuildContext context, List<String> numbers) {
+  void _showTextbookAnswers(BuildContext context, List<String> numbers, String subject) {
+    // Determine asset folder based on subject
+    final String assetFolder;
+    if (subject == 'Алгебра') {
+      assetFolder = 'assets/Algebra';
+    } else {
+      assetFolder = 'assets/Geometry';
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -305,7 +313,7 @@ class _LessonCardState extends State<LessonCard> {
                   itemCount: numbers.length,
                   itemBuilder: (context, index) {
                     final num = numbers[index];
-                    final imagePath = 'assets/Geometry/${num}_1.png';
+                    final imagePath = '$assetFolder/${num}_1.png';
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
