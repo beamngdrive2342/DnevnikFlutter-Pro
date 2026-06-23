@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/app_text_styles.dart';
 import '../../data/schedule_data.dart';
@@ -279,13 +282,16 @@ class _LessonCardState extends State<LessonCard> {
     );
   }
 
+  static const _assetsBaseUrl =
+      'https://raw.githubusercontent.com/beamngdrive2342/dnevnik-assets/main';
+
   void _showTextbookAnswers(BuildContext context, List<String> numbers, String subject) {
-    // Determine asset folder based on subject
-    final String assetFolder;
+    // Determine folder based on subject
+    final String folder;
     if (subject == 'Алгебра') {
-      assetFolder = 'assets/Algebra';
+      folder = 'Algebra';
     } else {
-      assetFolder = 'assets/Geometry';
+      folder = 'Geometry';
     }
 
     showModalBottomSheet(
@@ -313,31 +319,15 @@ class _LessonCardState extends State<LessonCard> {
                   itemCount: numbers.length,
                   itemBuilder: (context, index) {
                     final num = numbers[index];
-                    final imagePath = '$assetFolder/${num}_1.png';
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Номер $num', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: palette.onBg)),
                         const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                          child: Image.asset(
-                            imagePath,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  color: palette.surface3,
-                                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                                ),
-                                child: Center(
-                                  child: Text('Ответ для номера $num не найден', 
-                                    style: TextStyle(color: palette.onSurface3)),
-                                ),
-                              );
-                            },
-                          ),
+                        _NumberImages(
+                          numStr: num,
+                          folder: folder,
+                          baseUrl: _assetsBaseUrl,
                         ),
                         const SizedBox(height: 24),
                       ],
@@ -349,6 +339,123 @@ class _LessonCardState extends State<LessonCard> {
           ),
         );
       },
+    );
+  }
+}
+
+class _NumberImages extends StatefulWidget {
+  final String numStr;
+  final String folder;
+  final String baseUrl;
+
+  const _NumberImages({
+    required this.numStr,
+    required this.folder,
+    required this.baseUrl,
+  });
+
+  @override
+  State<_NumberImages> createState() => _NumberImagesState();
+}
+
+class _NumberImagesState extends State<_NumberImages> {
+  int _imageCount = 1;
+  bool _isLoadingCount = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkImages();
+  }
+
+  Future<void> _checkImages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = 'image_count_${widget.folder}_${widget.numStr}';
+    int count = 1;
+
+    try {
+      // Check up to 5 image parts
+      for (int i = 2; i <= 5; i++) {
+        final url = '${widget.baseUrl}/${widget.folder}/${widget.numStr}_$i.png';
+        final res = await http.head(Uri.parse(url)).timeout(const Duration(seconds: 5));
+        if (res.statusCode == 200) {
+          count = i;
+        } else {
+          break;
+        }
+      }
+      await prefs.setInt(cacheKey, count);
+    } catch (e) {
+      // Offline fallback
+      count = prefs.getInt(cacheKey) ?? 1;
+    }
+    
+    if (mounted) {
+      setState(() {
+        _imageCount = count;
+        _isLoadingCount = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoadingCount) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: AppTheme.colorsOf(context).surface3,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryDim,
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: List.generate(_imageCount, (index) {
+        final imgNum = index + 1;
+        final imageUrl = '${widget.baseUrl}/${widget.folder}/${widget.numStr}_$imgNum.png';
+        return Padding(
+          padding: EdgeInsets.only(bottom: index < _imageCount - 1 ? 16.0 : 0.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.contain,
+              placeholder: (context, url) => Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: AppTheme.colorsOf(context).surface3,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: AppTheme.primaryDim,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppTheme.colorsOf(context).surface3,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                ),
+                child: Center(
+                  child: Text('Ответ для номера ${widget.numStr} (часть $imgNum) не найден',
+                    style: TextStyle(color: AppTheme.colorsOf(context).onSurface3)),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

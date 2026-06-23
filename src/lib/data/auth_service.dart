@@ -198,6 +198,7 @@ class AuthService {
       }
 
       ClassSchedule.loadFromFirestoreDoc(classDoc);
+      await _cacheClassDoc(classId, classDoc);
       await _saveSession(classId, 'student', null, refreshToken);
       return classId;
     } catch (e) {
@@ -271,6 +272,7 @@ class AuthService {
       final classId = (doc['name'] as String).split('/').last;
       
       ClassSchedule.loadFromFirestoreDoc(doc);
+      await _cacheClassDoc(classId, doc);
       await _saveSession(classId, 'admin', email.trim().toLowerCase(), refreshToken);
       return classId;
     } catch (e) {
@@ -293,6 +295,7 @@ class AuthService {
 
       final doc = jsonDecode(res.body) as Map<String, dynamic>;
       ClassSchedule.loadFromFirestoreDoc(doc);
+      await _cacheClassDoc(classId, doc);
       return true;
     } catch (e) {
       debugPrint('loadClassData error: $e');
@@ -451,6 +454,26 @@ class AuthService {
   }
 
   // ── Session ─────────────────────────────────────────────────────────
+
+  static Future<void> _cacheClassDoc(String classId, Map<String, dynamic> doc) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('offline_class_$classId', jsonEncode(doc));
+  }
+
+  static Future<bool> restoreClassDataOffline(String classId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final docStr = prefs.getString('offline_class_$classId');
+      if (docStr != null && docStr.isNotEmpty) {
+        final doc = jsonDecode(docStr) as Map<String, dynamic>;
+        ClassSchedule.loadFromFirestoreDoc(doc);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('restoreClassDataOffline error: $e');
+    }
+    return false;
+  }
 
   static Future<void> _saveSession(
       String classId, String role, String? email, String? refreshToken) async {

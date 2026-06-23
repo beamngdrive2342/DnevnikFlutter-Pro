@@ -53,6 +53,17 @@ class AuthNotifier extends Notifier<AuthState> {
           );
           return;
         }
+      } else {
+        // Fallback to offline cached data if network failed
+        final offlineLoaded = await AuthService.restoreClassDataOffline(classId);
+        if (offlineLoaded) {
+          state = AuthState(
+            status: AuthStatus.authenticated,
+            classId: classId,
+            role: role,
+          );
+          return;
+        }
       }
       await AuthService.logout();
     }
