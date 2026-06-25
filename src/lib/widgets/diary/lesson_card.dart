@@ -314,25 +314,27 @@ class _LessonCardState extends State<LessonCard> {
               Text('Ответы из учебника', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: palette.onBg)),
               const SizedBox(height: 16),
               Expanded(
-                child: ListView.builder(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: numbers.length,
-                  itemBuilder: (context, index) {
-                    final num = numbers[index];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Номер $num', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: palette.onBg)),
-                        const SizedBox(height: 8),
-                        _NumberImages(
-                          numStr: num,
-                          folder: folder,
-                          baseUrl: _assetsBaseUrl,
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    );
-                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: numbers.map((hwNum) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Номер $hwNum', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: palette.onBg)),
+                          const SizedBox(height: 8),
+                          _NumberImages(
+                            numStr: hwNum,
+                            folder: folder,
+                            baseUrl: _assetsBaseUrl,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ],
@@ -371,6 +373,19 @@ class _NumberImagesState extends State<_NumberImages> {
   Future<void> _checkImages() async {
     final prefs = await SharedPreferences.getInstance();
     final cacheKey = 'image_count_${widget.folder}_${widget.numStr}';
+    
+    // Быстрая загрузка из кэша, чтобы избежать долгих сетевых запросов при каждом открытии
+    final cachedCount = prefs.getInt(cacheKey);
+    if (cachedCount != null && cachedCount > 0) {
+      if (mounted) {
+        setState(() {
+          _imageCount = cachedCount;
+          _isLoadingCount = false;
+        });
+      }
+      return;
+    }
+
     int count = 1;
 
     try {
