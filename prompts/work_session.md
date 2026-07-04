@@ -6,7 +6,8 @@
 
 ИСТОЧНИКИ:
 - AGENTS.md — основные правила проекта
-- docs/PROJECT_CONTEXT.md — контекст и логика
+- index.md — карта проекта (обязательно прочитай первым!)
+- docs/wiki/PROJECT_CONTEXT.md — контекст и логика
 - src/lib/ — исходный код проекта
 - Используй Skill: [например, brainstorming, frontend-design, systematic-debugging]
 
@@ -21,6 +22,7 @@
 - Что было запрошено (кратко)
 - Что было сделано (пунктами)
 - Какие файлы изменены
+- **Lessons Learned (Выводы)**: Опиши 1-2 урока, которые ты извлек из этой сессии (ошибки, инсайты, правила), чтобы будущие агенты не повторяли их. Запиши это в лог сессии.
 - Команды для проверки:
   `cd src && flutter analyze && flutter test && dart run build_runner build --delete-conflicting-outputs`
 - Следующий шаг

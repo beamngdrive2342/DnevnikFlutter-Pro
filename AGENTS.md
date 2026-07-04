@@ -19,11 +19,12 @@
 ## 🎯 ОБЯЗАТЕЛЬНО ПРОЧИТАЙ ПЕРЕД НАЧАЛОМ
 
 1. ✅ Прочитай этот файл (AGENTS.md) целиком
-2. ✅ Прочитай `docs/PROJECT_CONTEXT.md` 
-3. ✅ Прочитай последний session log в `logs/sessions/`
-4. ✅ Прочитай `docs/DECISIONS.md` 
-5. ✅ Прочитай `src/pubspec.yaml` — актуальные зависимости
-6. ✅ Изучи структуру `src/lib/` перед написанием кода
+2. ✅ Прочитай `index.md` в корне, чтобы понять карту проекта
+3. ✅ Прочитай `docs/wiki/PROJECT_CONTEXT.md` 
+4. ✅ Прочитай последний session log в `logs/sessions/`
+5. ✅ Прочитай `docs/wiki/DECISIONS.md` 
+6. ✅ Прочитай `src/pubspec.yaml` — актуальные зависимости
+7. ✅ Изучи структуру `src/lib/` перед написанием кода (см. `src/lib/index.md`)
 
 **Спрашивай, если непонятно. Не угадывай.**
 
@@ -46,8 +47,8 @@
 ## ✅ ВСЕГДА ДЕЛАЙ
 
 - ✅ После каждой задачи → создай/обнови session log в `logs/sessions/YYYY-MM-DD.md`
-- ✅ Если меняешь архитектуру → обнови `docs/DECISIONS.md`
-- ✅ Если меняешь код → обнови `docs/CHANGELOG.md`
+- ✅ Если меняешь архитектуру → обнови `docs/wiki/DECISIONS.md`
+- ✅ Если меняешь код → обнови `docs/outputs/CHANGELOG.md`
 - ✅ Перед изменением Firestore rules → спроси разрешение
 - ✅ ВСЕГДА СПРАШИВАЙ ПОЛЬЗОВАТЕЛЯ ПЕРЕД ВЫПОЛНЕНИЕМ ЗАДАЧИ И ВНЕДРЕНИЕМ (запрашивай ревью плана), если нет явного согласия.
 - ✅ Следуй паттернам Riverpod 3 (используй `@riverpod` аннотации через `freezed`)
@@ -69,8 +70,8 @@
 | `src/lib/router/` | go_router конфигурация | Да |
 | `src/lib/theme/` | Темы, стили, цвета | Да |
 | `src/lib/utils/` | Утилиты и хелперы | Да |
-| `docs/` | Документация (память проекта) | Только агент |
-| `logs/sessions/` | История сессий работы | Только агент |
+| `docs/` | Документация (память проекта, см. `docs/index.md`) | Только агент |
+| `logs/sessions/` | История сессий работы и выводы (Lessons Learned) | Только агент |
 | `.skills/` | Локальные Skills | Нет |
 | `outputs/` | Готовые артефакты (APK, экспорты) | Да |
 | `prompts/` | Шаблоны промптов для задач | Да |
@@ -94,7 +95,7 @@
 ### Какие файлы изменены
 - `src/lib/screens/...`
 - `src/lib/providers/...`
-- `docs/CHANGELOG.md`
+- `docs/outputs/CHANGELOG.md`
 
 ### Команды для проверки
 ```bash
@@ -118,7 +119,7 @@ dart run build_runner build --delete-conflicting-outputs
 
 ### Правило 2: Единый источник правды
 - Файлы > память чата
-- После изменений → обнови документацию в `docs/`
+- После изменений → обнови документацию в `docs/wiki/` или `docs/outputs/`
 - Новый агент читает файлы и сразу в курсе
 
 ### Правило 3: Самопроверка перед сдачей
@@ -158,7 +159,7 @@ dart run build_runner build --delete-conflicting-outputs
 
 # ИСТОЧНИКИ
 - AGENTS.md — правила
-- docs/PROJECT_CONTEXT.md — контекст
+- docs/wiki/PROJECT_CONTEXT.md — контекст
 - src/lib/data/ — модели данных
 
 # ОГРАНИЧЕНИЯ

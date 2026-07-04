@@ -146,3 +146,13 @@
 - **Why:** `SharedPreferences` хранит данные в открытом виде; `flutter_secure_storage` использует Keychain (iOS) / Keystore (Android)
 - **Consequences:** На Android требует минимум API 23; на десктопе поведение отличается
 - **Rollback:** Перенести токены в `SharedPreferences` — снижение безопасности
+
+---
+
+## 2026-07-05 - Переход на структуру Agentic OS (Second Brain)
+
+- **Status:** accepted
+- **Decision:** Внедрить иерархию файлов `index.md` для навигации ИИ-агентов и разделить `docs/` на `raw`, `wiki`, `outputs`. Добавить обязательный шаг "Lessons Learned" в конец рабочих сессий.
+- **Why:** При росте кодовой базы ИИ-агенты тратят слишком много токенов на поиск контекста или повторяют старые ошибки. Карта файлов (`index.md`) и самоанализ (Loop Engineering) решают эту проблему.
+- **Consequences:** Агенты обязаны начинать работу с чтения `index.md`. Улучшается навигация и запоминание решений.
+- **Rollback:** Удалить файлы `index.md` и откатить `AGENTS.md`.
