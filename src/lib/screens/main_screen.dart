@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/firestore_service.dart';
 import '../screens/admin_panel_screen.dart';
@@ -26,6 +27,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  bool _isAIFabExpanded = false;
   final GlobalKey<DiaryScreenState> _diaryKey = GlobalKey<DiaryScreenState>();
   final GlobalKey<AdminPanelScreenState> _adminKey =
       GlobalKey<AdminPanelScreenState>();
@@ -252,12 +254,74 @@ class _MainScreenState extends State<MainScreen> {
           ? Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: isAdmin
-                  ? PremiumGlowButton(
-                      onPressed: _showAddHomeworkModal,
-                      child: const Icon(
-                        LucideIcons.plus,
-                        size: 32,
-                        color: Colors.white,
+                  ? SizedBox(
+                      width: 80,
+                      height: 160,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 240),
+                            curve: _isAIFabExpanded ? Curves.easeOutBack : Curves.easeOutCubic,
+                            bottom: _isAIFabExpanded ? 80.0 : 0.0,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _isAIFabExpanded ? 1.0 : 0.0,
+                              child: AnimatedBuilder(
+                                animation: aiChatController,
+                                builder: (context, _) {
+                                  return IgnorePointer(
+                                    ignoring: !_isAIFabExpanded,
+                                    child: PremiumGlowButton(
+                                      size: 48,
+                                      onPressed: () {
+                                        setState(() {
+                                          _isAIFabExpanded = false;
+                                        });
+                                        _showAIChatModal();
+                                      },
+                                      isLoading: aiChatController.isBusy,
+                                      child: const Icon(
+                                        LucideIcons.sparkles,
+                                        size: 22,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            child: PremiumGlowButton(
+                              onPressed: () {
+                                if (_isAIFabExpanded) {
+                                  setState(() {
+                                    _isAIFabExpanded = false;
+                                  });
+                                } else {
+                                  _showAddHomeworkModal();
+                                }
+                              },
+                              onLongPress: () {
+                                setState(() {
+                                  _isAIFabExpanded = !_isAIFabExpanded;
+                                });
+                                HapticFeedback.mediumImpact();
+                              },
+                              child: AnimatedRotation(
+                                duration: const Duration(milliseconds: 200),
+                                turns: _isAIFabExpanded ? 0.125 : 0,
+                                child: const Icon(
+                                  LucideIcons.plus,
+                                  size: 32,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   : AnimatedBuilder(

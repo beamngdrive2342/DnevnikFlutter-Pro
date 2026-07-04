@@ -7,14 +7,18 @@ import '../theme/app_theme.dart';
 
 class PremiumGlowButton extends StatefulWidget {
   final VoidCallback onPressed;
+  final VoidCallback? onLongPress;
   final Widget child;
   final bool isLoading;
+  final double size;
 
   const PremiumGlowButton({
     super.key,
     required this.onPressed,
+    this.onLongPress,
     required this.child,
     this.isLoading = false,
+    this.size = 64.0,
   });
 
   @override
@@ -71,7 +75,7 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
 
   @override
   Widget build(BuildContext context) {
-    const double size = 64.0;
+    final double size = widget.size;
     const Color glowColor = AppTheme.primary;
 
     return GestureDetector(
@@ -82,6 +86,10 @@ class _PremiumGlowButtonState extends State<PremiumGlowButton>
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
       onTap: widget.onPressed,
+      onLongPress: widget.onLongPress != null ? () {
+        _setPressed(false);
+        widget.onLongPress?.call();
+      } : null,
       child: AnimatedScale(
         scale: _isPressed ? 0.93 : 1,
         duration: const Duration(milliseconds: 140),
