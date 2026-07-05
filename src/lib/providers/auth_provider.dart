@@ -84,6 +84,24 @@ class AuthNotifier extends Notifier<AuthState> {
     await AuthService.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
+
+  Future<bool> deleteAccount() async {
+    final classId = state.classId;
+    final role = state.role;
+    if (classId == null) return false;
+
+    final bool success;
+    if (role == 'admin') {
+      success = await AuthService.deleteAdminAccount(classId: classId);
+    } else {
+      success = await AuthService.deleteStudentAccount(classId: classId);
+    }
+
+    if (success) {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    }
+    return success;
+  }
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(() {

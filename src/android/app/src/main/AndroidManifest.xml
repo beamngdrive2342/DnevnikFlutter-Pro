@@ -1,9 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <!-- READ/WRITE_EXTERNAL_STORAGE deprecated on Android 13+. image_picker и gal используют
+         media permissions напрямую. Оставлены для совместимости с более старыми версиями. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <application
-        android:label="dnevnik_app"
+        android:label="Школьный Дневник"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

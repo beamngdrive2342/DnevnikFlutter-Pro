@@ -7,6 +7,7 @@ import '../screens/welcome_screen.dart';
 import '../screens/join_class_screen.dart';
 import '../screens/create_class_screen.dart';
 import '../screens/main_screen.dart';
+import '../screens/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -60,6 +61,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             classId: authState.classId ?? '',
           );
         },
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );

@@ -509,6 +509,109 @@ class AuthService {
     ClassSchedule.reset();
   }
 
+  // ── Delete account (required by Google Play) ─────────────────────────
+
+  /// Удаляет аккаунт администратора: весь класс + все ДЗ + индекс кода + Firebase Auth.
+  static Future<bool> deleteAdminAccount({required String classId}) async {
+    try {
+      if (!await _deleteHomeworkSubcollection(classId)) return false;
+      final classRes = await _client
+          .get(Uri.parse('$_base/classes/$classId'),
+              headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'})
+          .timeout(_timeout);
+      if (classRes.statusCode == 200) {
+        final fields = ((jsonDecode(classRes.body) as Map<String, dynamic>)['fields'] ?? {}) as Map<String, dynamic>;
+        final classCode = fields['code']?['stringValue'] as String? ?? '';
+        if (classCode.isNotEmpty) {
+          await _client.delete(Uri.parse('$_base/class_codes/$classCode'),
+              headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'}).timeout(_timeout);
+        }
+      }
+      await _deleteMembersSubcollection(classId);
+      await _client.delete(Uri.parse('$_base/classes/$classId'),
+          headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'}).timeout(_timeout);
+      await _deleteFirebaseAuthAccount();
+      await logout();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('offline_class_$classId');
+      await prefs.remove('offline_homework_$classId');
+      return true;
+    } catch (e) {
+      debugPrint('deleteAdminAccount error: $e');
+      return false;
+    }
+  }
+
+  /// Удаляет аккаунт ученика: запись в members + анонимный Firebase Auth аккаунт.
+  static Future<bool> deleteStudentAccount({required String classId}) async {
+    try {
+      if (_idToken != null) {
+        final lookupRes = await _client.post(
+          Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=$firebaseWebApiKey'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'idToken': _idToken}),
+        );
+        if (lookupRes.statusCode == 200) {
+          final users = (jsonDecode(lookupRes.body)['users'] as List?);
+          final localId = users?.first?['localId'] as String?;
+          if (localId != null && localId.isNotEmpty) {
+            await _client.delete(Uri.parse('$_base/classes/$classId/members/$localId'),
+                headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'}).timeout(_timeout);
+          }
+        }
+      }
+      await _deleteFirebaseAuthAccount();
+      await logout();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('offline_class_$classId');
+      await prefs.remove('offline_homework_$classId');
+      return true;
+    } catch (e) {
+      debugPrint('deleteStudentAccount error: $e');
+      return false;
+    }
+  }
+
+  static Future<void> _deleteFirebaseAuthAccount() async {
+    if (_idToken == null) return;
+    try {
+      await _client.post(
+        Uri.parse('https://identitytoolkit.googleapis.com/v1/accounts:delete?key=$firebaseWebApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': _idToken}),
+      );
+    } catch (e) {
+      debugPrint('_deleteFirebaseAuthAccount error: $e');
+    }
+  }
+
+  static Future<void> _deleteMembersSubcollection(String classId) async {
+    try {
+      String? pageToken;
+      do {
+        final uri = Uri.parse(pageToken == null || pageToken.isEmpty
+            ? '$_base/classes/$classId/members'
+            : '$_base/classes/$classId/members?pageToken=$pageToken');
+        final listRes = await _client
+            .get(uri, headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'})
+            .timeout(_timeout);
+        if (listRes.statusCode != 200) break;
+        final data = jsonDecode(listRes.body) as Map<String, dynamic>;
+        for (final raw in (data['documents'] as List<dynamic>? ?? [])) {
+          final name = (raw as Map<String, dynamic>)['name'] as String?;
+          if (name != null) {
+            await _client.delete(Uri.parse('https://firestore.googleapis.com/v1/$name'),
+                headers: {if (_idToken != null) 'Authorization': 'Bearer $_idToken'}).timeout(_timeout);
+          }
+        }
+        pageToken = data['nextPageToken'] as String?;
+      } while (pageToken != null && pageToken.isNotEmpty);
+    } catch (e) {
+      debugPrint('_deleteMembersSubcollection error: $e');
+    }
+  }
+
+
   static Future<bool> restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
     String? refreshToken = await _secureStorage.read(key: 'dnevnik_refresh_token');
