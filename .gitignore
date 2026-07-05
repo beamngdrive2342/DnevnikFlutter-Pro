@@ -1,5 +1,5 @@
 .skills/
-outputs/
+/outputs/
 migrate_git.ps1
 .idea/
 .vscode/
