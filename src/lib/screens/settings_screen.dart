@@ -8,11 +8,15 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../data/schedule_data.dart';
 import '../providers/auth_provider.dart';
+import '../providers/profile_provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_controller.dart';
+import '../utils/image_data.dart';
+import '../widgets/network_photo.dart';
 import '../widgets/top_notification.dart';
 
 // ═══════════════════════════════════════════════════════════
@@ -22,10 +26,10 @@ import '../widgets/top_notification.dart';
 /// URLs для юридических документов на GitHub Pages.
 /// Замени на свой URL после включения GitHub Pages.
 const _kPrivacyPolicyUrl =
-    'https://[ваш-username].github.io/DnevnikFlutter/legal/privacy-policy';
+    'https://beamngdrive2342.github.io/DnevnikFlutter-Pro/legal/privacy-policy.html';
 const _kTermsUrl =
-    'https://[ваш-username].github.io/DnevnikFlutter/legal/terms-of-service';
-const _kSupportEmail = 'mailto:[ваш-email]?subject=Школьный Дневник — Поддержка';
+    'https://beamngdrive2342.github.io/DnevnikFlutter-Pro/legal/terms-of-service.html';
+const _kSupportEmail = 'mailto:geminigravitivibe@gmail.com?subject=Школьный Дневник — Поддержка';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -37,6 +41,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   PackageInfo? _packageInfo;
   bool _isDeleting = false;
+  final _imagePicker = ImagePicker();
 
   AppPalette get palette => AppTheme.colorsOf(context);
 
@@ -51,6 +56,92 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (mounted) {
       setState(() => _packageInfo = info);
     }
+  }
+
+  Future<void> _editProfile() async {
+    final profile = ref.read(profileProvider);
+    final controller = TextEditingController(text: profile.name);
+    String tempAvatar = profile.avatar;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> pickImage() async {
+              final image = await _imagePicker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 50,
+                maxWidth: 400,
+                maxHeight: 400,
+              );
+              if (image == null) return;
+              final bytes = await loadImageBytes(image.path);
+              if (bytes != null) {
+                final encoded = encodeInlineImageData(bytes, mimeType: inferImageMimeType(image.path));
+                setModalState(() => tempAvatar = encoded);
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: palette.bg,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text('Профиль', style: TextStyle(color: palette.onBg, fontSize: 18)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: pickImage,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: tempAvatar.isNotEmpty
+                          ? NetworkPhoto(url: tempAvatar, width: 80, height: 80, fit: BoxFit.cover)
+                          : const Icon(LucideIcons.camera, color: AppTheme.primary, size: 32),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    style: TextStyle(color: palette.onBg),
+                    decoration: InputDecoration(
+                      labelText: 'Ваше имя',
+                      labelStyle: TextStyle(color: palette.onSurface2),
+                      filled: true,
+                      fillColor: palette.surface3,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        borderSide: BorderSide(color: palette.cardBorder),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text('Отмена', style: TextStyle(color: palette.onSurface2)),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Сохранить'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == true) {
+      await ref.read(profileProvider.notifier).updateProfile(controller.text.trim(), tempAvatar);
+    }
+    controller.dispose();
   }
 
   // ── Actions ─────────────────────────────────────────────────────────
@@ -110,10 +201,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
+    try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      showTopNotification(context, 'Не удалось открыть ссылку');
+    } catch (_) {
+      if (mounted) {
+        showTopNotification(context, 'Не удалось открыть ссылку');
+      }
     }
   }
 
@@ -190,7 +283,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             foregroundColor: palette.onSurface2,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: const Text('Отмена'),
+                          child: const Text('Отмена', textAlign: TextAlign.center),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -205,7 +298,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: Text(confirmLabel),
+                          child: Text(confirmLabel, textAlign: TextAlign.center),
                         ),
                       ),
                     ],
@@ -278,30 +371,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                           children: [
-                            // ── Аккаунт ────────────────────────────────
-                            _buildSectionHeader('Аккаунт'),
+                            // ── Профиль ────────────────────────────────
+                            _buildSectionHeader('Профиль'),
                             _buildAccountCard(
                               isAdmin: isAdmin,
                               className: classNameStr,
-                      schoolName: schoolNameStr,
+                              schoolName: schoolNameStr,
                             ),
-                            const SizedBox(height: 8),
-                            _buildTileCard([
-                              _buildTile(
-                                icon: LucideIcons.logOut,
-                                label: 'Выйти из аккаунта',
-                                iconColor: AppTheme.warning,
-                                onTap: _confirmLogout,
-                              ),
-                              _buildDivider(),
-                              _buildTile(
-                                icon: LucideIcons.trash2,
-                                label: 'Удалить аккаунт и данные',
-                                iconColor: AppTheme.danger,
-                                labelColor: AppTheme.danger,
-                                onTap: _confirmDeleteAccount,
-                              ),
-                            ]),
 
                             // ── Внешний вид ─────────────────────────────
                             _buildSectionHeader('Внешний вид'),
@@ -367,6 +443,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   applicationVersion:
                                       _packageInfo?.version ?? '1.0.0',
                                 ),
+                              ),
+                            ]),
+
+                            // ── Аккаунт ──────────────────────────────────
+                            _buildSectionHeader('Аккаунт'),
+                            _buildTileCard([
+                              _buildTile(
+                                icon: LucideIcons.logOut,
+                                label: 'Выйти из аккаунта',
+                                iconColor: AppTheme.warning,
+                                onTap: _confirmLogout,
+                              ),
+                              _buildDivider(),
+                              _buildTile(
+                                icon: LucideIcons.trash2,
+                                label: 'Удалить аккаунт и данные',
+                                iconColor: AppTheme.danger,
+                                labelColor: AppTheme.danger,
+                                onTap: _confirmDeleteAccount,
                               ),
                             ]),
 
@@ -453,6 +548,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String schoolName,
   }) {
     final auth = ref.read(authProvider);
+    final profile = ref.watch(profileProvider);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -470,12 +566,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               color: AppTheme.primary.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: Text(
-                isAdmin ? '👑' : '📚',
-                style: const TextStyle(fontSize: 22),
-              ),
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: profile.avatar.isNotEmpty
+                ? NetworkPhoto(url: profile.avatar, width: 48, height: 48, fit: BoxFit.cover)
+                : Center(
+                    child: Text(
+                      isAdmin ? '👑' : '📚',
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -483,7 +582,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isAdmin ? 'Администратор' : 'Ученик',
+                  profile.name.isNotEmpty ? profile.name : (isAdmin ? 'Администратор' : 'Ученик'),
                   style: TextStyle(
                     color: palette.onBg,
                     fontSize: 15,
@@ -520,6 +619,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ],
             ),
+          ),
+          IconButton(
+            onPressed: _editProfile,
+            icon: Icon(LucideIcons.pencil, color: palette.onSurface2, size: 20),
           ),
         ],
       ),

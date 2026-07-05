@@ -497,7 +497,7 @@ class AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
             children: [
               _buildTabButton(0, Icons.assignment_rounded, 'Задания'),
               const SizedBox(width: 8),
-              _buildTabButton(1, Icons.settings_rounded, 'Настройки'),
+              _buildTabButton(1, Icons.settings_rounded, 'Параметры класса'),
             ],
           ),
           const SizedBox(height: 8),

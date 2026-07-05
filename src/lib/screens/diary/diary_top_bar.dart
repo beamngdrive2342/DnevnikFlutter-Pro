@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../data/schedule_data.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/scale_tap_wrapper.dart';
+import '../../widgets/network_photo.dart';
+import '../../providers/profile_provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 class DiaryTopBar extends ConsumerWidget {
@@ -18,6 +20,7 @@ class DiaryTopBar extends ConsumerWidget {
     final schoolName = ClassSchedule.schoolName.trim().isNotEmpty
         ? ClassSchedule.schoolName.trim()
         : 'Школа';
+    final profile = ref.watch(profileProvider);
 
     return Container(
       height: 60,
@@ -57,24 +60,42 @@ class DiaryTopBar extends ConsumerWidget {
             ],
           ),
           const Spacer(),
-          // Кнопка настроек — заменяет отдельные кнопки темы и логаута
           ScaleTapWrapper(
             onTap: () => context.push('/settings'),
             child: Container(
-              width: 34,
-              height: 34,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: palette.surface2.withValues(alpha: 0.8),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: palette.cardBorder,
-                  width: 1,
-                ),
+                color: palette.surface2.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: palette.cardBorder, width: 1),
               ),
-              child: Icon(
-                LucideIcons.settings,
-                color: palette.onSurface2,
-                size: 18,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Профиль',
+                    style: TextStyle(
+                      color: palette.onSurface2,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: profile.avatar.isNotEmpty
+                        ? NetworkPhoto(url: profile.avatar, width: 28, height: 28, fit: BoxFit.cover)
+                        : const Center(
+                            child: Icon(LucideIcons.user, size: 16, color: AppTheme.primaryDim),
+                          ),
+                  ),
+                ],
               ),
             ),
           ),
