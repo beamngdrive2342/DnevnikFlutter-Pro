@@ -30,26 +30,33 @@ class DiaryScreenState extends State<DiaryScreen>
   static const Duration _imageDownloadTimeout = Duration(seconds: 15);
   AppPalette get palette => AppTheme.colorsOf(context);
 
-  static const int _initialDayIndex = 3;
+  static const int _initialDayIndex = 5000;
+  static const int _daysCount = 10000;
   late int _selectedDayIndex;
   late ScrollController _calendarScrollController;
   late PageController _pageController;
-  late List<DateTime> _days;
   late DateTime _today;
   Map<String, List<HomeworkItem>> _homeworkLookup = {};
   bool _isLoadingHomework = true;
+
+  DateTime _getDateForIndex(int index) {
+    return _today.add(Duration(days: index - _initialDayIndex));
+  }
 
   @override
   void initState() {
     super.initState();
     _today = DateTime.now();
-    _days = List.generate(14, (i) => _today.add(Duration(days: i - 3)));
     _selectedDayIndex = _initialDayIndex;
-    _calendarScrollController = ScrollController();
+    // Устанавливаем примерный offset, чтобы сразу рендерились нужные дни без прыжка с 0-го индекса
+    // 62.0 - ширина одной карточки (56 + 6 margin), 200.0 - примерная половина экрана
+    _calendarScrollController = ScrollController(
+      initialScrollOffset: (_initialDayIndex * 62.0) - 200.0,
+    );
     _pageController = PageController(initialPage: _initialDayIndex);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToIndex(_initialDayIndex);
+      _scrollToIndex(_initialDayIndex, animate: false);
       _loadCustomHomework();
     });
   }
@@ -96,16 +103,22 @@ class DiaryScreenState extends State<DiaryScreen>
     return false;
   }
 
-  void _scrollToIndex(int index) {
+  void _scrollToIndex(int index, {bool animate = true}) {
     if (!_calendarScrollController.hasClients) return;
     final screenWidth = MediaQuery.of(context).size.width;
     final offset = (index * 62.0) - (screenWidth / 2) + 31.0;
 
-    _calendarScrollController.animateTo(
-      offset.clamp(0.0, _calendarScrollController.position.maxScrollExtent),
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-    );
+    final targetOffset = offset.clamp(0.0, _calendarScrollController.position.maxScrollExtent);
+
+    if (animate) {
+      _calendarScrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _calendarScrollController.jumpTo(targetOffset);
+    }
   }
 
   @override
@@ -123,10 +136,11 @@ class DiaryScreenState extends State<DiaryScreen>
         const DiaryTopBar(),
         const SizedBox(height: 12),
         CalendarStrip(
-          days: _days,
+          itemCount: _daysCount,
+          dateBuilder: _getDateForIndex,
+          hasHomeworkBuilder: (index) => _dayHasHomework(_getDateForIndex(index)),
           today: _today,
           selectedDayIndex: _selectedDayIndex,
-          hasHomeworkFlags: _days.map((d) => _dayHasHomework(d)).toList(),
           scrollController: _calendarScrollController,
           onDaySelected: (index) {
             setState(() => _selectedDayIndex = index);
@@ -148,9 +162,9 @@ class DiaryScreenState extends State<DiaryScreen>
               setState(() => _selectedDayIndex = index);
               _scrollToIndex(index);
             },
-            itemCount: _days.length,
+            itemCount: _daysCount,
             itemBuilder: (context, index) {
-              return _buildLessonsSectionForDay(_days[index]);
+              return _buildLessonsSectionForDay(_getDateForIndex(index));
             },
           ),
         ),
@@ -176,6 +190,15 @@ class DiaryScreenState extends State<DiaryScreen>
         CupertinoSliverRefreshControl(
           onRefresh: () async {
             await reloadHomework(forceRefresh: true);
+            if (_selectedDayIndex != _initialDayIndex) {
+              setState(() => _selectedDayIndex = _initialDayIndex);
+              _pageController.animateToPage(
+                _initialDayIndex,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+              );
+              _scrollToIndex(_initialDayIndex);
+            }
           },
           builder: (context, refreshState, pulledExtent, refreshTriggerPullDistance, refreshIndicatorExtent) {
             return PremiumRefreshControl(

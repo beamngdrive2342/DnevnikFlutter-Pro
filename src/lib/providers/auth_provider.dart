@@ -42,6 +42,21 @@ class AuthNotifier extends Notifier<AuthState> {
 
     if (classId != null && role != null) {
       FirestoreService.setClassId(classId);
+
+      // 1. Сначала пытаемся загрузить оффлайн данные (чтобы пустить в интерфейс без задержек)
+      final offlineLoaded = await AuthService.restoreClassDataOffline(classId);
+      if (offlineLoaded) {
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          classId: classId,
+          role: role,
+        );
+        // Запускаем фоновую синхронизацию, не блокируя UI
+        _syncSessionInBackground(classId);
+        return;
+      }
+
+      // 2. Если кэша нет, ждем сеть (первый запуск или сброс кэша)
       final restored = await AuthService.restoreSession();
       if (restored) {
         final loaded = await AuthService.loadClassData(classId);
@@ -53,22 +68,19 @@ class AuthNotifier extends Notifier<AuthState> {
           );
           return;
         }
-      } else {
-        // Fallback to offline cached data if network failed
-        final offlineLoaded = await AuthService.restoreClassDataOffline(classId);
-        if (offlineLoaded) {
-          state = AuthState(
-            status: AuthStatus.authenticated,
-            classId: classId,
-            role: role,
-          );
-          return;
-        }
       }
+      
       await AuthService.logout();
     }
 
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> _syncSessionInBackground(String classId) async {
+    final restored = await AuthService.restoreSession();
+    if (restored) {
+      await AuthService.loadClassData(classId);
+    }
   }
 
   Future<void> login(String classId, String role) async {

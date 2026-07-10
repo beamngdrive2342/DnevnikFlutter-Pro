@@ -4,21 +4,23 @@ import '../../data/schedule_data.dart';
 import '../scale_tap_wrapper.dart';
 
 class CalendarStrip extends StatelessWidget {
-  final List<DateTime> days;
+  final int itemCount;
+  final DateTime Function(int index) dateBuilder;
+  final bool Function(int index) hasHomeworkBuilder;
   final DateTime today;
   final int selectedDayIndex;
   final ScrollController scrollController;
   final Function(int) onDaySelected;
-  final List<bool> hasHomeworkFlags;
 
   const CalendarStrip({
     super.key,
-    required this.days,
+    required this.itemCount,
+    required this.dateBuilder,
+    required this.hasHomeworkBuilder,
     required this.today,
     required this.selectedDayIndex,
     required this.scrollController,
     required this.onDaySelected,
-    required this.hasHomeworkFlags,
   });
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -34,10 +36,11 @@ class CalendarStrip extends StatelessWidget {
       child: ListView.builder(
         controller: scrollController,
         scrollDirection: Axis.horizontal,
+        itemExtent: 62.0,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: days.length,
+        itemCount: itemCount,
         itemBuilder: (context, index) {
-          final d = days[index];
+          final d = dateBuilder(index);
           final isToday = _isSameDay(d, today);
           final isSelected = index == selectedDayIndex;
           final dayOfWeek = d.weekday - 1; // 0=Mon, 6=Sun
@@ -45,7 +48,7 @@ class CalendarStrip extends StatelessWidget {
           final isWeekend = (d.weekday == 6 || d.weekday == 7) && !hasLessons;
 
           final isPast = d.isBefore(DateTime(today.year, today.month, today.day));
-          final hasHomework = hasHomeworkFlags[index];
+          final hasHomework = hasHomeworkBuilder(index);
 
           return ScaleTapWrapper(
             onTap: () => onDaySelected(index),
