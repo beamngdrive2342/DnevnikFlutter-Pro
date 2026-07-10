@@ -46,6 +46,9 @@ class AuthNotifier extends Notifier<AuthState> {
       // 1. Сначала пытаемся загрузить оффлайн данные (чтобы пустить в интерфейс без задержек)
       final offlineLoaded = await AuthService.restoreClassDataOffline(classId);
       if (offlineLoaded) {
+        // Подгружаем кэш домашки в память, чтобы избежать мерцания скелетонов на первом кадре
+        await FirestoreService.preloadCache();
+        
         state = AuthState(
           status: AuthStatus.authenticated,
           classId: classId,

@@ -55,9 +55,25 @@ class DiaryScreenState extends State<DiaryScreen>
     );
     _pageController = PageController(initialPage: _initialDayIndex);
 
+    // Если кэш уже загружен (мы это делаем в auth_provider), 
+    // применяем его синхронно, чтобы первый же кадр отрендерился с домашкой
+    // и мы не показывали мерцающие скелетоны.
+    final cached = FirestoreService.peekHomeworkCache();
+    if (cached != null) {
+      _homeworkLookup = _buildHomeworkLookup(cached);
+      _isLoadingHomework = false;
+    } else {
+      _isLoadingHomework = true;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToIndex(_initialDayIndex, animate: false);
-      _loadCustomHomework();
+      if (cached == null) {
+        _loadCustomHomework();
+      } else {
+        // Запускаем фоновое обновление через сеть, не показывая лоадер
+        FirestoreService.refreshHomeworkInBackground();
+      }
     });
   }
 

@@ -23,10 +23,14 @@
 - **Diary TopBar**: Кнопки отдельной смены темы и выхода из аккаунта заменены стильной кнопкой-пилюлей "Профиль" с аватаром пользователя.
 - **UI/UX**: Полный отказ от эффектов прозрачности/glassmorphism (удалены BackdropFilter из диалогов) в пользу solid-цветов (palette.bg) для лучшей читаемости и производительности.
 - **AndroidManifest.xml**: `android:label` изменён с `dnevnik_app` на `Школьный Дневник`. `READ/WRITE_EXTERNAL_STORAGE` ограничены `maxSdkVersion="32"` (deprecated на Android 13+), добавлен `READ_MEDIA_IMAGES`.
+- **DiaryScreen Infinite Scroll**: Заменен жесткий список дней на `PageView.builder` и `ListView.builder` с `itemCount: 10000`, что позволило скроллить дни "бесконечно" (±5000 дней от сегодня). Для предотвращения зависания при переходе к индексу 5000 добавлен `itemExtent: 62.0`.
 
 ### Fixed
 - **URL Launcher (Android 11+)**: Исправлена ошибка открытия внешних ссылок (Privacy Policy), метод `canLaunchUrl` заменен на блок `try-catch` при `launchUrl`.
 - **GitHub Pages**: Выполнен коммит и отправка файлов `docs/legal` в ветку `main` для устранения ошибки 404 при открытии соглашений.
+- **Startup Jank / Scroll Lag**: Устранено зависание приложения при запуске путем добавления `itemExtent` в `CalendarStrip` (предотвращает синхронный рендер тысяч элементов при начальном `initialScrollOffset`).
+- **Startup UI Flicker**: Устранено мерцание лоадеров (скелетонов) при загрузке оффлайн-данных. Кэш `SharedPreferences` теперь подгружается синхронно до отрисовки `DiaryScreen`, а `refreshHomeworkInBackground()` тихо обновляет данные без блокировки UI.
+- **Pull to Refresh**: Свайп вниз в `DiaryScreen` теперь не только обновляет данные, но и плавно возвращает пользователя на сегодняшний день.
 
 ---
 

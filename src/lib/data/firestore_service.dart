@@ -279,6 +279,17 @@ class FirestoreService {
     return List<HomeworkItem>.from(cache);
   }
 
+  static List<HomeworkItem>? peekHomeworkCache() {
+    return _getFreshCache();
+  }
+
+  static Future<void> preloadCache() async {
+    final persisted = await getPersistedHomework();
+    if (persisted.isNotEmpty) {
+      _updateCache(persisted);
+    }
+  }
+
   static void _updateCache(List<HomeworkItem> homework) {
     _cachedHomework = List<HomeworkItem>.unmodifiable(homework);
     _cacheExpiresAt = DateTime.now().add(_cacheTtl);
@@ -297,6 +308,10 @@ class FirestoreService {
         _pendingHomeworkRequest = null;
       }
     }
+  }
+
+  static void refreshHomeworkInBackground() {
+    unawaited(_refreshHomeworkInBackground());
   }
 
   static String get _persistedHomeworkKey =>
