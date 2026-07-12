@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-13 - Единый источник дат + `@visibleForTesting` для тестируемости (Фаза 1)
+- **Status:** accepted
+- **Decision:** Всё форматирование/парсинг дат ДЗ держим в `app_date_utils.dart` (`formatDateIso`, `parseHomeworkDeadline`, `isHomeworkExpired`). Логику, спрятанную в приватных методах сервисов, открываем для юнит-тестов через `@visibleForTesting` (публичная обёртка/переименование), не меняя поведения. Чистые функции, зависящие от «сейчас», принимают `{DateTime? now}` для детерминизма.
+- **Why:** Дублирование `'${d.year}-${d.month.padLeft}...'` было размазано по 3+ файлам, а `firestore_service._parseHomeworkDate` дублировал `parseHomeworkDeadline`. Перед рискованными Фазами 2–4 нужна страховка из тестов, а тестировать приватную логику напрямую нельзя. Инъекция `now` убирает флейки от системных часов.
+- **Consequences:** Новую дату-логику добавлять только в `app_date_utils.dart`. Тесты чистой логики не ходят в сеть и не зависят от времени. `FirestoreService.homeworkFromFirestore` и `AIService.extractQuickHomeworkJson` теперь публичны (только для тестов, помечены аннотацией).
+- **Rollback:** Вернуть ручное форматирование по месту и приватные методы — но это откат страховки, не рекомендуется.
+
 ## 2026-07-10 - Оптимизация Infinite Scroll через itemExtent
 - **Status:** accepted
 - **Decision:** Обязательное использование `itemExtent` (или `prototypeItem`) в `ListView.builder` при использовании больших `initialScrollOffset`.

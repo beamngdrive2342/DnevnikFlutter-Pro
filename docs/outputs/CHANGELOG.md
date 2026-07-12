@@ -7,6 +7,8 @@
 ## [Unreleased]
 
 ### Added
+- **Unit-тесты (страховка перед рефакторингом, Фаза 1)**: 5 файлов, 22 теста на чистую логику — `ai_service_test` (парсинг JSON от Gemini), `firestore_parsing_test` (парсинг Firestore-документа ДЗ), `homework_expiry_test` (просрочка ДЗ), `schedule_data_test` (`ClassSchedule.loadFromFirestoreDoc`), `date_utils_test`. В сеть не ходят. `flutter test` — зелёный.
+- **Тестируемость чистой логики**: `AIService.extractQuickHomeworkJson` и `FirestoreService.homeworkFromFirestore` помечены `@visibleForTesting`; добавлена чистая `isHomeworkExpired(String, {DateTime? now})` в `app_date_utils.dart` с инъекцией времени.
 - **Profile Customization** (`profile_provider.dart`): Глобальный стейт-менеджер профиля ученика/админа. Имя и фото (в виде base64) сохраняются локально через `SharedPreferences` и `image_picker`.
 - **Settings Screen** (`settings_screen.dart`): Новый полноценный экран настроек с 4 секциями:
   - «Профиль»: смена аватара и имени
@@ -20,6 +22,7 @@
 - **Новые зависимости**: `url_launcher ^6.2.0` (открытие ссылок), `package_info_plus ^8.0.0` (версия приложения).
 
 ### Changed
+- **Единый источник форматирования дат**: все ручные `'${d.year}-${d.month.padLeft}...'` заменены на `formatDateIso()` из `app_date_utils.dart` (в `ai_service.dart`, `diary_screen.dart`, `admin_panel_screen.dart`). Дублирующий парсер `_parseHomeworkDate` в `firestore_service.dart` удалён — теперь единая `parseHomeworkDeadline` / `isHomeworkExpired`.
 - **Diary TopBar**: Кнопки отдельной смены темы и выхода из аккаунта заменены стильной кнопкой-пилюлей "Профиль" с аватаром пользователя.
 - **UI/UX**: Полный отказ от эффектов прозрачности/glassmorphism (удалены BackdropFilter из диалогов) в пользу solid-цветов (palette.bg) для лучшей читаемости и производительности.
 - **AndroidManifest.xml**: `android:label` изменён с `dnevnik_app` на `Школьный Дневник`. `READ/WRITE_EXTERNAL_STORAGE` ограничены `maxSdkVersion="32"` (deprecated на Android 13+), добавлен `READ_MEDIA_IMAGES`.
@@ -31,6 +34,10 @@
 - **Startup Jank / Scroll Lag**: Устранено зависание приложения при запуске путем добавления `itemExtent` в `CalendarStrip` (предотвращает синхронный рендер тысяч элементов при начальном `initialScrollOffset`).
 - **Startup UI Flicker**: Устранено мерцание лоадеров (скелетонов) при загрузке оффлайн-данных. Кэш `SharedPreferences` теперь подгружается синхронно до отрисовки `DiaryScreen`, а `refreshHomeworkInBackground()` тихо обновляет данные без блокировки UI.
 - **Pull to Refresh**: Свайп вниз в `DiaryScreen` теперь не только обновляет данные, но и плавно возвращает пользователя на сегодняшний день.
+
+### Removed
+- **Мёртвый код в `diary_screen.dart`**: удалён неиспользуемый метод `_showLessonDetails` (~300 строк с `// ignore: unused_element` и закомментированным блоком сохранения фото) вместе со ставшим ненужным `_saveImageToGallery` и мёртвыми импортами (`dart:ui`, `gal`, `image_data`, `top_notification`). Итого −367 строк. `_openFullScreenImage` (тап по фото) сохранён.
+- **Фейковые «тесты»**: удалены `test/test_ai.dart` (содержал захардкоженный Google API-ключ) и `test/test_firestore.dart` — это были сетевые скрипты с `main()`, а не тесты.
 
 ---
 
