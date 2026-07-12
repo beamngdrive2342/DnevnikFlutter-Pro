@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'schedule_data.dart';
+import '../utils/app_date_utils.dart';
 import '../utils/image_data.dart';
 import 'auth_service.dart';
 
@@ -472,33 +473,8 @@ class FirestoreService {
     }
   }
 
-  static bool _isExpiredHomework(HomeworkItem hw) {
-    final deadline = _parseHomeworkDate(hw.deadline);
-    if (deadline == null) {
-      return false;
-    }
-
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final cutoff = today.subtract(const Duration(days: 14));
-    return deadline.isBefore(cutoff);
-  }
-
-  static DateTime? _parseHomeworkDate(String value) {
-    final parts = value.split('-');
-    if (parts.length != 3) {
-      return null;
-    }
-
-    final year = int.tryParse(parts[0]);
-    final month = int.tryParse(parts[1]);
-    final day = int.tryParse(parts[2]);
-    if (year == null || month == null || day == null) {
-      return null;
-    }
-
-    return DateTime(year, month, day);
-  }
+  static bool _isExpiredHomework(HomeworkItem hw) =>
+      isHomeworkExpired(hw.deadline);
 
   static Future<http.Response?> _requestWithRetry(
     Future<http.Response> Function() request,
@@ -573,6 +549,11 @@ class FirestoreService {
       }
     };
   }
+
+  /// Test-only access to the private Firestore document parser.
+  @visibleForTesting
+  static HomeworkItem homeworkFromFirestore(Map<String, dynamic> doc) =>
+      _fromFirestore(doc);
 
   static HomeworkItem _fromFirestore(Map<String, dynamic> doc) {
     final fields = doc['fields'] ?? {};

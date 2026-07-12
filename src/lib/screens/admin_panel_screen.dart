@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/firestore_service.dart';
 import '../data/schedule_data.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_date_utils.dart';
 import '../utils/image_data.dart';
 import '../widgets/network_photo.dart';
 import '../widgets/admin/admin_homework_card.dart';
@@ -58,7 +59,7 @@ class AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
     }
 
     final list = await FirestoreService.getHomework(forceRefresh: forceRefresh);
-    final todayStr = _todayString();
+    final todayStr = todayString();
     final sortedHomework = list
         .where((hw) => hw.deadline.compareTo(todayStr) >= 0)
         .toList(growable: false)
@@ -72,11 +73,6 @@ class AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
       );
       _isLoading = false;
     });
-  }
-
-  String _todayString() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   Future<void> reload({bool forceRefresh = false}) {

@@ -50,3 +50,19 @@ String todayString() {
   final now = DateTime.now();
   return formatDateIso(now);
 }
+
+/// Returns true if [deadline] (YYYY-MM-DD) is more than 14 days before today.
+///
+/// Invalid or empty deadlines are treated as not expired.
+/// [now] can be injected for deterministic testing.
+bool isHomeworkExpired(String deadline, {DateTime? now}) {
+  final parsed = parseHomeworkDeadline(deadline);
+  if (parsed == null) {
+    return false;
+  }
+
+  final reference = now ?? DateTime.now();
+  final today = DateTime(reference.year, reference.month, reference.day);
+  final cutoff = today.subtract(const Duration(days: 14));
+  return parsed.isBefore(cutoff);
+}

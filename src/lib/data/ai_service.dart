@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+import '../utils/app_date_utils.dart';
 
 class AIService {
   // VERCEL PROXY CONFIG
@@ -131,8 +134,7 @@ $homeworkContext
   }) async {
 
 
-    final todayText =
-        '${today.year}-${today.month.toString().padLeft(2, "0")}-${today.day.toString().padLeft(2, "0")}';
+    final todayText = formatDateIso(today);
 
     final now = DateTime.now();
     final currentTimeText =
@@ -260,7 +262,7 @@ $scheduleText
         return {'subject': null, 'deadline': null, 'task': null};
       }
 
-      final parsed = _extractQuickHomeworkJson(text);
+      final parsed = extractQuickHomeworkJson(text);
       return {
         'subject': parsed['subject'] as String?,
         'deadline': parsed['deadline'] as String?,
@@ -279,7 +281,12 @@ $scheduleText
     }
   }
 
-  static Map<String, dynamic> _extractQuickHomeworkJson(String raw) {
+  /// Extracts the structured homework JSON from a raw model response.
+  ///
+  /// Handles clean JSON, JSON inside ```json fenced blocks, and JSON embedded
+  /// in surrounding text. Returns a fallback map when nothing parses.
+  @visibleForTesting
+  static Map<String, dynamic> extractQuickHomeworkJson(String raw) {
     final trimmed = raw.trim();
     final fenced = RegExp(r'```(?:json)?\s*(\{.*?\})\s*```', dotAll: true)
         .firstMatch(trimmed);
